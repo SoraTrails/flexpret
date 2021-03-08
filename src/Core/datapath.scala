@@ -18,6 +18,7 @@ class Datapath(implicit conf: FlexpretConfiguration) extends Module
     val dmem = new DataMemCoreIO().flip
     val bus = new BusIO().flip
     val host = new HostIO()
+    val debug_inst = new DebugIO()
     val gpio = new GPIO()
     val int_exts = Vec.fill(conf.threads) { Bool(INPUT) }
   }
@@ -49,6 +50,7 @@ class Datapath(implicit conf: FlexpretConfiguration) extends Module
   val exe_reg_pc4      = Reg(UInt()) // rd for JAL*
   val exe_reg_csr_addr = Reg(UInt())
   val exe_reg_csr_data = Reg(UInt())
+  val exe_reg_inst     = Reg(Bits())
 
   val exe_alu_result   = Bits()
   val exe_address      = UInt()
@@ -230,6 +232,7 @@ class Datapath(implicit conf: FlexpretConfiguration) extends Module
   exe_reg_pc4      := dec_reg_pc4
   exe_reg_csr_addr := dec_reg_inst(31, 20)
   exe_reg_csr_data := dec_csr_data
+  exe_reg_inst     := dec_reg_inst
 
   
   // ************************************************************
@@ -390,6 +393,7 @@ class Datapath(implicit conf: FlexpretConfiguration) extends Module
 
   // I/O
   io.host.to_host := csr.io.host.to_host
+  io.debug_inst.exe_reg_inst := exe_reg_inst
   io.gpio <> csr.io.gpio
 
   

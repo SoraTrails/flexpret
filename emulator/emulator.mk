@@ -48,3 +48,4 @@ $(EMULATOR)-tb.o: $(TESTBENCH) $(addprefix $(EMULATOR_SRC_DIR)/, $(MODULE).cpp $
 $(EMULATOR): %: %.o %-tb.o
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
+$(EMULATOR_CPP): $(EMULATOR_SRC_DIR)/$(MODULE).cpp

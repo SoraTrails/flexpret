@@ -140,6 +140,11 @@ class HostIO() extends Bundle
   val to_host = Bits(OUTPUT, 32)
 }
 
+class DebugIO() extends Bundle 
+{
+  val exe_reg_inst = Bits(OUTPUT, 32)
+}
+
 class GPIO(implicit conf: FlexpretConfiguration) extends Bundle
 {
   val in = Vec(conf.gpiPortSizes.map(i => Bits(INPUT, i)))
@@ -152,6 +157,7 @@ class CoreIO(implicit conf: FlexpretConfiguration) extends Bundle
   val dmem = new DataMemBusIO()
   val bus  = new BusIO().flip
   val host = new HostIO()
+  val debug_inst = new DebugIO()
   val gpio = new GPIO()
   val int_exts = Vec.fill(8) { Bool(INPUT) }
   //val int_exts = Vec.fill(conf.threads) { Bool(INPUT) }
@@ -181,6 +187,7 @@ class Core(confIn: FlexpretConfiguration) extends Module
   io.dmem <> dmem.io.bus
   io.bus  <> datapath.io.bus
   io.host <> datapath.io.host
+  io.debug_inst <> datapath.io.debug_inst
   io.gpio <> datapath.io.gpio
   for(tid <- 0 until conf.threads) {
     datapath.io.int_exts(tid) := io.int_exts(tid)

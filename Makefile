@@ -76,6 +76,7 @@ include $(EMULATOR_DIR)/emulator.mk
 
 emulator: $(EMULATOR) 
 
+# Build cpp only
 emulator_cpp: $(EMULATOR_CPP)
 
 # -----------------------------------------------------------------------------
@@ -138,6 +139,15 @@ CLEAN_TARGET = $(EMULATOR_SRC_DIR) $(EMULATOR_BUILD_DIR) $(PROG_RESULTS_DIR) $(P
 
 endif
 
+# # -----------------------------------------------------------------------------
+# #  Os
+# # -----------------------------------------------------------------------------
+# FLEXPRET_OS = src/os/flexpret_os
+
+# include src/os/os.mk
+
+# os: $(FLEXPRET_OS)
+
 # -----------------------------------------------------------------------------
 #  Cleanup
 # -----------------------------------------------------------------------------
@@ -154,4 +164,4 @@ cleanall:
 	find $(TESTS_DIR) -type d -name "results" -exec rm -rf {} \; \
 		find $(TESTS_DIR) -type d -name "build" -exec rm -rf {} \;
 
-.PHONY: run emulator fpga prog clean cleanall
+.PHONY: run emulator fpga prog clean cleanall os

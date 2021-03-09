@@ -19,8 +19,9 @@ Core-my.o:${TESTBENCH}/Core-tb-my.cpp ${CORE}/*.h
 	g++ -g -O2 -I${CORE} -c ${TESTBENCH}/Core-tb-my-gen.cpp -o Core-my.o
 Core-my:Core.o Core-my.o
 	g++ -g -O2 -o Core-my Core.o Core-my.o
-Core:Core.o Core-tb.o
+Core:Core.o Core-tb.o Core-my.o
 	g++ -g -O2 -o Core Core.o Core-tb.o
+	g++ -g -O2 -o Core-my Core.o Core-my.o
 
 # elf gen
 sboth.o:both_comm.c 

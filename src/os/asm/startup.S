@@ -68,11 +68,14 @@ sw x0, 0(a2)
 j reset
 # for thread 0, indicate pass/fail by setting tohost to return value from
 # program (if 0, set to 15; ends simulation)
+
+# NOTE(zxj 3.10): when thread 0 returns a, write to tohost (a + 1) to end simulation
+# If a equals 0, simulation is ended correctly, otherwise bad return value will be shown by 
+# simulator (should minus 1).
 done:
-bnez a0, 1f
-addi a0, a0, 15
-1: csrw tohost, a0
-2: j 2b
+addi a0, a0, 1
+csrw tohost, a0
+1: j 1b
 
 
 # Format is t0_PC, t0_stack, t1_PC, t1_stack, ...

@@ -1,7 +1,7 @@
 #ifndef FLEXPRET_THREADS_H
 #define FLEXPRET_THREADS_H
 
-#include "encoding.h"
+#include "flexpret_encoding.h"
 #include "flexpret_const.h"
 
 #ifndef THREADS
@@ -12,19 +12,6 @@ typedef struct hwthread_state {
     void (*func)();
     uint32_t stack_address;
 } hwthread_state;
-
-extern volatile hwthread_state startup_state[THREADS];
-
-void hwthread_start(uint32_t tid, void (*func)(), uint32_t stack_address) {
-    startup_state[tid].func = func;
-    if(stack_address != NULL) {
-        startup_state[tid].stack_address = stack_address;
-    }
-}
-
-uint32_t hwthread_done(uint32_t tid) {
-    return (startup_state[tid].func == NULL);
-}
 
 // CSR_SLOTS
 #define set_slots(s7, s6, s5, s4, s3, s2, s1, s0) (\

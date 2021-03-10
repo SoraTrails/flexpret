@@ -72,5 +72,5 @@ int main() {
     set_tmodes_4(TMODE_HZ, TMODE_HA, TMODE_HA, TMODE_HA); // all hard+active
     while((hwthread_done(1) & hwthread_done(2)) == 0);
     gpo_set_0(3);
-    return 1;
+    return 0;
 }

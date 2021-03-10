@@ -281,12 +281,13 @@ int main (int argc, char* argv[])
                     c->dump(vcd_file, cycle);
                 }
 
+                printf(
+                    FORMAT_TO_BE_MODIFIED,
+                    VAR_TO_BE_MODIFIED
+                );
+
                 // Text trace
                 if(trace) {
-                    printf(
-                        FORMAT_TO_BE_MODIFIED,
-                        VAR_TO_BE_MODIFIED
-                    );
                     fprintf(stderr, "Trace: cycle = %d\t, tid=%d\t, valid=%d\t, pc=%016x, inst=%016x\n", cycle, c->Core_datapath__exe_reg_tid.lo_word(), c->Core_control__exe_valid.lo_word(), c->Core_datapath__exe_reg_pc.lo_word(), c->Core_datapath__exe_reg_inst.lo_word());
                     // spike
                     //if(c->Core_control__exe_valid.to_bool()) {

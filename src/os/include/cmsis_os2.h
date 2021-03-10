@@ -61,9 +61,10 @@
 #endif
 #endif
 
-#include <stdint.h>
-#include <stddef.h>
- 
+// #include <stdint.h>
+// #include <stddef.h>
+#include "flexpret_const.h"
+
 #ifdef  __cplusplus
 extern "C"
 {

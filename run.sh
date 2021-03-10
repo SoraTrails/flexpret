@@ -28,7 +28,12 @@ if [ "${order}"z == "cmpz" ]; then
     cp ${WORK_DIR}/${target}.inst.mem.ins ${RES_DIR}/asm.tmp
     grep -E '[0-9a-f]+:' ${RES_DIR}/asm.tmp | grep -v 'elf' | awk '{$1="";print $0}' > ${RES_DIR}/asm
     rm -f ${RES_DIR}/asm.tmp
-elif [ "${order}"z == "runz" ]; then
+elif [ "${order}"z == "testcmpz" ]; then
+    cd ${WORK_DIR} && make test
+    cp ${WORK_DIR}/test.inst.mem.ins ${RES_DIR}/asm.tmp
+    grep -E '[0-9a-f]+:' ${RES_DIR}/asm.tmp | grep -v 'elf' | awk '{$1="";print $0}' > ${RES_DIR}/asm
+    rm -f ${RES_DIR}/asm.tmp
+elif [ "${order}"z == "runz" -o "${order}"z == "testrunz" ]; then
     # gen config
     # dat_t -- signal; mem_t -- memory
     grep -E '^  dat_t<[0-9]+> Core' ${RES_DIR}/Core.h | grep -v -E '__prev' | grep -v -E '(scheduler|control)__R[0-9]+' | awk '{match($1,/dat_t<([0-9]+)>/,a); print a[1], substr($2,0,length($2)-1)}' > ${RES_DIR}/config
@@ -56,12 +61,18 @@ elif [ "${order}"z == "runz" ]; then
     echo "compiling testbench Core ... (complie log location: ${RES_DIR}/cmp_log)"
     cd ${WORK_DIR} && make Core > ${RES_DIR}/cmp_log 2>&1
     # run
-    echo "running testbench Core ... (log location: ${RES_DIR}/raw_log)"
-    ${WORK_DIR}/Core --maxcycles=150000 --ispm=${target}.inst.mem --dspm=${target}.data.mem --trace 2> ${RES_DIR}/raw_log > ${RES_DIR}/log
-    echo "Core return $?."
+    if [ "${order}"z == "runz" ]; then
+        echo "running testbench Core ... (log location: ${RES_DIR}/raw_log)"
+        ${WORK_DIR}/Core --maxcycles=150000 --ispm=${target}.inst.mem --dspm=${target}.data.mem 2> ${RES_DIR}/raw_log > ${RES_DIR}/log
+        echo "Core return $?."
+    else 
+        echo "running testbench Core (os test) ... (log location: ${RES_DIR}/raw_log)"
+        ${WORK_DIR}/Core --maxcycles=150000 --ispm=test.inst.mem --dspm=test.data.mem 2> ${RES_DIR}/raw_log > ${RES_DIR}/log
+        echo "Core return $?."
+    fi
     gzip -c ${RES_DIR}/log > ${RES_DIR}/log.tar.gz
 elif [ "${order}"z == "copybeforez" ]; then
-    list=(`cd $MAP_DIR && git --no-pager diff HEAD~1 | grep '^+++ b/' | sed 's/+++ b\///'`)
+    list=(`cd $MAP_DIR && git --no-pager diff HEAD | grep '^+++ b/' | sed 's/+++ b\///'`)
     for i in ${list[*]}; do 
         echo -n "copy  ${MAP_DIR}/$i  to  ${ROOT_DIR}/$i ... "
         cp ${MAP_DIR}/$i ${ROOT_DIR}/$i

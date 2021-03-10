@@ -1,7 +1,7 @@
 #ifndef FLEXPRET_TIMING_H
 #define FLEXPRET_TIMING_H
 
-#include "encoding.h"
+#include "flexpret_encoding.h"
 #include "flexpret_const.h"
 
 // Timing instructions

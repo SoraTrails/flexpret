@@ -13,10 +13,10 @@ all:Core Core-my sboth.elf
 # emulator and testbench
 Core.o:${CORE}/Core.cpp ${CORE}/*.h
 	g++ -g -O2 -c ${CORE}/Core.cpp -o Core.o
-Core-tb.o:${TESTBENCH}/Core-tb---test.cpp ${CORE}/*.h
-	g++ -g -O2 -I${CORE} -c ${TESTBENCH}/Core-tb---test.cpp -o Core-tb.o
-Core-my.o:${TESTBENCH}/Core-tb-my.cpp ${CORE}/*.h
-	g++ -g -O2 -I${CORE} -c ${TESTBENCH}/Core-tb-my-gen.cpp -o Core-my.o
+Core-tb.o:${TESTBENCH}/Core-tb-sboth.cpp ${CORE}/*.h
+	g++ -g -O2 -I${CORE} -c ${TESTBENCH}/Core-tb-sboth.cpp -o Core-tb.o
+Core-my.o:${TESTBENCH}/Core-tb-sboth.cpp ${CORE}/*.h
+	g++ -g -O2 -I${CORE} -c ${TESTBENCH}/Core-tb-sboth-gen.cpp -o Core-sboth.o
 Core-my:Core.o Core-my.o
 	g++ -g -O2 -o Core-my Core.o Core-my.o
 Core:Core.o Core-tb.o Core-my.o

@@ -22,7 +22,7 @@ Disassembly of section .text:
   28:	20000597          	auipc	a1,0x20000
   2c:	fd858593          	addi	a1,a1,-40 # 20000000 <DATA_START_ADDR>
   30:	00000517          	auipc	a0,0x0
-  34:	04050513          	addi	a0,a0,64 # 70 <main>
+  34:	05450513          	addi	a0,a0,84 # 84 <main>
   38:	0045a583          	lw	a1,4(a1)
 
 0000003c <startup>:
@@ -42,537 +42,990 @@ Disassembly of section .text:
   68:	51e51073          	csrw	tohost,a0
   6c:	0000006f          	j	6c <done+0x8>
 
-00000070 <main>:
-  70:	e7010113          	addi	sp,sp,-400
-  74:	18112623          	sw	ra,396(sp)
-  78:	18812423          	sw	s0,392(sp)
-  7c:	19010413          	addi	s0,sp,400
-  80:	f7040793          	addi	a5,s0,-144
-  84:	00078513          	mv	a0,a5
-  88:	68c000ef          	jal	714 <itoa_hex>
-  8c:	00050793          	mv	a5,a0
-  90:	00078513          	mv	a0,a5
-  94:	630000ef          	jal	6c4 <emulator_outputstr>
-  98:	200007b7          	lui	a5,0x20000
-  9c:	02078513          	addi	a0,a5,32 # 20000020 <DATA_START_ADDR+0x20>
-  a0:	624000ef          	jal	6c4 <emulator_outputstr>
-  a4:	ef040793          	addi	a5,s0,-272
-  a8:	00078513          	mv	a0,a5
-  ac:	668000ef          	jal	714 <itoa_hex>
-  b0:	00050793          	mv	a5,a0
-  b4:	00078513          	mv	a0,a5
-  b8:	60c000ef          	jal	6c4 <emulator_outputstr>
-  bc:	200007b7          	lui	a5,0x20000
-  c0:	02078513          	addi	a0,a5,32 # 20000020 <DATA_START_ADDR+0x20>
-  c4:	600000ef          	jal	6c4 <emulator_outputstr>
-  c8:	e7040793          	addi	a5,s0,-400
-  cc:	00078513          	mv	a0,a5
-  d0:	644000ef          	jal	714 <itoa_hex>
-  d4:	00050793          	mv	a5,a0
-  d8:	00078513          	mv	a0,a5
-  dc:	5e8000ef          	jal	6c4 <emulator_outputstr>
-  e0:	200007b7          	lui	a5,0x20000
-  e4:	02078513          	addi	a0,a5,32 # 20000020 <DATA_START_ADDR+0x20>
-  e8:	5dc000ef          	jal	6c4 <emulator_outputstr>
-  ec:	00000793          	li	a5,0
-  f0:	00078513          	mv	a0,a5
-  f4:	18c12083          	lw	ra,396(sp)
-  f8:	18812403          	lw	s0,392(sp)
-  fc:	19010113          	addi	sp,sp,400
- 100:	00008067          	ret
+00000070 <app_main>:
+  70:	fe010113          	addi	sp,sp,-32
+  74:	00812e23          	sw	s0,28(sp)
+  78:	02010413          	addi	s0,sp,32
+  7c:	fea42623          	sw	a0,-20(s0)
+  80:	0000006f          	j	80 <app_main+0x10>
 
-00000104 <hwthread_start>:
- 104:	fe010113          	addi	sp,sp,-32
- 108:	00812e23          	sw	s0,28(sp)
- 10c:	02010413          	addi	s0,sp,32
- 110:	fea42623          	sw	a0,-20(s0)
- 114:	feb42423          	sw	a1,-24(s0)
- 118:	fec42223          	sw	a2,-28(s0)
- 11c:	200007b7          	lui	a5,0x20000
- 120:	fec42703          	lw	a4,-20(s0)
- 124:	00371713          	slli	a4,a4,0x3
- 128:	00078793          	mv	a5,a5
- 12c:	00f707b3          	add	a5,a4,a5
- 130:	fe842703          	lw	a4,-24(s0)
- 134:	00e7a023          	sw	a4,0(a5) # 20000000 <DATA_START_ADDR>
- 138:	fe442783          	lw	a5,-28(s0)
- 13c:	02078063          	beqz	a5,15c <hwthread_start+0x58>
- 140:	200007b7          	lui	a5,0x20000
- 144:	fec42703          	lw	a4,-20(s0)
- 148:	00371713          	slli	a4,a4,0x3
- 14c:	00078793          	mv	a5,a5
- 150:	00f707b3          	add	a5,a4,a5
- 154:	fe442703          	lw	a4,-28(s0)
- 158:	00e7a223          	sw	a4,4(a5) # 20000004 <DATA_START_ADDR+0x4>
- 15c:	01c12403          	lw	s0,28(sp)
- 160:	02010113          	addi	sp,sp,32
- 164:	00008067          	ret
+00000084 <main>:
+  84:	fe010113          	addi	sp,sp,-32
+  88:	00112e23          	sw	ra,28(sp)
+  8c:	00812c23          	sw	s0,24(sp)
+  90:	02010413          	addi	s0,sp,32
+  94:	fef40793          	addi	a5,s0,-17
+  98:	00078513          	mv	a0,a5
+  9c:	349000ef          	jal	be4 <itoa_hex>
+  a0:	00050793          	mv	a5,a0
+  a4:	00078513          	mv	a0,a5
+  a8:	2ed000ef          	jal	b94 <emulator_outputstr>
+  ac:	200007b7          	lui	a5,0x20000
+  b0:	02078513          	addi	a0,a5,32 # 20000020 <DATA_START_ADDR+0x20>
+  b4:	2e1000ef          	jal	b94 <emulator_outputstr>
+  b8:	410000ef          	jal	4c8 <osKernelInitialize>
+  bc:	07000513          	li	a0,112
+  c0:	00000593          	li	a1,0
+  c4:	00000613          	li	a2,0
+  c8:	0c4000ef          	jal	18c <osThreadNew>
+  cc:	46c000ef          	jal	538 <osKernelStart>
+  d0:	00000793          	li	a5,0
+  d4:	00078513          	mv	a0,a5
+  d8:	01c12083          	lw	ra,28(sp)
+  dc:	01812403          	lw	s0,24(sp)
+  e0:	02010113          	addi	sp,sp,32
+  e4:	00008067          	ret
 
-00000168 <hwthread_done>:
- 168:	fe010113          	addi	sp,sp,-32
- 16c:	00812e23          	sw	s0,28(sp)
- 170:	02010413          	addi	s0,sp,32
- 174:	fea42623          	sw	a0,-20(s0)
- 178:	200007b7          	lui	a5,0x20000
- 17c:	fec42703          	lw	a4,-20(s0)
- 180:	00371713          	slli	a4,a4,0x3
- 184:	00078793          	mv	a5,a5
- 188:	00f707b3          	add	a5,a4,a5
- 18c:	0007a783          	lw	a5,0(a5) # 20000000 <DATA_START_ADDR>
- 190:	0017b793          	seqz	a5,a5
- 194:	0ff7f793          	andi	a5,a5,255
- 198:	00078513          	mv	a0,a5
- 19c:	01c12403          	lw	s0,28(sp)
- 1a0:	02010113          	addi	sp,sp,32
- 1a4:	00008067          	ret
+000000e8 <hwthread_start>:
+  e8:	fe010113          	addi	sp,sp,-32
+  ec:	00812e23          	sw	s0,28(sp)
+  f0:	02010413          	addi	s0,sp,32
+  f4:	fea42623          	sw	a0,-20(s0)
+  f8:	feb42423          	sw	a1,-24(s0)
+  fc:	fec42223          	sw	a2,-28(s0)
+ 100:	200007b7          	lui	a5,0x20000
+ 104:	fec42703          	lw	a4,-20(s0)
+ 108:	00371713          	slli	a4,a4,0x3
+ 10c:	00078793          	mv	a5,a5
+ 110:	00f707b3          	add	a5,a4,a5
+ 114:	fe842703          	lw	a4,-24(s0)
+ 118:	00e7a023          	sw	a4,0(a5) # 20000000 <DATA_START_ADDR>
+ 11c:	fe442783          	lw	a5,-28(s0)
+ 120:	02078063          	beqz	a5,140 <hwthread_start+0x58>
+ 124:	200007b7          	lui	a5,0x20000
+ 128:	fec42703          	lw	a4,-20(s0)
+ 12c:	00371713          	slli	a4,a4,0x3
+ 130:	00078793          	mv	a5,a5
+ 134:	00f707b3          	add	a5,a4,a5
+ 138:	fe442703          	lw	a4,-28(s0)
+ 13c:	00e7a223          	sw	a4,4(a5) # 20000004 <DATA_START_ADDR+0x4>
+ 140:	01c12403          	lw	s0,28(sp)
+ 144:	02010113          	addi	sp,sp,32
+ 148:	00008067          	ret
 
-000001a8 <gpo_write_0>:
- 1a8:	fe010113          	addi	sp,sp,-32
- 1ac:	00812e23          	sw	s0,28(sp)
- 1b0:	02010413          	addi	s0,sp,32
- 1b4:	fea42623          	sw	a0,-20(s0)
- 1b8:	fec42783          	lw	a5,-20(s0)
- 1bc:	cc479073          	csrw	uarch4,a5
- 1c0:	01c12403          	lw	s0,28(sp)
- 1c4:	02010113          	addi	sp,sp,32
- 1c8:	00008067          	ret
+0000014c <hwthread_done>:
+ 14c:	fe010113          	addi	sp,sp,-32
+ 150:	00812e23          	sw	s0,28(sp)
+ 154:	02010413          	addi	s0,sp,32
+ 158:	fea42623          	sw	a0,-20(s0)
+ 15c:	200007b7          	lui	a5,0x20000
+ 160:	fec42703          	lw	a4,-20(s0)
+ 164:	00371713          	slli	a4,a4,0x3
+ 168:	00078793          	mv	a5,a5
+ 16c:	00f707b3          	add	a5,a4,a5
+ 170:	0007a783          	lw	a5,0(a5) # 20000000 <DATA_START_ADDR>
+ 174:	0017b793          	seqz	a5,a5
+ 178:	0ff7f793          	andi	a5,a5,255
+ 17c:	00078513          	mv	a0,a5
+ 180:	01c12403          	lw	s0,28(sp)
+ 184:	02010113          	addi	sp,sp,32
+ 188:	00008067          	ret
 
-000001cc <gpo_write_1>:
- 1cc:	fe010113          	addi	sp,sp,-32
- 1d0:	00812e23          	sw	s0,28(sp)
- 1d4:	02010413          	addi	s0,sp,32
- 1d8:	fea42623          	sw	a0,-20(s0)
- 1dc:	fec42783          	lw	a5,-20(s0)
- 1e0:	cc579073          	csrw	uarch5,a5
- 1e4:	01c12403          	lw	s0,28(sp)
- 1e8:	02010113          	addi	sp,sp,32
- 1ec:	00008067          	ret
+0000018c <osThreadNew>:
+ 18c:	fe010113          	addi	sp,sp,-32
+ 190:	00812e23          	sw	s0,28(sp)
+ 194:	02010413          	addi	s0,sp,32
+ 198:	fea42623          	sw	a0,-20(s0)
+ 19c:	feb42423          	sw	a1,-24(s0)
+ 1a0:	fec42223          	sw	a2,-28(s0)
+ 1a4:	00000793          	li	a5,0
+ 1a8:	00078513          	mv	a0,a5
+ 1ac:	01c12403          	lw	s0,28(sp)
+ 1b0:	02010113          	addi	sp,sp,32
+ 1b4:	00008067          	ret
 
-000001f0 <gpo_write_2>:
- 1f0:	fe010113          	addi	sp,sp,-32
- 1f4:	00812e23          	sw	s0,28(sp)
- 1f8:	02010413          	addi	s0,sp,32
- 1fc:	fea42623          	sw	a0,-20(s0)
- 200:	fec42783          	lw	a5,-20(s0)
- 204:	cc679073          	csrw	uarch6,a5
- 208:	01c12403          	lw	s0,28(sp)
- 20c:	02010113          	addi	sp,sp,32
- 210:	00008067          	ret
+000001b8 <osThreadGetName>:
+ 1b8:	fe010113          	addi	sp,sp,-32
+ 1bc:	00812e23          	sw	s0,28(sp)
+ 1c0:	02010413          	addi	s0,sp,32
+ 1c4:	fea42623          	sw	a0,-20(s0)
+ 1c8:	00000793          	li	a5,0
+ 1cc:	00078513          	mv	a0,a5
+ 1d0:	01c12403          	lw	s0,28(sp)
+ 1d4:	02010113          	addi	sp,sp,32
+ 1d8:	00008067          	ret
 
-00000214 <gpo_write_3>:
- 214:	fe010113          	addi	sp,sp,-32
- 218:	00812e23          	sw	s0,28(sp)
- 21c:	02010413          	addi	s0,sp,32
- 220:	fea42623          	sw	a0,-20(s0)
- 224:	fec42783          	lw	a5,-20(s0)
- 228:	cc779073          	csrw	uarch7,a5
- 22c:	01c12403          	lw	s0,28(sp)
- 230:	02010113          	addi	sp,sp,32
- 234:	00008067          	ret
+000001dc <osThreadGetId>:
+ 1dc:	ff010113          	addi	sp,sp,-16
+ 1e0:	00812623          	sw	s0,12(sp)
+ 1e4:	01010413          	addi	s0,sp,16
+ 1e8:	00000793          	li	a5,0
+ 1ec:	00078513          	mv	a0,a5
+ 1f0:	00c12403          	lw	s0,12(sp)
+ 1f4:	01010113          	addi	sp,sp,16
+ 1f8:	00008067          	ret
 
-00000238 <gpo_set_0>:
- 238:	fd010113          	addi	sp,sp,-48
- 23c:	02812623          	sw	s0,44(sp)
- 240:	03010413          	addi	s0,sp,48
- 244:	fca42e23          	sw	a0,-36(s0)
- 248:	fdc42783          	lw	a5,-36(s0)
- 24c:	cc47a7f3          	csrrs	a5,uarch4,a5
- 250:	fef42623          	sw	a5,-20(s0)
- 254:	02c12403          	lw	s0,44(sp)
- 258:	03010113          	addi	sp,sp,48
- 25c:	00008067          	ret
+000001fc <osThreadGetState>:
+ 1fc:	fe010113          	addi	sp,sp,-32
+ 200:	00812e23          	sw	s0,28(sp)
+ 204:	02010413          	addi	s0,sp,32
+ 208:	fea42623          	sw	a0,-20(s0)
+ 20c:	800007b7          	lui	a5,0x80000
+ 210:	fff7c793          	not	a5,a5
+ 214:	00078513          	mv	a0,a5
+ 218:	01c12403          	lw	s0,28(sp)
+ 21c:	02010113          	addi	sp,sp,32
+ 220:	00008067          	ret
 
-00000260 <gpo_set_1>:
- 260:	fd010113          	addi	sp,sp,-48
- 264:	02812623          	sw	s0,44(sp)
- 268:	03010413          	addi	s0,sp,48
- 26c:	fca42e23          	sw	a0,-36(s0)
- 270:	fdc42783          	lw	a5,-36(s0)
- 274:	cc57a7f3          	csrrs	a5,uarch5,a5
- 278:	fef42623          	sw	a5,-20(s0)
- 27c:	02c12403          	lw	s0,44(sp)
- 280:	03010113          	addi	sp,sp,48
- 284:	00008067          	ret
+00000224 <osThreadGetStackSize>:
+ 224:	fe010113          	addi	sp,sp,-32
+ 228:	00812e23          	sw	s0,28(sp)
+ 22c:	02010413          	addi	s0,sp,32
+ 230:	fea42623          	sw	a0,-20(s0)
+ 234:	00000793          	li	a5,0
+ 238:	00078513          	mv	a0,a5
+ 23c:	01c12403          	lw	s0,28(sp)
+ 240:	02010113          	addi	sp,sp,32
+ 244:	00008067          	ret
 
-00000288 <gpo_set_2>:
- 288:	fd010113          	addi	sp,sp,-48
- 28c:	02812623          	sw	s0,44(sp)
- 290:	03010413          	addi	s0,sp,48
- 294:	fca42e23          	sw	a0,-36(s0)
- 298:	fdc42783          	lw	a5,-36(s0)
- 29c:	cc67a7f3          	csrrs	a5,uarch6,a5
- 2a0:	fef42623          	sw	a5,-20(s0)
- 2a4:	02c12403          	lw	s0,44(sp)
- 2a8:	03010113          	addi	sp,sp,48
- 2ac:	00008067          	ret
+00000248 <osThreadGetStackSpace>:
+ 248:	fe010113          	addi	sp,sp,-32
+ 24c:	00812e23          	sw	s0,28(sp)
+ 250:	02010413          	addi	s0,sp,32
+ 254:	fea42623          	sw	a0,-20(s0)
+ 258:	00000793          	li	a5,0
+ 25c:	00078513          	mv	a0,a5
+ 260:	01c12403          	lw	s0,28(sp)
+ 264:	02010113          	addi	sp,sp,32
+ 268:	00008067          	ret
 
-000002b0 <gpo_set_3>:
- 2b0:	fd010113          	addi	sp,sp,-48
- 2b4:	02812623          	sw	s0,44(sp)
- 2b8:	03010413          	addi	s0,sp,48
- 2bc:	fca42e23          	sw	a0,-36(s0)
- 2c0:	fdc42783          	lw	a5,-36(s0)
- 2c4:	cc77a7f3          	csrrs	a5,uarch7,a5
- 2c8:	fef42623          	sw	a5,-20(s0)
- 2cc:	02c12403          	lw	s0,44(sp)
- 2d0:	03010113          	addi	sp,sp,48
- 2d4:	00008067          	ret
+0000026c <osThreadSetPriority>:
+ 26c:	fe010113          	addi	sp,sp,-32
+ 270:	00812e23          	sw	s0,28(sp)
+ 274:	02010413          	addi	s0,sp,32
+ 278:	fea42623          	sw	a0,-20(s0)
+ 27c:	feb42423          	sw	a1,-24(s0)
+ 280:	00000793          	li	a5,0
+ 284:	00078513          	mv	a0,a5
+ 288:	01c12403          	lw	s0,28(sp)
+ 28c:	02010113          	addi	sp,sp,32
+ 290:	00008067          	ret
 
-000002d8 <gpo_clear_0>:
- 2d8:	fd010113          	addi	sp,sp,-48
- 2dc:	02812623          	sw	s0,44(sp)
- 2e0:	03010413          	addi	s0,sp,48
- 2e4:	fca42e23          	sw	a0,-36(s0)
- 2e8:	fdc42783          	lw	a5,-36(s0)
- 2ec:	cc47b7f3          	csrrc	a5,uarch4,a5
- 2f0:	fef42623          	sw	a5,-20(s0)
- 2f4:	02c12403          	lw	s0,44(sp)
- 2f8:	03010113          	addi	sp,sp,48
+00000294 <osThreadGetPriority>:
+ 294:	fe010113          	addi	sp,sp,-32
+ 298:	00812e23          	sw	s0,28(sp)
+ 29c:	02010413          	addi	s0,sp,32
+ 2a0:	fea42623          	sw	a0,-20(s0)
+ 2a4:	800007b7          	lui	a5,0x80000
+ 2a8:	fff7c793          	not	a5,a5
+ 2ac:	00078513          	mv	a0,a5
+ 2b0:	01c12403          	lw	s0,28(sp)
+ 2b4:	02010113          	addi	sp,sp,32
+ 2b8:	00008067          	ret
+
+000002bc <osThreadYield>:
+ 2bc:	ff010113          	addi	sp,sp,-16
+ 2c0:	00812623          	sw	s0,12(sp)
+ 2c4:	01010413          	addi	s0,sp,16
+ 2c8:	00000793          	li	a5,0
+ 2cc:	00078513          	mv	a0,a5
+ 2d0:	00c12403          	lw	s0,12(sp)
+ 2d4:	01010113          	addi	sp,sp,16
+ 2d8:	00008067          	ret
+
+000002dc <osThreadSuspend>:
+ 2dc:	fe010113          	addi	sp,sp,-32
+ 2e0:	00812e23          	sw	s0,28(sp)
+ 2e4:	02010413          	addi	s0,sp,32
+ 2e8:	fea42623          	sw	a0,-20(s0)
+ 2ec:	00000793          	li	a5,0
+ 2f0:	00078513          	mv	a0,a5
+ 2f4:	01c12403          	lw	s0,28(sp)
+ 2f8:	02010113          	addi	sp,sp,32
  2fc:	00008067          	ret
 
-00000300 <gpo_clear_1>:
- 300:	fd010113          	addi	sp,sp,-48
- 304:	02812623          	sw	s0,44(sp)
- 308:	03010413          	addi	s0,sp,48
- 30c:	fca42e23          	sw	a0,-36(s0)
- 310:	fdc42783          	lw	a5,-36(s0)
- 314:	cc57b7f3          	csrrc	a5,uarch5,a5
- 318:	fef42623          	sw	a5,-20(s0)
- 31c:	02c12403          	lw	s0,44(sp)
- 320:	03010113          	addi	sp,sp,48
- 324:	00008067          	ret
+00000300 <osThreadResume>:
+ 300:	fe010113          	addi	sp,sp,-32
+ 304:	00812e23          	sw	s0,28(sp)
+ 308:	02010413          	addi	s0,sp,32
+ 30c:	fea42623          	sw	a0,-20(s0)
+ 310:	00000793          	li	a5,0
+ 314:	00078513          	mv	a0,a5
+ 318:	01c12403          	lw	s0,28(sp)
+ 31c:	02010113          	addi	sp,sp,32
+ 320:	00008067          	ret
 
-00000328 <gpo_clear_2>:
- 328:	fd010113          	addi	sp,sp,-48
- 32c:	02812623          	sw	s0,44(sp)
- 330:	03010413          	addi	s0,sp,48
- 334:	fca42e23          	sw	a0,-36(s0)
- 338:	fdc42783          	lw	a5,-36(s0)
- 33c:	cc67b7f3          	csrrc	a5,uarch6,a5
- 340:	fef42623          	sw	a5,-20(s0)
- 344:	02c12403          	lw	s0,44(sp)
- 348:	03010113          	addi	sp,sp,48
- 34c:	00008067          	ret
+00000324 <osThreadDetach>:
+ 324:	fe010113          	addi	sp,sp,-32
+ 328:	00812e23          	sw	s0,28(sp)
+ 32c:	02010413          	addi	s0,sp,32
+ 330:	fea42623          	sw	a0,-20(s0)
+ 334:	00000793          	li	a5,0
+ 338:	00078513          	mv	a0,a5
+ 33c:	01c12403          	lw	s0,28(sp)
+ 340:	02010113          	addi	sp,sp,32
+ 344:	00008067          	ret
 
-00000350 <gpo_clear_3>:
- 350:	fd010113          	addi	sp,sp,-48
- 354:	02812623          	sw	s0,44(sp)
- 358:	03010413          	addi	s0,sp,48
- 35c:	fca42e23          	sw	a0,-36(s0)
- 360:	fdc42783          	lw	a5,-36(s0)
- 364:	cc77b7f3          	csrrc	a5,uarch7,a5
- 368:	fef42623          	sw	a5,-20(s0)
- 36c:	02c12403          	lw	s0,44(sp)
- 370:	03010113          	addi	sp,sp,48
- 374:	00008067          	ret
+00000348 <osThreadJoin>:
+ 348:	fe010113          	addi	sp,sp,-32
+ 34c:	00812e23          	sw	s0,28(sp)
+ 350:	02010413          	addi	s0,sp,32
+ 354:	fea42623          	sw	a0,-20(s0)
+ 358:	00000793          	li	a5,0
+ 35c:	00078513          	mv	a0,a5
+ 360:	01c12403          	lw	s0,28(sp)
+ 364:	02010113          	addi	sp,sp,32
+ 368:	00008067          	ret
 
-00000378 <gpo_read_0>:
- 378:	fe010113          	addi	sp,sp,-32
- 37c:	00812e23          	sw	s0,28(sp)
- 380:	02010413          	addi	s0,sp,32
- 384:	cc4027f3          	csrr	a5,uarch4
- 388:	fef42623          	sw	a5,-20(s0)
- 38c:	fec42783          	lw	a5,-20(s0)
+0000036c <osThreadExit>:
+ 36c:	ff010113          	addi	sp,sp,-16
+ 370:	00812623          	sw	s0,12(sp)
+ 374:	01010413          	addi	s0,sp,16
+ 378:	0000006f          	j	378 <osThreadExit+0xc>
+
+0000037c <osThreadTerminate>:
+ 37c:	fe010113          	addi	sp,sp,-32
+ 380:	00812e23          	sw	s0,28(sp)
+ 384:	02010413          	addi	s0,sp,32
+ 388:	fea42623          	sw	a0,-20(s0)
+ 38c:	00000793          	li	a5,0
  390:	00078513          	mv	a0,a5
  394:	01c12403          	lw	s0,28(sp)
  398:	02010113          	addi	sp,sp,32
  39c:	00008067          	ret
 
-000003a0 <gpo_read_1>:
- 3a0:	fe010113          	addi	sp,sp,-32
- 3a4:	00812e23          	sw	s0,28(sp)
- 3a8:	02010413          	addi	s0,sp,32
- 3ac:	cc5027f3          	csrr	a5,uarch5
- 3b0:	fef42623          	sw	a5,-20(s0)
- 3b4:	fec42783          	lw	a5,-20(s0)
- 3b8:	00078513          	mv	a0,a5
- 3bc:	01c12403          	lw	s0,28(sp)
- 3c0:	02010113          	addi	sp,sp,32
- 3c4:	00008067          	ret
+000003a0 <osThreadGetCount>:
+ 3a0:	ff010113          	addi	sp,sp,-16
+ 3a4:	00812623          	sw	s0,12(sp)
+ 3a8:	01010413          	addi	s0,sp,16
+ 3ac:	00000793          	li	a5,0
+ 3b0:	00078513          	mv	a0,a5
+ 3b4:	00c12403          	lw	s0,12(sp)
+ 3b8:	01010113          	addi	sp,sp,16
+ 3bc:	00008067          	ret
 
-000003c8 <gpo_read_2>:
- 3c8:	fe010113          	addi	sp,sp,-32
- 3cc:	00812e23          	sw	s0,28(sp)
- 3d0:	02010413          	addi	s0,sp,32
- 3d4:	cc6027f3          	csrr	a5,uarch6
- 3d8:	fef42623          	sw	a5,-20(s0)
- 3dc:	fec42783          	lw	a5,-20(s0)
- 3e0:	00078513          	mv	a0,a5
- 3e4:	01c12403          	lw	s0,28(sp)
- 3e8:	02010113          	addi	sp,sp,32
- 3ec:	00008067          	ret
+000003c0 <osThreadEnumerate>:
+ 3c0:	fe010113          	addi	sp,sp,-32
+ 3c4:	00812e23          	sw	s0,28(sp)
+ 3c8:	02010413          	addi	s0,sp,32
+ 3cc:	fea42623          	sw	a0,-20(s0)
+ 3d0:	feb42423          	sw	a1,-24(s0)
+ 3d4:	00000793          	li	a5,0
+ 3d8:	00078513          	mv	a0,a5
+ 3dc:	01c12403          	lw	s0,28(sp)
+ 3e0:	02010113          	addi	sp,sp,32
+ 3e4:	00008067          	ret
 
-000003f0 <gpo_read_3>:
- 3f0:	fe010113          	addi	sp,sp,-32
- 3f4:	00812e23          	sw	s0,28(sp)
- 3f8:	02010413          	addi	s0,sp,32
- 3fc:	cc7027f3          	csrr	a5,uarch7
- 400:	fef42623          	sw	a5,-20(s0)
- 404:	fec42783          	lw	a5,-20(s0)
- 408:	00078513          	mv	a0,a5
- 40c:	01c12403          	lw	s0,28(sp)
- 410:	02010113          	addi	sp,sp,32
- 414:	00008067          	ret
+000003e8 <osThreadFlagsSet>:
+ 3e8:	fe010113          	addi	sp,sp,-32
+ 3ec:	00812e23          	sw	s0,28(sp)
+ 3f0:	02010413          	addi	s0,sp,32
+ 3f4:	fea42623          	sw	a0,-20(s0)
+ 3f8:	feb42423          	sw	a1,-24(s0)
+ 3fc:	00000793          	li	a5,0
+ 400:	00078513          	mv	a0,a5
+ 404:	01c12403          	lw	s0,28(sp)
+ 408:	02010113          	addi	sp,sp,32
+ 40c:	00008067          	ret
 
-00000418 <gpi_read_0>:
- 418:	fe010113          	addi	sp,sp,-32
- 41c:	00812e23          	sw	s0,28(sp)
- 420:	02010413          	addi	s0,sp,32
- 424:	cc0027f3          	csrr	a5,uarch0
- 428:	fef42623          	sw	a5,-20(s0)
- 42c:	fec42783          	lw	a5,-20(s0)
- 430:	00078513          	mv	a0,a5
- 434:	01c12403          	lw	s0,28(sp)
- 438:	02010113          	addi	sp,sp,32
- 43c:	00008067          	ret
+00000410 <osThreadFlagsClear>:
+ 410:	fe010113          	addi	sp,sp,-32
+ 414:	00812e23          	sw	s0,28(sp)
+ 418:	02010413          	addi	s0,sp,32
+ 41c:	fea42623          	sw	a0,-20(s0)
+ 420:	00000793          	li	a5,0
+ 424:	00078513          	mv	a0,a5
+ 428:	01c12403          	lw	s0,28(sp)
+ 42c:	02010113          	addi	sp,sp,32
+ 430:	00008067          	ret
 
-00000440 <gpi_read_1>:
- 440:	fe010113          	addi	sp,sp,-32
- 444:	00812e23          	sw	s0,28(sp)
- 448:	02010413          	addi	s0,sp,32
- 44c:	cc1027f3          	csrr	a5,uarch1
- 450:	fef42623          	sw	a5,-20(s0)
- 454:	fec42783          	lw	a5,-20(s0)
- 458:	00078513          	mv	a0,a5
- 45c:	01c12403          	lw	s0,28(sp)
- 460:	02010113          	addi	sp,sp,32
- 464:	00008067          	ret
+00000434 <osThreadFlagsGet>:
+ 434:	ff010113          	addi	sp,sp,-16
+ 438:	00812623          	sw	s0,12(sp)
+ 43c:	01010413          	addi	s0,sp,16
+ 440:	00000793          	li	a5,0
+ 444:	00078513          	mv	a0,a5
+ 448:	00c12403          	lw	s0,12(sp)
+ 44c:	01010113          	addi	sp,sp,16
+ 450:	00008067          	ret
 
-00000468 <gpi_read_2>:
- 468:	fe010113          	addi	sp,sp,-32
- 46c:	00812e23          	sw	s0,28(sp)
- 470:	02010413          	addi	s0,sp,32
- 474:	cc2027f3          	csrr	a5,uarch2
- 478:	fef42623          	sw	a5,-20(s0)
- 47c:	fec42783          	lw	a5,-20(s0)
- 480:	00078513          	mv	a0,a5
- 484:	01c12403          	lw	s0,28(sp)
- 488:	02010113          	addi	sp,sp,32
- 48c:	00008067          	ret
+00000454 <osThreadFlagsWait>:
+ 454:	fe010113          	addi	sp,sp,-32
+ 458:	00812e23          	sw	s0,28(sp)
+ 45c:	02010413          	addi	s0,sp,32
+ 460:	fea42623          	sw	a0,-20(s0)
+ 464:	feb42423          	sw	a1,-24(s0)
+ 468:	fec42223          	sw	a2,-28(s0)
+ 46c:	00000793          	li	a5,0
+ 470:	00078513          	mv	a0,a5
+ 474:	01c12403          	lw	s0,28(sp)
+ 478:	02010113          	addi	sp,sp,32
+ 47c:	00008067          	ret
 
-00000490 <gpi_read_3>:
- 490:	fe010113          	addi	sp,sp,-32
- 494:	00812e23          	sw	s0,28(sp)
- 498:	02010413          	addi	s0,sp,32
- 49c:	cc3027f3          	csrr	a5,uarch3
- 4a0:	fef42623          	sw	a5,-20(s0)
- 4a4:	fec42783          	lw	a5,-20(s0)
- 4a8:	00078513          	mv	a0,a5
- 4ac:	01c12403          	lw	s0,28(sp)
- 4b0:	02010113          	addi	sp,sp,32
- 4b4:	00008067          	ret
+00000480 <osDelay>:
+ 480:	fe010113          	addi	sp,sp,-32
+ 484:	00812e23          	sw	s0,28(sp)
+ 488:	02010413          	addi	s0,sp,32
+ 48c:	fea42623          	sw	a0,-20(s0)
+ 490:	00000793          	li	a5,0
+ 494:	00078513          	mv	a0,a5
+ 498:	01c12403          	lw	s0,28(sp)
+ 49c:	02010113          	addi	sp,sp,32
+ 4a0:	00008067          	ret
 
-000004b8 <get_cycle>:
- 4b8:	fe010113          	addi	sp,sp,-32
- 4bc:	00812e23          	sw	s0,28(sp)
- 4c0:	02010413          	addi	s0,sp,32
- 4c4:	c00027f3          	rdcycle	a5
- 4c8:	fef42623          	sw	a5,-20(s0)
- 4cc:	fec42783          	lw	a5,-20(s0)
- 4d0:	00078513          	mv	a0,a5
- 4d4:	01c12403          	lw	s0,28(sp)
- 4d8:	02010113          	addi	sp,sp,32
- 4dc:	00008067          	ret
+000004a4 <osDelayUntil>:
+ 4a4:	fe010113          	addi	sp,sp,-32
+ 4a8:	00812e23          	sw	s0,28(sp)
+ 4ac:	02010413          	addi	s0,sp,32
+ 4b0:	fea42623          	sw	a0,-20(s0)
+ 4b4:	00000793          	li	a5,0
+ 4b8:	00078513          	mv	a0,a5
+ 4bc:	01c12403          	lw	s0,28(sp)
+ 4c0:	02010113          	addi	sp,sp,32
+ 4c4:	00008067          	ret
 
-000004e0 <get_cycleh>:
- 4e0:	fe010113          	addi	sp,sp,-32
- 4e4:	00812e23          	sw	s0,28(sp)
- 4e8:	02010413          	addi	s0,sp,32
- 4ec:	c80027f3          	rdcycleh	a5
- 4f0:	fef42623          	sw	a5,-20(s0)
- 4f4:	fec42783          	lw	a5,-20(s0)
- 4f8:	00078513          	mv	a0,a5
- 4fc:	01c12403          	lw	s0,28(sp)
- 500:	02010113          	addi	sp,sp,32
- 504:	00008067          	ret
+000004c8 <osKernelInitialize>:
+ 4c8:	ff010113          	addi	sp,sp,-16
+ 4cc:	00812623          	sw	s0,12(sp)
+ 4d0:	01010413          	addi	s0,sp,16
+ 4d4:	00000793          	li	a5,0
+ 4d8:	00078513          	mv	a0,a5
+ 4dc:	00c12403          	lw	s0,12(sp)
+ 4e0:	01010113          	addi	sp,sp,16
+ 4e4:	00008067          	ret
 
-00000508 <get_instret>:
- 508:	fe010113          	addi	sp,sp,-32
- 50c:	00812e23          	sw	s0,28(sp)
- 510:	02010413          	addi	s0,sp,32
- 514:	c02027f3          	rdinstret	a5
- 518:	fef42623          	sw	a5,-20(s0)
- 51c:	fec42783          	lw	a5,-20(s0)
- 520:	00078513          	mv	a0,a5
- 524:	01c12403          	lw	s0,28(sp)
- 528:	02010113          	addi	sp,sp,32
- 52c:	00008067          	ret
+000004e8 <osKernelGetInfo>:
+ 4e8:	fe010113          	addi	sp,sp,-32
+ 4ec:	00812e23          	sw	s0,28(sp)
+ 4f0:	02010413          	addi	s0,sp,32
+ 4f4:	fea42623          	sw	a0,-20(s0)
+ 4f8:	feb42423          	sw	a1,-24(s0)
+ 4fc:	fec42223          	sw	a2,-28(s0)
+ 500:	00000793          	li	a5,0
+ 504:	00078513          	mv	a0,a5
+ 508:	01c12403          	lw	s0,28(sp)
+ 50c:	02010113          	addi	sp,sp,32
+ 510:	00008067          	ret
 
-00000530 <get_instreth>:
- 530:	fe010113          	addi	sp,sp,-32
- 534:	00812e23          	sw	s0,28(sp)
- 538:	02010413          	addi	s0,sp,32
- 53c:	c82027f3          	rdinstreth	a5
- 540:	fef42623          	sw	a5,-20(s0)
- 544:	fec42783          	lw	a5,-20(s0)
+00000514 <osKernelGetState>:
+ 514:	ff010113          	addi	sp,sp,-16
+ 518:	00812623          	sw	s0,12(sp)
+ 51c:	01010413          	addi	s0,sp,16
+ 520:	800007b7          	lui	a5,0x80000
+ 524:	fff7c793          	not	a5,a5
+ 528:	00078513          	mv	a0,a5
+ 52c:	00c12403          	lw	s0,12(sp)
+ 530:	01010113          	addi	sp,sp,16
+ 534:	00008067          	ret
+
+00000538 <osKernelStart>:
+ 538:	ff010113          	addi	sp,sp,-16
+ 53c:	00812623          	sw	s0,12(sp)
+ 540:	01010413          	addi	s0,sp,16
+ 544:	00000793          	li	a5,0
  548:	00078513          	mv	a0,a5
- 54c:	01c12403          	lw	s0,28(sp)
- 550:	02010113          	addi	sp,sp,32
+ 54c:	00c12403          	lw	s0,12(sp)
+ 550:	01010113          	addi	sp,sp,16
  554:	00008067          	ret
 
-00000558 <stats_get>:
- 558:	fe010113          	addi	sp,sp,-32
- 55c:	00112e23          	sw	ra,28(sp)
- 560:	00812c23          	sw	s0,24(sp)
- 564:	02010413          	addi	s0,sp,32
- 568:	fea42623          	sw	a0,-20(s0)
- 56c:	f75ff0ef          	jal	4e0 <get_cycleh>
- 570:	00050713          	mv	a4,a0
- 574:	fec42783          	lw	a5,-20(s0)
- 578:	00e7a223          	sw	a4,4(a5)
- 57c:	fb5ff0ef          	jal	530 <get_instreth>
- 580:	00050713          	mv	a4,a0
- 584:	fec42783          	lw	a5,-20(s0)
- 588:	00e7a623          	sw	a4,12(a5)
- 58c:	f2dff0ef          	jal	4b8 <get_cycle>
- 590:	00050713          	mv	a4,a0
- 594:	fec42783          	lw	a5,-20(s0)
- 598:	00e7a023          	sw	a4,0(a5)
- 59c:	f6dff0ef          	jal	508 <get_instret>
- 5a0:	00050713          	mv	a4,a0
- 5a4:	fec42783          	lw	a5,-20(s0)
- 5a8:	00e7a423          	sw	a4,8(a5)
- 5ac:	f35ff0ef          	jal	4e0 <get_cycleh>
- 5b0:	00050713          	mv	a4,a0
- 5b4:	fec42783          	lw	a5,-20(s0)
- 5b8:	0047a783          	lw	a5,4(a5)
- 5bc:	faf718e3          	bne	a4,a5,56c <stats_get+0x14>
- 5c0:	f71ff0ef          	jal	530 <get_instreth>
- 5c4:	00050713          	mv	a4,a0
- 5c8:	fec42783          	lw	a5,-20(s0)
- 5cc:	00c7a783          	lw	a5,12(a5)
- 5d0:	f8f71ee3          	bne	a4,a5,56c <stats_get+0x14>
- 5d4:	01c12083          	lw	ra,28(sp)
- 5d8:	01812403          	lw	s0,24(sp)
- 5dc:	02010113          	addi	sp,sp,32
- 5e0:	00008067          	ret
+00000558 <osKernelLock>:
+ 558:	ff010113          	addi	sp,sp,-16
+ 55c:	00812623          	sw	s0,12(sp)
+ 560:	01010413          	addi	s0,sp,16
+ 564:	00000793          	li	a5,0
+ 568:	00078513          	mv	a0,a5
+ 56c:	00c12403          	lw	s0,12(sp)
+ 570:	01010113          	addi	sp,sp,16
+ 574:	00008067          	ret
 
-000005e4 <stats_print>:
- 5e4:	fe010113          	addi	sp,sp,-32
- 5e8:	00112e23          	sw	ra,28(sp)
- 5ec:	00812c23          	sw	s0,24(sp)
- 5f0:	02010413          	addi	s0,sp,32
- 5f4:	fea42623          	sw	a0,-20(s0)
- 5f8:	feb42423          	sw	a1,-24(s0)
- 5fc:	fe842783          	lw	a5,-24(s0)
- 600:	0047a703          	lw	a4,4(a5)
- 604:	fec42783          	lw	a5,-20(s0)
- 608:	0047a783          	lw	a5,4(a5)
- 60c:	40f707b3          	sub	a5,a4,a5
- 610:	00078513          	mv	a0,a5
- 614:	100000ef          	jal	714 <itoa_hex>
- 618:	00050793          	mv	a5,a0
- 61c:	00078513          	mv	a0,a5
- 620:	0a4000ef          	jal	6c4 <emulator_outputstr>
- 624:	fe842783          	lw	a5,-24(s0)
- 628:	0007a703          	lw	a4,0(a5)
- 62c:	fec42783          	lw	a5,-20(s0)
- 630:	0007a783          	lw	a5,0(a5)
- 634:	40f707b3          	sub	a5,a4,a5
- 638:	00078513          	mv	a0,a5
- 63c:	0d8000ef          	jal	714 <itoa_hex>
- 640:	00050793          	mv	a5,a0
- 644:	00078513          	mv	a0,a5
- 648:	07c000ef          	jal	6c4 <emulator_outputstr>
- 64c:	200007b7          	lui	a5,0x20000
- 650:	02478513          	addi	a0,a5,36 # 20000024 <DATA_START_ADDR+0x24>
- 654:	070000ef          	jal	6c4 <emulator_outputstr>
- 658:	fe842783          	lw	a5,-24(s0)
- 65c:	00c7a703          	lw	a4,12(a5)
- 660:	fec42783          	lw	a5,-20(s0)
- 664:	00c7a783          	lw	a5,12(a5)
- 668:	40f707b3          	sub	a5,a4,a5
- 66c:	00078513          	mv	a0,a5
- 670:	0a4000ef          	jal	714 <itoa_hex>
- 674:	00050793          	mv	a5,a0
- 678:	00078513          	mv	a0,a5
- 67c:	048000ef          	jal	6c4 <emulator_outputstr>
- 680:	fe842783          	lw	a5,-24(s0)
- 684:	0087a703          	lw	a4,8(a5)
+00000578 <osKernelUnlock>:
+ 578:	ff010113          	addi	sp,sp,-16
+ 57c:	00812623          	sw	s0,12(sp)
+ 580:	01010413          	addi	s0,sp,16
+ 584:	00000793          	li	a5,0
+ 588:	00078513          	mv	a0,a5
+ 58c:	00c12403          	lw	s0,12(sp)
+ 590:	01010113          	addi	sp,sp,16
+ 594:	00008067          	ret
+
+00000598 <osKernelRestoreLock>:
+ 598:	fe010113          	addi	sp,sp,-32
+ 59c:	00812e23          	sw	s0,28(sp)
+ 5a0:	02010413          	addi	s0,sp,32
+ 5a4:	fea42623          	sw	a0,-20(s0)
+ 5a8:	00000793          	li	a5,0
+ 5ac:	00078513          	mv	a0,a5
+ 5b0:	01c12403          	lw	s0,28(sp)
+ 5b4:	02010113          	addi	sp,sp,32
+ 5b8:	00008067          	ret
+
+000005bc <osKernelSuspend>:
+ 5bc:	ff010113          	addi	sp,sp,-16
+ 5c0:	00812623          	sw	s0,12(sp)
+ 5c4:	01010413          	addi	s0,sp,16
+ 5c8:	00000793          	li	a5,0
+ 5cc:	00078513          	mv	a0,a5
+ 5d0:	00c12403          	lw	s0,12(sp)
+ 5d4:	01010113          	addi	sp,sp,16
+ 5d8:	00008067          	ret
+
+000005dc <osKernelResume>:
+ 5dc:	fe010113          	addi	sp,sp,-32
+ 5e0:	00812e23          	sw	s0,28(sp)
+ 5e4:	02010413          	addi	s0,sp,32
+ 5e8:	fea42623          	sw	a0,-20(s0)
+ 5ec:	01c12403          	lw	s0,28(sp)
+ 5f0:	02010113          	addi	sp,sp,32
+ 5f4:	00008067          	ret
+
+000005f8 <osKernelGetTickCount>:
+ 5f8:	ff010113          	addi	sp,sp,-16
+ 5fc:	00812623          	sw	s0,12(sp)
+ 600:	01010413          	addi	s0,sp,16
+ 604:	00000793          	li	a5,0
+ 608:	00078513          	mv	a0,a5
+ 60c:	00c12403          	lw	s0,12(sp)
+ 610:	01010113          	addi	sp,sp,16
+ 614:	00008067          	ret
+
+00000618 <osKernelGetTickFreq>:
+ 618:	ff010113          	addi	sp,sp,-16
+ 61c:	00812623          	sw	s0,12(sp)
+ 620:	01010413          	addi	s0,sp,16
+ 624:	00000793          	li	a5,0
+ 628:	00078513          	mv	a0,a5
+ 62c:	00c12403          	lw	s0,12(sp)
+ 630:	01010113          	addi	sp,sp,16
+ 634:	00008067          	ret
+
+00000638 <osKernelGetSysTimerCount>:
+ 638:	ff010113          	addi	sp,sp,-16
+ 63c:	00812623          	sw	s0,12(sp)
+ 640:	01010413          	addi	s0,sp,16
+ 644:	00000793          	li	a5,0
+ 648:	00078513          	mv	a0,a5
+ 64c:	00c12403          	lw	s0,12(sp)
+ 650:	01010113          	addi	sp,sp,16
+ 654:	00008067          	ret
+
+00000658 <osKernelGetSysTimerFreq>:
+ 658:	ff010113          	addi	sp,sp,-16
+ 65c:	00812623          	sw	s0,12(sp)
+ 660:	01010413          	addi	s0,sp,16
+ 664:	00000793          	li	a5,0
+ 668:	00078513          	mv	a0,a5
+ 66c:	00c12403          	lw	s0,12(sp)
+ 670:	01010113          	addi	sp,sp,16
+ 674:	00008067          	ret
+
+00000678 <gpo_write_0>:
+ 678:	fe010113          	addi	sp,sp,-32
+ 67c:	00812e23          	sw	s0,28(sp)
+ 680:	02010413          	addi	s0,sp,32
+ 684:	fea42623          	sw	a0,-20(s0)
  688:	fec42783          	lw	a5,-20(s0)
- 68c:	0087a783          	lw	a5,8(a5)
- 690:	40f707b3          	sub	a5,a4,a5
- 694:	00078513          	mv	a0,a5
- 698:	07c000ef          	jal	714 <itoa_hex>
- 69c:	00050793          	mv	a5,a0
- 6a0:	00078513          	mv	a0,a5
- 6a4:	020000ef          	jal	6c4 <emulator_outputstr>
- 6a8:	200007b7          	lui	a5,0x20000
- 6ac:	02478513          	addi	a0,a5,36 # 20000024 <DATA_START_ADDR+0x24>
- 6b0:	014000ef          	jal	6c4 <emulator_outputstr>
- 6b4:	01c12083          	lw	ra,28(sp)
- 6b8:	01812403          	lw	s0,24(sp)
- 6bc:	02010113          	addi	sp,sp,32
- 6c0:	00008067          	ret
+ 68c:	cc479073          	csrw	uarch4,a5
+ 690:	01c12403          	lw	s0,28(sp)
+ 694:	02010113          	addi	sp,sp,32
+ 698:	00008067          	ret
 
-000006c4 <emulator_outputstr>:
- 6c4:	fd010113          	addi	sp,sp,-48
- 6c8:	02812623          	sw	s0,44(sp)
- 6cc:	03010413          	addi	s0,sp,48
- 6d0:	fca42e23          	sw	a0,-36(s0)
- 6d4:	400007b7          	lui	a5,0x40000
- 6d8:	fef42623          	sw	a5,-20(s0)
- 6dc:	0200006f          	j	6fc <emulator_outputstr+0x38>
- 6e0:	fdc42783          	lw	a5,-36(s0)
- 6e4:	0007c703          	lbu	a4,0(a5) # 40000000 <bss_end+0x1fffffcf>
- 6e8:	fec42783          	lw	a5,-20(s0)
- 6ec:	00e78023          	sb	a4,0(a5)
- 6f0:	fdc42783          	lw	a5,-36(s0)
- 6f4:	00178793          	addi	a5,a5,1
- 6f8:	fcf42e23          	sw	a5,-36(s0)
- 6fc:	fdc42783          	lw	a5,-36(s0)
- 700:	0007c783          	lbu	a5,0(a5)
- 704:	fc079ee3          	bnez	a5,6e0 <emulator_outputstr+0x1c>
- 708:	02c12403          	lw	s0,44(sp)
- 70c:	03010113          	addi	sp,sp,48
- 710:	00008067          	ret
+0000069c <gpo_write_1>:
+ 69c:	fe010113          	addi	sp,sp,-32
+ 6a0:	00812e23          	sw	s0,28(sp)
+ 6a4:	02010413          	addi	s0,sp,32
+ 6a8:	fea42623          	sw	a0,-20(s0)
+ 6ac:	fec42783          	lw	a5,-20(s0)
+ 6b0:	cc579073          	csrw	uarch5,a5
+ 6b4:	01c12403          	lw	s0,28(sp)
+ 6b8:	02010113          	addi	sp,sp,32
+ 6bc:	00008067          	ret
 
-00000714 <itoa_hex>:
- 714:	fe010113          	addi	sp,sp,-32
- 718:	00812e23          	sw	s0,28(sp)
- 71c:	00912c23          	sw	s1,24(sp)
- 720:	02010413          	addi	s0,sp,32
- 724:	fea42623          	sw	a0,-20(s0)
- 728:	00700493          	li	s1,7
- 72c:	07c0006f          	j	7a8 <itoa_hex+0x94>
- 730:	fec42783          	lw	a5,-20(s0)
- 734:	0ff7f793          	andi	a5,a5,255
- 738:	00f7f793          	andi	a5,a5,15
- 73c:	0ff7f793          	andi	a5,a5,255
- 740:	03078793          	addi	a5,a5,48
- 744:	0ff7f713          	andi	a4,a5,255
- 748:	200007b7          	lui	a5,0x20000
- 74c:	02878793          	addi	a5,a5,40 # 20000028 <qbuf>
- 750:	00f487b3          	add	a5,s1,a5
- 754:	00e78023          	sb	a4,0(a5)
- 758:	200007b7          	lui	a5,0x20000
- 75c:	02878793          	addi	a5,a5,40 # 20000028 <qbuf>
- 760:	00f487b3          	add	a5,s1,a5
- 764:	0007c703          	lbu	a4,0(a5)
- 768:	03900793          	li	a5,57
- 76c:	02e7f663          	bleu	a4,a5,798 <itoa_hex+0x84>
- 770:	200007b7          	lui	a5,0x20000
- 774:	02878793          	addi	a5,a5,40 # 20000028 <qbuf>
- 778:	00f487b3          	add	a5,s1,a5
- 77c:	0007c783          	lbu	a5,0(a5)
- 780:	00778793          	addi	a5,a5,7
- 784:	0ff7f713          	andi	a4,a5,255
- 788:	200007b7          	lui	a5,0x20000
- 78c:	02878793          	addi	a5,a5,40 # 20000028 <qbuf>
- 790:	00f487b3          	add	a5,s1,a5
- 794:	00e78023          	sb	a4,0(a5)
- 798:	fec42783          	lw	a5,-20(s0)
- 79c:	0047d793          	srli	a5,a5,0x4
- 7a0:	fef42623          	sw	a5,-20(s0)
- 7a4:	fff48493          	addi	s1,s1,-1
- 7a8:	f804d4e3          	bgez	s1,730 <itoa_hex+0x1c>
- 7ac:	200007b7          	lui	a5,0x20000
- 7b0:	02878793          	addi	a5,a5,40 # 20000028 <qbuf>
- 7b4:	00078423          	sb	zero,8(a5)
- 7b8:	200007b7          	lui	a5,0x20000
- 7bc:	02878793          	addi	a5,a5,40 # 20000028 <qbuf>
- 7c0:	00078513          	mv	a0,a5
- 7c4:	01c12403          	lw	s0,28(sp)
- 7c8:	01812483          	lw	s1,24(sp)
- 7cc:	02010113          	addi	sp,sp,32
- 7d0:	00008067          	ret
+000006c0 <gpo_write_2>:
+ 6c0:	fe010113          	addi	sp,sp,-32
+ 6c4:	00812e23          	sw	s0,28(sp)
+ 6c8:	02010413          	addi	s0,sp,32
+ 6cc:	fea42623          	sw	a0,-20(s0)
+ 6d0:	fec42783          	lw	a5,-20(s0)
+ 6d4:	cc679073          	csrw	uarch6,a5
+ 6d8:	01c12403          	lw	s0,28(sp)
+ 6dc:	02010113          	addi	sp,sp,32
+ 6e0:	00008067          	ret
+
+000006e4 <gpo_write_3>:
+ 6e4:	fe010113          	addi	sp,sp,-32
+ 6e8:	00812e23          	sw	s0,28(sp)
+ 6ec:	02010413          	addi	s0,sp,32
+ 6f0:	fea42623          	sw	a0,-20(s0)
+ 6f4:	fec42783          	lw	a5,-20(s0)
+ 6f8:	cc779073          	csrw	uarch7,a5
+ 6fc:	01c12403          	lw	s0,28(sp)
+ 700:	02010113          	addi	sp,sp,32
+ 704:	00008067          	ret
+
+00000708 <gpo_set_0>:
+ 708:	fd010113          	addi	sp,sp,-48
+ 70c:	02812623          	sw	s0,44(sp)
+ 710:	03010413          	addi	s0,sp,48
+ 714:	fca42e23          	sw	a0,-36(s0)
+ 718:	fdc42783          	lw	a5,-36(s0)
+ 71c:	cc47a7f3          	csrrs	a5,uarch4,a5
+ 720:	fef42623          	sw	a5,-20(s0)
+ 724:	02c12403          	lw	s0,44(sp)
+ 728:	03010113          	addi	sp,sp,48
+ 72c:	00008067          	ret
+
+00000730 <gpo_set_1>:
+ 730:	fd010113          	addi	sp,sp,-48
+ 734:	02812623          	sw	s0,44(sp)
+ 738:	03010413          	addi	s0,sp,48
+ 73c:	fca42e23          	sw	a0,-36(s0)
+ 740:	fdc42783          	lw	a5,-36(s0)
+ 744:	cc57a7f3          	csrrs	a5,uarch5,a5
+ 748:	fef42623          	sw	a5,-20(s0)
+ 74c:	02c12403          	lw	s0,44(sp)
+ 750:	03010113          	addi	sp,sp,48
+ 754:	00008067          	ret
+
+00000758 <gpo_set_2>:
+ 758:	fd010113          	addi	sp,sp,-48
+ 75c:	02812623          	sw	s0,44(sp)
+ 760:	03010413          	addi	s0,sp,48
+ 764:	fca42e23          	sw	a0,-36(s0)
+ 768:	fdc42783          	lw	a5,-36(s0)
+ 76c:	cc67a7f3          	csrrs	a5,uarch6,a5
+ 770:	fef42623          	sw	a5,-20(s0)
+ 774:	02c12403          	lw	s0,44(sp)
+ 778:	03010113          	addi	sp,sp,48
+ 77c:	00008067          	ret
+
+00000780 <gpo_set_3>:
+ 780:	fd010113          	addi	sp,sp,-48
+ 784:	02812623          	sw	s0,44(sp)
+ 788:	03010413          	addi	s0,sp,48
+ 78c:	fca42e23          	sw	a0,-36(s0)
+ 790:	fdc42783          	lw	a5,-36(s0)
+ 794:	cc77a7f3          	csrrs	a5,uarch7,a5
+ 798:	fef42623          	sw	a5,-20(s0)
+ 79c:	02c12403          	lw	s0,44(sp)
+ 7a0:	03010113          	addi	sp,sp,48
+ 7a4:	00008067          	ret
+
+000007a8 <gpo_clear_0>:
+ 7a8:	fd010113          	addi	sp,sp,-48
+ 7ac:	02812623          	sw	s0,44(sp)
+ 7b0:	03010413          	addi	s0,sp,48
+ 7b4:	fca42e23          	sw	a0,-36(s0)
+ 7b8:	fdc42783          	lw	a5,-36(s0)
+ 7bc:	cc47b7f3          	csrrc	a5,uarch4,a5
+ 7c0:	fef42623          	sw	a5,-20(s0)
+ 7c4:	02c12403          	lw	s0,44(sp)
+ 7c8:	03010113          	addi	sp,sp,48
+ 7cc:	00008067          	ret
+
+000007d0 <gpo_clear_1>:
+ 7d0:	fd010113          	addi	sp,sp,-48
+ 7d4:	02812623          	sw	s0,44(sp)
+ 7d8:	03010413          	addi	s0,sp,48
+ 7dc:	fca42e23          	sw	a0,-36(s0)
+ 7e0:	fdc42783          	lw	a5,-36(s0)
+ 7e4:	cc57b7f3          	csrrc	a5,uarch5,a5
+ 7e8:	fef42623          	sw	a5,-20(s0)
+ 7ec:	02c12403          	lw	s0,44(sp)
+ 7f0:	03010113          	addi	sp,sp,48
+ 7f4:	00008067          	ret
+
+000007f8 <gpo_clear_2>:
+ 7f8:	fd010113          	addi	sp,sp,-48
+ 7fc:	02812623          	sw	s0,44(sp)
+ 800:	03010413          	addi	s0,sp,48
+ 804:	fca42e23          	sw	a0,-36(s0)
+ 808:	fdc42783          	lw	a5,-36(s0)
+ 80c:	cc67b7f3          	csrrc	a5,uarch6,a5
+ 810:	fef42623          	sw	a5,-20(s0)
+ 814:	02c12403          	lw	s0,44(sp)
+ 818:	03010113          	addi	sp,sp,48
+ 81c:	00008067          	ret
+
+00000820 <gpo_clear_3>:
+ 820:	fd010113          	addi	sp,sp,-48
+ 824:	02812623          	sw	s0,44(sp)
+ 828:	03010413          	addi	s0,sp,48
+ 82c:	fca42e23          	sw	a0,-36(s0)
+ 830:	fdc42783          	lw	a5,-36(s0)
+ 834:	cc77b7f3          	csrrc	a5,uarch7,a5
+ 838:	fef42623          	sw	a5,-20(s0)
+ 83c:	02c12403          	lw	s0,44(sp)
+ 840:	03010113          	addi	sp,sp,48
+ 844:	00008067          	ret
+
+00000848 <gpo_read_0>:
+ 848:	fe010113          	addi	sp,sp,-32
+ 84c:	00812e23          	sw	s0,28(sp)
+ 850:	02010413          	addi	s0,sp,32
+ 854:	cc4027f3          	csrr	a5,uarch4
+ 858:	fef42623          	sw	a5,-20(s0)
+ 85c:	fec42783          	lw	a5,-20(s0)
+ 860:	00078513          	mv	a0,a5
+ 864:	01c12403          	lw	s0,28(sp)
+ 868:	02010113          	addi	sp,sp,32
+ 86c:	00008067          	ret
+
+00000870 <gpo_read_1>:
+ 870:	fe010113          	addi	sp,sp,-32
+ 874:	00812e23          	sw	s0,28(sp)
+ 878:	02010413          	addi	s0,sp,32
+ 87c:	cc5027f3          	csrr	a5,uarch5
+ 880:	fef42623          	sw	a5,-20(s0)
+ 884:	fec42783          	lw	a5,-20(s0)
+ 888:	00078513          	mv	a0,a5
+ 88c:	01c12403          	lw	s0,28(sp)
+ 890:	02010113          	addi	sp,sp,32
+ 894:	00008067          	ret
+
+00000898 <gpo_read_2>:
+ 898:	fe010113          	addi	sp,sp,-32
+ 89c:	00812e23          	sw	s0,28(sp)
+ 8a0:	02010413          	addi	s0,sp,32
+ 8a4:	cc6027f3          	csrr	a5,uarch6
+ 8a8:	fef42623          	sw	a5,-20(s0)
+ 8ac:	fec42783          	lw	a5,-20(s0)
+ 8b0:	00078513          	mv	a0,a5
+ 8b4:	01c12403          	lw	s0,28(sp)
+ 8b8:	02010113          	addi	sp,sp,32
+ 8bc:	00008067          	ret
+
+000008c0 <gpo_read_3>:
+ 8c0:	fe010113          	addi	sp,sp,-32
+ 8c4:	00812e23          	sw	s0,28(sp)
+ 8c8:	02010413          	addi	s0,sp,32
+ 8cc:	cc7027f3          	csrr	a5,uarch7
+ 8d0:	fef42623          	sw	a5,-20(s0)
+ 8d4:	fec42783          	lw	a5,-20(s0)
+ 8d8:	00078513          	mv	a0,a5
+ 8dc:	01c12403          	lw	s0,28(sp)
+ 8e0:	02010113          	addi	sp,sp,32
+ 8e4:	00008067          	ret
+
+000008e8 <gpi_read_0>:
+ 8e8:	fe010113          	addi	sp,sp,-32
+ 8ec:	00812e23          	sw	s0,28(sp)
+ 8f0:	02010413          	addi	s0,sp,32
+ 8f4:	cc0027f3          	csrr	a5,uarch0
+ 8f8:	fef42623          	sw	a5,-20(s0)
+ 8fc:	fec42783          	lw	a5,-20(s0)
+ 900:	00078513          	mv	a0,a5
+ 904:	01c12403          	lw	s0,28(sp)
+ 908:	02010113          	addi	sp,sp,32
+ 90c:	00008067          	ret
+
+00000910 <gpi_read_1>:
+ 910:	fe010113          	addi	sp,sp,-32
+ 914:	00812e23          	sw	s0,28(sp)
+ 918:	02010413          	addi	s0,sp,32
+ 91c:	cc1027f3          	csrr	a5,uarch1
+ 920:	fef42623          	sw	a5,-20(s0)
+ 924:	fec42783          	lw	a5,-20(s0)
+ 928:	00078513          	mv	a0,a5
+ 92c:	01c12403          	lw	s0,28(sp)
+ 930:	02010113          	addi	sp,sp,32
+ 934:	00008067          	ret
+
+00000938 <gpi_read_2>:
+ 938:	fe010113          	addi	sp,sp,-32
+ 93c:	00812e23          	sw	s0,28(sp)
+ 940:	02010413          	addi	s0,sp,32
+ 944:	cc2027f3          	csrr	a5,uarch2
+ 948:	fef42623          	sw	a5,-20(s0)
+ 94c:	fec42783          	lw	a5,-20(s0)
+ 950:	00078513          	mv	a0,a5
+ 954:	01c12403          	lw	s0,28(sp)
+ 958:	02010113          	addi	sp,sp,32
+ 95c:	00008067          	ret
+
+00000960 <gpi_read_3>:
+ 960:	fe010113          	addi	sp,sp,-32
+ 964:	00812e23          	sw	s0,28(sp)
+ 968:	02010413          	addi	s0,sp,32
+ 96c:	cc3027f3          	csrr	a5,uarch3
+ 970:	fef42623          	sw	a5,-20(s0)
+ 974:	fec42783          	lw	a5,-20(s0)
+ 978:	00078513          	mv	a0,a5
+ 97c:	01c12403          	lw	s0,28(sp)
+ 980:	02010113          	addi	sp,sp,32
+ 984:	00008067          	ret
+
+00000988 <get_cycle>:
+ 988:	fe010113          	addi	sp,sp,-32
+ 98c:	00812e23          	sw	s0,28(sp)
+ 990:	02010413          	addi	s0,sp,32
+ 994:	c00027f3          	rdcycle	a5
+ 998:	fef42623          	sw	a5,-20(s0)
+ 99c:	fec42783          	lw	a5,-20(s0)
+ 9a0:	00078513          	mv	a0,a5
+ 9a4:	01c12403          	lw	s0,28(sp)
+ 9a8:	02010113          	addi	sp,sp,32
+ 9ac:	00008067          	ret
+
+000009b0 <get_cycleh>:
+ 9b0:	fe010113          	addi	sp,sp,-32
+ 9b4:	00812e23          	sw	s0,28(sp)
+ 9b8:	02010413          	addi	s0,sp,32
+ 9bc:	c80027f3          	rdcycleh	a5
+ 9c0:	fef42623          	sw	a5,-20(s0)
+ 9c4:	fec42783          	lw	a5,-20(s0)
+ 9c8:	00078513          	mv	a0,a5
+ 9cc:	01c12403          	lw	s0,28(sp)
+ 9d0:	02010113          	addi	sp,sp,32
+ 9d4:	00008067          	ret
+
+000009d8 <get_instret>:
+ 9d8:	fe010113          	addi	sp,sp,-32
+ 9dc:	00812e23          	sw	s0,28(sp)
+ 9e0:	02010413          	addi	s0,sp,32
+ 9e4:	c02027f3          	rdinstret	a5
+ 9e8:	fef42623          	sw	a5,-20(s0)
+ 9ec:	fec42783          	lw	a5,-20(s0)
+ 9f0:	00078513          	mv	a0,a5
+ 9f4:	01c12403          	lw	s0,28(sp)
+ 9f8:	02010113          	addi	sp,sp,32
+ 9fc:	00008067          	ret
+
+00000a00 <get_instreth>:
+ a00:	fe010113          	addi	sp,sp,-32
+ a04:	00812e23          	sw	s0,28(sp)
+ a08:	02010413          	addi	s0,sp,32
+ a0c:	c82027f3          	rdinstreth	a5
+ a10:	fef42623          	sw	a5,-20(s0)
+ a14:	fec42783          	lw	a5,-20(s0)
+ a18:	00078513          	mv	a0,a5
+ a1c:	01c12403          	lw	s0,28(sp)
+ a20:	02010113          	addi	sp,sp,32
+ a24:	00008067          	ret
+
+00000a28 <stats_get>:
+ a28:	fe010113          	addi	sp,sp,-32
+ a2c:	00112e23          	sw	ra,28(sp)
+ a30:	00812c23          	sw	s0,24(sp)
+ a34:	02010413          	addi	s0,sp,32
+ a38:	fea42623          	sw	a0,-20(s0)
+ a3c:	f75ff0ef          	jal	9b0 <get_cycleh>
+ a40:	00050713          	mv	a4,a0
+ a44:	fec42783          	lw	a5,-20(s0)
+ a48:	00e7a223          	sw	a4,4(a5) # 80000004 <bss_end+0x5fffffcf>
+ a4c:	fb5ff0ef          	jal	a00 <get_instreth>
+ a50:	00050713          	mv	a4,a0
+ a54:	fec42783          	lw	a5,-20(s0)
+ a58:	00e7a623          	sw	a4,12(a5)
+ a5c:	f2dff0ef          	jal	988 <get_cycle>
+ a60:	00050713          	mv	a4,a0
+ a64:	fec42783          	lw	a5,-20(s0)
+ a68:	00e7a023          	sw	a4,0(a5)
+ a6c:	f6dff0ef          	jal	9d8 <get_instret>
+ a70:	00050713          	mv	a4,a0
+ a74:	fec42783          	lw	a5,-20(s0)
+ a78:	00e7a423          	sw	a4,8(a5)
+ a7c:	f35ff0ef          	jal	9b0 <get_cycleh>
+ a80:	00050713          	mv	a4,a0
+ a84:	fec42783          	lw	a5,-20(s0)
+ a88:	0047a783          	lw	a5,4(a5)
+ a8c:	faf718e3          	bne	a4,a5,a3c <stats_get+0x14>
+ a90:	f71ff0ef          	jal	a00 <get_instreth>
+ a94:	00050713          	mv	a4,a0
+ a98:	fec42783          	lw	a5,-20(s0)
+ a9c:	00c7a783          	lw	a5,12(a5)
+ aa0:	f8f71ee3          	bne	a4,a5,a3c <stats_get+0x14>
+ aa4:	01c12083          	lw	ra,28(sp)
+ aa8:	01812403          	lw	s0,24(sp)
+ aac:	02010113          	addi	sp,sp,32
+ ab0:	00008067          	ret
+
+00000ab4 <stats_print>:
+ ab4:	fe010113          	addi	sp,sp,-32
+ ab8:	00112e23          	sw	ra,28(sp)
+ abc:	00812c23          	sw	s0,24(sp)
+ ac0:	02010413          	addi	s0,sp,32
+ ac4:	fea42623          	sw	a0,-20(s0)
+ ac8:	feb42423          	sw	a1,-24(s0)
+ acc:	fe842783          	lw	a5,-24(s0)
+ ad0:	0047a703          	lw	a4,4(a5)
+ ad4:	fec42783          	lw	a5,-20(s0)
+ ad8:	0047a783          	lw	a5,4(a5)
+ adc:	40f707b3          	sub	a5,a4,a5
+ ae0:	00078513          	mv	a0,a5
+ ae4:	100000ef          	jal	be4 <itoa_hex>
+ ae8:	00050793          	mv	a5,a0
+ aec:	00078513          	mv	a0,a5
+ af0:	0a4000ef          	jal	b94 <emulator_outputstr>
+ af4:	fe842783          	lw	a5,-24(s0)
+ af8:	0007a703          	lw	a4,0(a5)
+ afc:	fec42783          	lw	a5,-20(s0)
+ b00:	0007a783          	lw	a5,0(a5)
+ b04:	40f707b3          	sub	a5,a4,a5
+ b08:	00078513          	mv	a0,a5
+ b0c:	0d8000ef          	jal	be4 <itoa_hex>
+ b10:	00050793          	mv	a5,a0
+ b14:	00078513          	mv	a0,a5
+ b18:	07c000ef          	jal	b94 <emulator_outputstr>
+ b1c:	200007b7          	lui	a5,0x20000
+ b20:	02478513          	addi	a0,a5,36 # 20000024 <DATA_START_ADDR+0x24>
+ b24:	070000ef          	jal	b94 <emulator_outputstr>
+ b28:	fe842783          	lw	a5,-24(s0)
+ b2c:	00c7a703          	lw	a4,12(a5)
+ b30:	fec42783          	lw	a5,-20(s0)
+ b34:	00c7a783          	lw	a5,12(a5)
+ b38:	40f707b3          	sub	a5,a4,a5
+ b3c:	00078513          	mv	a0,a5
+ b40:	0a4000ef          	jal	be4 <itoa_hex>
+ b44:	00050793          	mv	a5,a0
+ b48:	00078513          	mv	a0,a5
+ b4c:	048000ef          	jal	b94 <emulator_outputstr>
+ b50:	fe842783          	lw	a5,-24(s0)
+ b54:	0087a703          	lw	a4,8(a5)
+ b58:	fec42783          	lw	a5,-20(s0)
+ b5c:	0087a783          	lw	a5,8(a5)
+ b60:	40f707b3          	sub	a5,a4,a5
+ b64:	00078513          	mv	a0,a5
+ b68:	07c000ef          	jal	be4 <itoa_hex>
+ b6c:	00050793          	mv	a5,a0
+ b70:	00078513          	mv	a0,a5
+ b74:	020000ef          	jal	b94 <emulator_outputstr>
+ b78:	200007b7          	lui	a5,0x20000
+ b7c:	02478513          	addi	a0,a5,36 # 20000024 <DATA_START_ADDR+0x24>
+ b80:	014000ef          	jal	b94 <emulator_outputstr>
+ b84:	01c12083          	lw	ra,28(sp)
+ b88:	01812403          	lw	s0,24(sp)
+ b8c:	02010113          	addi	sp,sp,32
+ b90:	00008067          	ret
+
+00000b94 <emulator_outputstr>:
+ b94:	fd010113          	addi	sp,sp,-48
+ b98:	02812623          	sw	s0,44(sp)
+ b9c:	03010413          	addi	s0,sp,48
+ ba0:	fca42e23          	sw	a0,-36(s0)
+ ba4:	400007b7          	lui	a5,0x40000
+ ba8:	fef42623          	sw	a5,-20(s0)
+ bac:	0200006f          	j	bcc <emulator_outputstr+0x38>
+ bb0:	fdc42783          	lw	a5,-36(s0)
+ bb4:	0007c703          	lbu	a4,0(a5) # 40000000 <bss_end+0x1fffffcb>
+ bb8:	fec42783          	lw	a5,-20(s0)
+ bbc:	00e78023          	sb	a4,0(a5)
+ bc0:	fdc42783          	lw	a5,-36(s0)
+ bc4:	00178793          	addi	a5,a5,1
+ bc8:	fcf42e23          	sw	a5,-36(s0)
+ bcc:	fdc42783          	lw	a5,-36(s0)
+ bd0:	0007c783          	lbu	a5,0(a5)
+ bd4:	fc079ee3          	bnez	a5,bb0 <emulator_outputstr+0x1c>
+ bd8:	02c12403          	lw	s0,44(sp)
+ bdc:	03010113          	addi	sp,sp,48
+ be0:	00008067          	ret
+
+00000be4 <itoa_hex>:
+ be4:	fe010113          	addi	sp,sp,-32
+ be8:	00812e23          	sw	s0,28(sp)
+ bec:	00912c23          	sw	s1,24(sp)
+ bf0:	02010413          	addi	s0,sp,32
+ bf4:	fea42623          	sw	a0,-20(s0)
+ bf8:	00700493          	li	s1,7
+ bfc:	07c0006f          	j	c78 <itoa_hex+0x94>
+ c00:	fec42783          	lw	a5,-20(s0)
+ c04:	0ff7f793          	andi	a5,a5,255
+ c08:	00f7f793          	andi	a5,a5,15
+ c0c:	0ff7f793          	andi	a5,a5,255
+ c10:	03078793          	addi	a5,a5,48
+ c14:	0ff7f713          	andi	a4,a5,255
+ c18:	200007b7          	lui	a5,0x20000
+ c1c:	02c78793          	addi	a5,a5,44 # 2000002c <qbuf>
+ c20:	00f487b3          	add	a5,s1,a5
+ c24:	00e78023          	sb	a4,0(a5)
+ c28:	200007b7          	lui	a5,0x20000
+ c2c:	02c78793          	addi	a5,a5,44 # 2000002c <qbuf>
+ c30:	00f487b3          	add	a5,s1,a5
+ c34:	0007c703          	lbu	a4,0(a5)
+ c38:	03900793          	li	a5,57
+ c3c:	02e7f663          	bleu	a4,a5,c68 <itoa_hex+0x84>
+ c40:	200007b7          	lui	a5,0x20000
+ c44:	02c78793          	addi	a5,a5,44 # 2000002c <qbuf>
+ c48:	00f487b3          	add	a5,s1,a5
+ c4c:	0007c783          	lbu	a5,0(a5)
+ c50:	00778793          	addi	a5,a5,7
+ c54:	0ff7f713          	andi	a4,a5,255
+ c58:	200007b7          	lui	a5,0x20000
+ c5c:	02c78793          	addi	a5,a5,44 # 2000002c <qbuf>
+ c60:	00f487b3          	add	a5,s1,a5
+ c64:	00e78023          	sb	a4,0(a5)
+ c68:	fec42783          	lw	a5,-20(s0)
+ c6c:	0047d793          	srli	a5,a5,0x4
+ c70:	fef42623          	sw	a5,-20(s0)
+ c74:	fff48493          	addi	s1,s1,-1
+ c78:	f804d4e3          	bgez	s1,c00 <itoa_hex+0x1c>
+ c7c:	200007b7          	lui	a5,0x20000
+ c80:	02c78793          	addi	a5,a5,44 # 2000002c <qbuf>
+ c84:	00078423          	sb	zero,8(a5)
+ c88:	200007b7          	lui	a5,0x20000
+ c8c:	02c78793          	addi	a5,a5,44 # 2000002c <qbuf>
+ c90:	00078513          	mv	a0,a5
+ c94:	01c12403          	lw	s0,28(sp)
+ c98:	01812483          	lw	s1,24(sp)
+ c9c:	02010113          	addi	sp,sp,32
+ ca0:	00008067          	ret
+
+00000ca4 <osTimerNew>:
+ ca4:	fe010113          	addi	sp,sp,-32
+ ca8:	00812e23          	sw	s0,28(sp)
+ cac:	02010413          	addi	s0,sp,32
+ cb0:	fea42623          	sw	a0,-20(s0)
+ cb4:	feb42423          	sw	a1,-24(s0)
+ cb8:	fec42223          	sw	a2,-28(s0)
+ cbc:	fed42023          	sw	a3,-32(s0)
+ cc0:	00000793          	li	a5,0
+ cc4:	00078513          	mv	a0,a5
+ cc8:	01c12403          	lw	s0,28(sp)
+ ccc:	02010113          	addi	sp,sp,32
+ cd0:	00008067          	ret
+
+00000cd4 <osTimerGetName>:
+ cd4:	fe010113          	addi	sp,sp,-32
+ cd8:	00812e23          	sw	s0,28(sp)
+ cdc:	02010413          	addi	s0,sp,32
+ ce0:	fea42623          	sw	a0,-20(s0)
+ ce4:	200007b7          	lui	a5,0x20000
+ ce8:	02878793          	addi	a5,a5,40 # 20000028 <DATA_START_ADDR+0x28>
+ cec:	00078513          	mv	a0,a5
+ cf0:	01c12403          	lw	s0,28(sp)
+ cf4:	02010113          	addi	sp,sp,32
+ cf8:	00008067          	ret
+
+00000cfc <osTimerStart>:
+ cfc:	fe010113          	addi	sp,sp,-32
+ d00:	00812e23          	sw	s0,28(sp)
+ d04:	02010413          	addi	s0,sp,32
+ d08:	fea42623          	sw	a0,-20(s0)
+ d0c:	feb42423          	sw	a1,-24(s0)
+ d10:	00000793          	li	a5,0
+ d14:	00078513          	mv	a0,a5
+ d18:	01c12403          	lw	s0,28(sp)
+ d1c:	02010113          	addi	sp,sp,32
+ d20:	00008067          	ret
+
+00000d24 <osTimerStop>:
+ d24:	fe010113          	addi	sp,sp,-32
+ d28:	00812e23          	sw	s0,28(sp)
+ d2c:	02010413          	addi	s0,sp,32
+ d30:	fea42623          	sw	a0,-20(s0)
+ d34:	00000793          	li	a5,0
+ d38:	00078513          	mv	a0,a5
+ d3c:	01c12403          	lw	s0,28(sp)
+ d40:	02010113          	addi	sp,sp,32
+ d44:	00008067          	ret
+
+00000d48 <osTimerIsRunning>:
+ d48:	fe010113          	addi	sp,sp,-32
+ d4c:	00812e23          	sw	s0,28(sp)
+ d50:	02010413          	addi	s0,sp,32
+ d54:	fea42623          	sw	a0,-20(s0)
+ d58:	00000793          	li	a5,0
+ d5c:	00078513          	mv	a0,a5
+ d60:	01c12403          	lw	s0,28(sp)
+ d64:	02010113          	addi	sp,sp,32
+ d68:	00008067          	ret
+
+00000d6c <osTimerDelete>:
+ d6c:	fe010113          	addi	sp,sp,-32
+ d70:	00812e23          	sw	s0,28(sp)
+ d74:	02010413          	addi	s0,sp,32
+ d78:	fea42623          	sw	a0,-20(s0)
+ d7c:	00000793          	li	a5,0
+ d80:	00078513          	mv	a0,a5
+ d84:	01c12403          	lw	s0,28(sp)
+ d88:	02010113          	addi	sp,sp,32
+ d8c:	00008067          	ret

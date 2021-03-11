@@ -76,27 +76,27 @@ int main (int argc, char* argv[])
                 break;
             case 'm':
                 max_cycles = atoi(optarg);
-                printf("maxcycles: %ld\n", max_cycles);
+                fprintf(stderr, "maxcycles: %ld\n", max_cycles);
                 break;
             case 'i':
                 ispm_filename = optarg;
-                printf("ispm: %s\n", ispm_filename);
+                fprintf(stderr, "ispm: %s\n", ispm_filename);
                 break;
             case 'd':
                 dspm_filename = optarg;
-                printf("dspm: %s\n", dspm_filename);
+                fprintf(stderr, "dspm: %s\n", dspm_filename);
                 break;
             case 'v':
                 vcd = true;
                 if(optarg != NULL) {
                   vcd_filename = optarg;
                 }
-                printf("vcd: %s\n", vcd_filename);
+                fprintf(stderr, "vcd: %s\n", vcd_filename);
                 break;
             case 's':
                 if(optarg != NULL) {
                     vcd_start = atoi(optarg);
-                    printf("vcdstart: %d\n", vcd_start);
+                    fprintf(stderr, "vcdstart: %d\n", vcd_start);
                 }
                 break;
             default:
@@ -109,7 +109,7 @@ int main (int argc, char* argv[])
 #ifdef FLEXPRET
         f_e = 8;
 #endif
-        printf("sweep\n");
+        fprintf(stderr, "sweep\n");
     }
 
     // Open VCD trace dump file (if enabled).
@@ -215,7 +215,7 @@ int main (int argc, char* argv[])
                 // Currently assume all peripheral bus writes are characters
                 //if(c->Core__io_bus_enable.to_bool() && c->Core__io_bus_write.to_bool() && ((c->Core__io_bus_addr.lo_word() & ) == 0x...)) {
                 if(c->Core__io_bus_enable.to_bool() && c->Core__io_bus_write.to_bool()) {
-                    printf("%c", c->Core__io_bus_data_in.lo_word());
+                    fprintf(stderr, "%c", c->Core__io_bus_data_in.lo_word());
                 }
 
                 // Monitor GPIO
@@ -225,7 +225,7 @@ int main (int argc, char* argv[])
                 gpio[3] = c->Core__io_gpio_out_3.lo_word();
                 for(int i = 0; i < 4; i++) {
                     if(gpio[i] != gpio_prev[i]) {
-                       printf("GPIO (tid = %d, cycle = %7d): 0x%08x\n", i, cycle, gpio[i]);
+                       fprintf(stderr, "GPIO (tid = %d, cycle = %7d): 0x%08x\n", i, cycle, gpio[i]);
                     }
                     gpio_prev[i] = gpio[i];
                 }
@@ -234,11 +234,11 @@ int main (int argc, char* argv[])
                 tohost = c->Core__io_host_to_host.lo_word();
                 if(tohost != tohost_prev) {
                     if(tohost == 1) {
-                        printf("*** PASSED %s***\n", msg);
+                        fprintf(stderr, "*** PASSED %s***\n", msg);
                         done = true;
                     }
                     if(tohost > 1) {
-                        printf("*** FAILED %s***(test #%d)\n", msg, tohost);
+                        fprintf(stderr, "*** FAILED %s***(test #%d)\n", msg, tohost);
                         fail = true;
                         done = true;
                     }
@@ -254,7 +254,7 @@ int main (int argc, char* argv[])
                 counter.if_tid = c->Core_datapath__if_reg_tid.lo_word();
                 // Print counter for thread
                 if(c->Core_datapath_csr__io_rw_write.to_bool() && c->Core_datapath_csr__io_rw_addr.lo_word() == 0xCCF) {
-                    printf("cycle %llu:\t, tid = %d\t, proc_cycles = %llu\t, thread_cycles = %llu\t, commit_cycles = %llu\n", cycle, exe_tid, counter.processor_cycles[exe_tid], counter.thread_cycles[exe_tid], counter.commit_cycles[exe_tid]);
+                    fprintf(stderr, "cycle %llu:\t, tid = %d\t, proc_cycles = %llu\t, thread_cycles = %llu\t, commit_cycles = %llu\n", cycle, exe_tid, counter.processor_cycles[exe_tid], counter.thread_cycles[exe_tid], counter.commit_cycles[exe_tid]);
                     //printf("Counters for tid = %d\n", exe_tid);
                     //printf("Processor cycles = %llu\n", counter.processor_cycles[exe_tid]);
                     //printf("Thread cycles = %llu\n", counter.thread_cycles[exe_tid]);
@@ -281,13 +281,18 @@ int main (int argc, char* argv[])
                     c->dump(vcd_file, cycle);
                 }
 
+                printf(
+                    FORMAT_TO_BE_MODIFIED,
+                    VAR_TO_BE_MODIFIED
+                );
+
                 // Text trace
                 if(trace) {
-                    printf("Trace: cycle = %d\t, tid=%d\t, valid=%d\t, pc=%016x, inst=%016x\n", cycle, c->Core_datapath__exe_reg_tid.lo_word(), c->Core_control__exe_valid.lo_word(), c->Core_datapath__exe_reg_pc.lo_word(), c->Core_datapath__exe_reg_inst.lo_word());
+                    fprintf(stderr, "Trace: cycle = %d\t, tid=%d\t, valid=%d\t, pc=%016x, inst=%016x\n", cycle, c->Core_datapath__exe_reg_tid.lo_word(), c->Core_control__exe_valid.lo_word(), c->Core_datapath__exe_reg_pc.lo_word(), c->Core_datapath__exe_reg_inst.lo_word());
                     // spike
                     //if(c->Core_control__exe_valid.to_bool()) {
-                    //    printf("%5d\t: 0x%016x\n",counter.commit_cycles[exe_tid],c->Core_datapath__exe_reg_pc.lo_word());
-                    //    //printf("0x%016x\n",c->Core_datapath__exe_reg_pc.lo_word());
+                    //    fprintf(stderr, "%5d\t: 0x%016x\n",counter.commit_cycles[exe_tid],c->Core_datapath__exe_reg_pc.lo_word());
+                    //    fprintf(stderr, "0x%016x\n",c->Core_datapath__exe_reg_pc.lo_word());
                     //}
                 }
 
@@ -298,16 +303,16 @@ int main (int argc, char* argv[])
 
             // Check for timeout
             if(cycle >= max_cycles) {
-                printf("*** FAILED ***(Max cycles timeout)\n");
+                fprintf(stderr, "*** FAILED ***(Max cycles timeout)\n");
                 fail = true;
             }
 
             // Print out stats
             //for(int i = 0; i < 4; i++) {
-            //    printf("Counters for tid = %d\n", i);
-            //    printf("Processor cycles = %llu\n", counter.processor_cycles[i]);
-            //    printf("Thread cycles = %llu\n", counter.thread_cycles[i]);
-            //    printf("Commit cycles = %llu\n", counter.commit_cycles[i]);
+            //    fprintf(stderr, "Counters for tid = %d\n", i);
+            //    fprintf(stderr, "Processor cycles = %llu\n", counter.processor_cycles[i]);
+            //    fprintf(stderr, "Thread cycles = %llu\n", counter.thread_cycles[i]);
+            //    fprintf(stderr, "Commit cycles = %llu\n", counter.commit_cycles[i]);
             //}
         }
     }

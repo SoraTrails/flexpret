@@ -208,7 +208,7 @@ runTestbench() {
     gzip -c ${RES_DIR}/log > ${RES_DIR}/log.tar.gz
 }
 
-TEMP=`getopt -o hs:c::r:: --long help,sync:,cmp::,run:: \
+TEMP=`getopt -o hs:c::r:: --long help,sync:,compile::,run:: \
      -n 'run.bash' -- "$@"`
 
 if [ $? != 0 ] ; then echo "bad args..." ; exit 1 ; fi
@@ -230,6 +230,8 @@ while true ; do
                 "") runTestbench os; shift 2 ;;
                 *)  runTestbench $2 ; shift 2 ;;
             esac ;;
+        --) shift ; break;;
         *) shift 1 ; exit 0 ;;
     esac
+    shift
 done

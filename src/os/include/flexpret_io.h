@@ -54,7 +54,7 @@ char* itoa_hex(uint32_t n);
 #define EMULATOR_ADDR 0x40000000
 
 // Write each character in the string to a pre-defined address.
-void emulator_outputstr(char* str);
+void emulator_outputstr(const char* str);
 
 // TEMP location
 inline uint32_t get_cycle();

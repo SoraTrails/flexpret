@@ -48,7 +48,7 @@ void stats_print(struct stats* s, struct stats* e) {
     debug_string("\n");
 }
 
-void emulator_outputstr(char* str) {
+void emulator_outputstr(const char* str) {
     volatile char* addr = (char*) EMULATOR_ADDR;
     while(*str != 0) {
         *addr = *str;

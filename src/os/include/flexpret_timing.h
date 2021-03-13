@@ -4,6 +4,10 @@
 #include "flexpret_encoding.h"
 #include "flexpret_const.h"
 
+#ifndef FLEXPRET_FREQ
+#define FLEXPRET_FREQ 100000000 // 100Mhz
+#endif
+
 // Timing instructions
 // Read current time
 // CSR_CLOCK

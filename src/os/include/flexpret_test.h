@@ -11,6 +11,7 @@
 
 // Test Kernel api
 int test_osKernelGetInfo();
-
+int test_osKernelGetTickCount();
+int test_osKernelGetTickFreq();
 
 #endif

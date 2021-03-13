@@ -7,6 +7,7 @@
 int main() {
     int res = 1;
     res &= test_osKernelGetInfo();
-
+    res &= test_osKernelGetTickCount();
+    res &= test_osKernelGetTickFreq();
     return !res;
 }

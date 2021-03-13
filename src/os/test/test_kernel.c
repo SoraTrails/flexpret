@@ -3,6 +3,7 @@
 #include "flexpret_test.h"
 #include "flexpret_kernel.h"
 #include "flexpret_utils.h"
+#include "flexpret_io.h"
 
 int test_osKernelGetInfo() {
     osVersion_t version;
@@ -20,6 +21,31 @@ int test_osKernelGetInfo() {
         FLEXPRET_TEST_FAILED();
         return FAILED;
     }
+    flexpret_info("Flexpret version info: ");
     flexpret_info(id_buf);
+    return PASSED;
+}
+
+int test_osKernelGetTickCount() {
+    uint32_t time1 = osKernelGetTickCount();
+    flexpret_info("Current time is ");
+    flexpret_info(itoa_hex_removing_ldz(time1));
+    flexpret_info("\n");
+
+    register int i;
+    for (i = 50; i >= 0; i--)
+        ;
+    uint32_t time2 = osKernelGetTickCount();
+    flexpret_info("Current time is ");
+    flexpret_info(itoa_hex_removing_ldz(time2));
+    flexpret_info("\n");
+    return PASSED;
+}
+
+int test_osKernelGetTickFreq() {
+    uint32_t freq = osKernelGetTickFreq();
+    flexpret_info("Current freq is ");
+    flexpret_info(itoa_hex_removing_ldz(freq));
+    flexpret_info("\n");
     return PASSED;
 }

@@ -10,15 +10,16 @@ int test_osKernelGetInfo() {
     size_t id_size = 64;
 
     id_buf[0] = '\0';
+    id_buf[63] = '\0';
     osStatus_t status = osKernelGetInfo(&version, id_buf, id_size);
     if (status != osOK) {
         FLEXPRET_TEST_FAILED();
-        return 0;
+        return FAILED;
     }
     if (strlen(id_buf) == 0) {
         FLEXPRET_TEST_FAILED();
-        return 0;
+        return FAILED;
     }
     flexpret_info(id_buf);
-    return 1;
+    return PASSED;
 }

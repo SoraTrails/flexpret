@@ -49,6 +49,7 @@ inline uint32_t gpi_read_3();
 
 // Convert number to string in hex format
 char* itoa_hex(uint32_t n);
+char* itoa_hex_removing_ldz(uint32_t n);
 
 // Emulator (puts bits on bus)
 #define EMULATOR_ADDR 0x40000000

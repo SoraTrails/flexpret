@@ -130,8 +130,8 @@ syncFile() {
             emulator/generated-src/4tf-16i-16d-ti/raw_log
             emulator/generated-src/4tf-16i-16d-ti/cmp_log
             tests/examples/sboth.inst.mem.ins
-            src/os/os.inst.mem.ins
-            src/os/test.inst.mem.ins
+            src/os/os.dump
+            src/os/test.dump
         )
         for i in ${list[*]}; do 
             echo -n "cp ${ROOT_DIR}/$i ${MAP_DIR}/$i ... "
@@ -222,19 +222,21 @@ eval set -- "$TEMP"
 while true ; do
     case "$1" in
         -h|--help) showHelp ; exit 0 ;;
-        -s|--sync) syncFile $2 ; shift 2 ;;
+        -s|--sync) syncFile $2 ; exit 0 ;;
         -c|--compile) 
             case "$2" in
-                "") compileFile os; shift 2 ;;
-                *)  compileFile $2 ; shift 2 ;;
+                "") compileFile os; exit 0 ;;
+                *)  compileFile $2 ; exit 0 ;;
             esac ;;
         -r|--run) 
             case "$2" in
-                "") runTestbench os; shift 2 ;;
-                *)  runTestbench $2 ; shift 2 ;;
+                "") runTestbench os; exit 0 ;;
+                *)  runTestbench $2 ; exit 0 ;;
             esac ;;
         --) shift ; break;;
         *) shift 1 ; exit 0 ;;
     esac
     shift
 done
+
+exit 0

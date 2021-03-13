@@ -86,3 +86,21 @@ char* itoa_hex(uint32_t n)
     return(qbuf);
 }
 
+// remove leading zero
+char* itoa_hex_removing_ldz(uint32_t n)
+{
+    register int i;
+    for (i = 7; i >= 0; i--) {
+        qbuf[i] = (n & 15) + 48;
+        if(qbuf[i] >= 58) {
+            qbuf[i] += 7;
+        }
+        n = n >> 4;
+    }
+    qbuf[8] = '\0';
+
+    for (i = 0; i < 7 && qbuf[i] == '0'; i++) 
+        ;
+    return (qbuf + i);
+}
+

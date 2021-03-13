@@ -12,7 +12,7 @@ osStatus_t osKernelInitialize (void) {
 }
 
 osStatus_t osKernelGetInfo (osVersion_t *version, char *id_buf, uint32_t id_size) {
-    uint32_t ver = FLEXPRET_OS_VERSION;
+    const uint32_t ver = FLEXPRET_OS_VERSION;
     if (version != NULL) {
         version->api = ver;
         version->kernel = ver;
@@ -25,27 +25,34 @@ osStatus_t osKernelGetInfo (osVersion_t *version, char *id_buf, uint32_t id_size
     
     // For ending '\0'
     id_size -= 1;
-
+    char buf[3][9];
 	if ((id_buf != NULL) && (version != NULL)) {
-        const char *v[3] = { 
-            itoa_hex(KERNEL_VER_MAJOR(ver)),
-            itoa_hex(KERNEL_VER_MINOR(ver)),
-            itoa_hex(KERNEL_VER_PATCHLEVEL(ver))
-        };
-        uint32_t s[3] = { 
-            strlen(v[0]),
-            strlen(v[1]),
-            strlen(v[2])
+        uint32_t v[3] = {
+            KERNEL_VER_MAJOR(ver),
+            KERNEL_VER_MINOR(ver),
+            KERNEL_VER_PATCHLEVEL(ver)
         };
         int i = 0;
         for (; i < 3; i++) {
-            if (id_size >= s[i]) {
-                strncpy(id_buf, v[i], s[i]);
-                id_size -= s[i];
-                id_buf += s[i];
+            char *tmp = itoa_hex_removing_ldz(v[i]);
+            size_t s = strlen(tmp);
+            strncpy(buf[i], tmp, s);
+            if (id_size >= s) {
+                strncpy(id_buf, buf[i], s);
+                id_size -= s;
+                id_buf += s;
             } else {
-                strncpy(id_buf, v[i], id_size);
+                strncpy(id_buf, buf[i], id_size);
                 return osOK;
+            }
+            if (i != 2) {
+                strncpy(id_buf, ".", 1);
+                id_size -= 1;
+                id_buf += 1;
+            } else {
+                strncpy(id_buf, "\n", 1);
+                id_size -= 1;
+                id_buf += 1;
             }
         }
 	} else {

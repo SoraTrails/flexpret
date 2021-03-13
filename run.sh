@@ -124,6 +124,7 @@ syncFile() {
     elif [ "$1"z == "afterz" ]; then
         list=(
             emulator/generated-src/4tf-16i-16d-ti/asm
+            emulator/generated-src/4tf-16i-16d-ti/asm_func
             emulator/generated-src/4tf-16i-16d-ti/config
             emulator/generated-src/4tf-16i-16d-ti/log.tar.gz
             emulator/generated-src/4tf-16i-16d-ti/raw_log
@@ -156,11 +157,13 @@ compileFile() {
         cd ${WORK_DIR} && make $1_all
         cp ${WORK_DIR}/$1.inst.mem.ins ${RES_DIR}/asm.tmp
         grep -E '[0-9a-f]+:' ${RES_DIR}/asm.tmp | grep -v 'elf' | awk '{$1=substr($1,0,length($1)-1);$2="";print $0}' > ${RES_DIR}/asm
-        rm -f ${RES_DIR}/asm.tmp
+        grep -E '^[0-9a-f]+ <[0-9a-zA-Z_]+>:' ${RES_DIR}/asm.tmp | awk '{$2=substr($2,2,length($2)-3); print $0}' > ${RES_DIR}/asm_func
+        rm -f ${RES_DIR}/asm.tmp 
     elif [ "$1"z == "testz" ]; then
         cd ${WORK_DIR} && make test
         cp ${WORK_DIR}/test.inst.mem.ins ${RES_DIR}/asm.tmp
         grep -E '[0-9a-f]+:' ${RES_DIR}/asm.tmp | grep -v 'elf' | awk '{$1=substr($1,0,length($1)-1);$2="";print $0}' > ${RES_DIR}/asm
+        grep -E '^[0-9a-f]+ <[0-9a-zA-Z_]+>:' ${RES_DIR}/asm.tmp | awk '{$2=substr($2,2,length($2)-3); print $0}' > ${RES_DIR}/asm_func
         rm -f ${RES_DIR}/asm.tmp
     fi
 }

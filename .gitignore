@@ -3,3 +3,4 @@ generated-src
 results
 
 sbt/Core
+*.mem.ins

@@ -28,14 +28,22 @@ beqz a0, init
 # all other threads will watch memory location for non-zero value
 # compute address (using thread ID)
 la a2, startup_state
-slli a0, a0, 3
+# a0 = a0 * sizeof(hwthread_state)
+slli a0, a0, 2
+addi a3, a0, 0
+slli a0, a0, 1
+add a0, a0, a3
+
 add a2, a2, a0
 # check data at address and just loop if 0
 wait: 
-lw a0, 0(a2)
-beqz a0, wait
+lw a3, 0(a2)
+beqz a3, wait
 # desired PC set, load stack address and run startup code
-lw a1, 4(a2)
+# NOTE(zxj): set tid and move arg to a3 
+lw a1, 8(a2) # sp
+lw a0, 4(a2) # arg
+addi a2, a3, 0
 j startup
 
 # executed only by thread 0
@@ -45,25 +53,38 @@ init:
 la a1, startup_state
 #lw a0, 0(a1)
 la a0, main
-lw a1, 4(a1)
+lw a1, 8(a1)
+addi a2, a0, 0
 # j startup
 
 # startup thread, assumes a0=function, a1=stack address
 startup:
 # Ignored: 0 to all registers
 # Ignored: 0 .bss (would require 2 more arguments)
+
 # initialize the stack
 mv sp, a1 
-# run C program
-jalr ra, a0, 0
+# run C program 
+# NOTE(zxj) a0 is the arg, a1 & sp is stack pointer, a2 is func_entry
+jalr ra, a2, 0
 # when done, behavior depends on thread
 csrr a1, hartid
 # for all threads except thread 0, sleep and back to reset on wake
 beqz a1, done
-la a2, startup_state
-slli a1, a1, 3
-add a2, a2, a1
-sw x0, 0(a2)
+#### la a2, startup_state
+#### slli a1, a1, 2
+#### addi a3, a1, 0
+#### slli a1, a1, 1
+#### add a1, a1, a3
+#### add a2, a2, a1
+
+#### 当线程退出时清空func和arg
+#### TODO: stack设为默认值。。
+#### sw zero, 0(a2)
+#### sw zero, 4(a2)
+la a0, thread_after_return_handler
+jalr ra, a0, 0
+
 #TODO: thread sleep
 j reset
 # for thread 0, indicate pass/fail by setting tohost to return value from
@@ -79,14 +100,31 @@ csrw tohost, a0
 
 
 # Format is t0_PC, t0_stack, t1_PC, t1_stack, ...
+# NOTE(zxj):should make sure bss_end do NOT exceed 0x20001BFC
+# Format: t0_PC, t0_arg, t0_stack, t1_PC, t1_arg, t1_stack, ...
+# hw thread 0 stack size: 0x1C00
+# hw thread 1,2,3 stack size: 0x0C00
+# sw thread should reside in thread0
 .data
 .global startup_state
+.global thread_after_return
+.global sw_thread_num
 startup_state:
 .word main
-.word startup_state+0x0FFC
 .word 0
-.word startup_state+0x1FFC
+.word startup_state+0x1BFC
 .word 0
-.word startup_state+0x2FFC
+.word 0
+.word startup_state+0x27FC
+.word 0
+.word 0
+.word startup_state+0x33FC
+.word 0
 .word 0
 .word startup_state+0x3FFC
+
+thread_after_return:
+.word thread_after_return_handler
+
+sw_thread_num:
+.word 0

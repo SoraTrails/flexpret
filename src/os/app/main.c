@@ -19,6 +19,6 @@ int main() {
     osKernelInitialize (); 
     osThreadNew(app_main, NULL, NULL);
     osKernelStart (); 
-
+    for (;;) {}
     return 0;
 }

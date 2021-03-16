@@ -12,5 +12,7 @@ void flexpret_not_implemented(const char f[]);
 char * strncpy(char *dest, const char *src, size_t size);
 size_t strlen(const char *s);
 void *memset(void *s, int c, size_t n);
+void *memcpy(void *dst, const void *src, size_t len);
+uint32_t get_tid_by_offset(uint32_t offset);
 
 #endif

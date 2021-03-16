@@ -206,7 +206,7 @@ runTestbench() {
     cd ${WORK_DIR} && make Core > ${RES_DIR}/cmp_log 2>&1
     # run
     echo "running testbench Core (target: ${1})... (log location: ${RES_DIR}/raw_log)"
-    ${WORK_DIR}/Core --maxcycles=150000 --ispm=${1}.inst.mem --dspm=${1}.data.mem 2> ${RES_DIR}/raw_log > ${RES_DIR}/log
+    ${WORK_DIR}/Core --maxcycles=100000 --ispm=${1}.inst.mem --dspm=${1}.data.mem 2> ${RES_DIR}/raw_log > ${RES_DIR}/log
     echo "Core return $?."
     gzip -c ${RES_DIR}/log > ${RES_DIR}/log.tar.gz
 }

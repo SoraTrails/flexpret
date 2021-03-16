@@ -1,6 +1,6 @@
 # Build flexpret compatible simple operation system
 RISCV_CC=riscv64-unknown-elf-gcc
-FLEXPRET_CFLAGS=-m32
+FLEXPRET_CFLAGS=-m32 -msoft-float
 
 FLEXPRET_OS_SRC := $(wildcard src/*.c)
 FLEXPRET_OS_APP_SRC := $(wildcard app/*.c)

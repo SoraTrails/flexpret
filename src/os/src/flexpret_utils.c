@@ -1,5 +1,6 @@
 #include "flexpret_utils.h"
 #include "flexpret_io.h"
+#include "flexpret_threads.h"
 
 void flexpret_error(const char* msg) {
     debug_string(msg);
@@ -47,4 +48,32 @@ void *memset(void *s, int c, size_t n) {
         tmp[i] = (unsigned char)c;
     }
     return s;
+}
+
+void *memcpy(void *dst, const void *src, size_t len) {
+    unsigned char * d = (unsigned char *) dst;
+    const unsigned char * s = (const unsigned char *) src;
+    register int i;
+    for (i = 0; i < len; i++) {
+        d[i] = s[i];
+    }
+    return dst;
+}
+
+// use to avoid generating mul instruction
+uint32_t get_tid_by_offset(uint32_t offset) {
+    if (offset == 0) {
+        return 0;
+    } else if (offset == sizeof(hwthread_state)) {
+        return 1;
+    } else if (offset == sizeof(hwthread_state) << 1) {
+        return 2;
+    } else if (offset == ((sizeof(hwthread_state) << 1) + sizeof(hwthread_state))) {
+        return 3;
+    } else if (offset == sizeof(hwthread_state) << 2) {
+        return 4;
+    } else {
+        flexpret_error("bad offset calling get_tid_by_div");
+        return 0;
+    }
 }

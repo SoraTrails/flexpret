@@ -6,8 +6,9 @@
 
 int main() {
     int res = 1;
-    res &= test_osKernelGetInfo();
-    res &= test_osKernelGetTickCount();
-    res &= test_osKernelGetTickFreq();
+    // res &= test_osKernelGetInfo();
+    // res &= test_osKernelGetTickCount();
+    // res &= test_osKernelGetTickFreq();
+    res &= test_osThreadNew_osThreadJoin();
     return !res;
 }

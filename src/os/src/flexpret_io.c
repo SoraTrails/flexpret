@@ -1,4 +1,5 @@
 #include "flexpret_io.h"
+#include "flexpret_threads.h"
 
 void gpo_write_0(uint32_t val) { write_csr(uarch4, val); }
 void gpo_write_1(uint32_t val) { write_csr(uarch5, val); }
@@ -56,15 +57,17 @@ void emulator_outputstr(const char* str) {
     }
 }
 
-char qbuf[9];
+char qbuf[FLEXPRET_HW_THREADS_NUMS][9];
 
+// TODO : itoa_hex & itoa_hex_removing_ldz is not thread safe
 char* itoa_hex(uint32_t n)
 {
     register int i;
+    uint32_t tid = read_csr(hartid);
     for (i = 7; i >= 0; i--) {
-        qbuf[i] = (n & 15) + 48;
-        if(qbuf[i] >= 58) {
-            qbuf[i] += 7;
+        qbuf[tid][i] = (n & 15) + 48;
+        if(qbuf[tid][i] >= 58) {
+            qbuf[tid][i] += 7;
         }
         n = n >> 4;
     }
@@ -81,26 +84,27 @@ char* itoa_hex(uint32_t n)
     //         qbuf[i] += 'a' - '9';
     //     }
     // }
-    qbuf[8] = '\0';
+    qbuf[tid][8] = '\0';
 
-    return(qbuf);
+    return(qbuf[tid]);
 }
 
 // remove leading zero
 char* itoa_hex_removing_ldz(uint32_t n)
 {
     register int i;
+    uint32_t tid = read_csr(hartid);
     for (i = 7; i >= 0; i--) {
-        qbuf[i] = (n & 15) + 48;
-        if(qbuf[i] >= 58) {
-            qbuf[i] += 7;
+        qbuf[tid][i] = (n & 15) + 48;
+        if(qbuf[tid][i] >= 58) {
+            qbuf[tid][i] += 7;
         }
         n = n >> 4;
     }
-    qbuf[8] = '\0';
+    qbuf[tid][8] = '\0';
 
-    for (i = 0; i < 7 && qbuf[i] == '0'; i++) 
+    for (i = 0; i < 7 && qbuf[tid][i] == '0'; i++) 
         ;
-    return (qbuf + i);
+    return (qbuf[tid] + i);
 }
 

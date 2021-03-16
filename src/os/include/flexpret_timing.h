@@ -8,6 +8,10 @@
 #define FLEXPRET_FREQ 100000000 // 100Mhz
 #endif
 
+#ifndef FLEXPRET_WAIT_PERIOD
+#define FLEXPRET_WAIT_PERIOD 10000 // 10000 cycle
+#endif
+
 // Timing instructions
 // Read current time
 // CSR_CLOCK

@@ -12,11 +12,16 @@ void flexpret_info(const char* msg) {
 
 void flexpret_not_implemented(const char f[])
 {
-    char buf[128] = "Function `";
-    int func_len = strlen(f);
-    strncpy(buf + 10, f, func_len);
-    strncpy(buf + 10 + func_len, "` is not implemented.\n", func_len);
-    flexpret_error(buf);
+    flexpret_error("Function `");
+    flexpret_error(f);
+    flexpret_error("` is not implemented.\n");
+}
+
+void flexpret_not_supported(const char f[])
+{
+    flexpret_error("Function `");
+    flexpret_error(f);
+    flexpret_error("` is not supported.\n");
 }
 
 char * strncpy(char *dest, const char *src, size_t size) {

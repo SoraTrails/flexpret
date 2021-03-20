@@ -4,11 +4,13 @@
 #include "flexpret_utils.h"
 #include "flexpret_timing.h"
 #include "flexpret_io.h"
+#include "flexpret_scheduler.h"
 
 extern volatile hwthread_state startup_state[FLEXPRET_HW_THREADS_NUMS];
 static int flexpret_thread_num = 1;
 osThreadAttr_t *flexpret_thread_attr_entry[FLEXPRET_HW_THREADS_NUMS];
 osThreadAttr_t flexpret_thread_attr[FLEXPRET_HW_THREADS_NUMS];
+int soft_slot_id = -1;
 
 /********* OLD IMPLEMENTATION ***********
  * void hwthread_start(uint32_t tid, void (*func)(), uint32_t stack_address) {
@@ -42,18 +44,9 @@ const uint32_t flexpret_thread_init_stack_addr[FLEXPRET_HW_THREADS_NUMS] = {
 
 //  ==== Thread Management Functions ====
 osThreadId_t osThreadNew (osThreadFunc_t func, void *argument, const osThreadAttr_t *attr) {
-    // int thread_type;
-    int attr_bits;
     if (flexpret_thread_num == FLEXPRET_HW_THREADS_NUMS) {
         flexpret_error("Max thread num exceed\n");
         return NULL;
-    }
-    if (attr == NULL) {
-        // thread_type = soft;
-        attr_bits = osThreadDetached;
-    } else {
-        // thread_type = attr->priority == osPriorityRealtime ? hard : soft;
-        attr_bits = attr->attr_bits;
     }
     // TODO: thread num inc should be an atomic operation.
     int tid = flexpret_thread_num++;
@@ -62,9 +55,10 @@ osThreadId_t osThreadNew (osThreadFunc_t func, void *argument, const osThreadAtt
         // If attr is null, cb is stored at `flexpret_thread_attr`, stack is defined at startup.S
         osThreadAttr_t * attr_ptr = flexpret_thread_attr_entry[tid];
         memcpy(attr_ptr, &flexpret_thread_init_attr, sizeof(osThreadAttr_t));
-
-        // startup_state[tid].tid, startup_state[tid].stack_address will be set in startup.S by default.
-
+        attr_ptr->stack_mem = (void*)flexpret_thread_init_stack_addr[tid];
+        // tid will not be 0
+        attr_ptr->stack_size = flexpret_thread_init_stack_addr[tid] - flexpret_thread_init_stack_addr[tid-1];
+        // startup_state[tid].stack_address will be set in startup.S by default.
     } else {
         // If attr is not null, cb&stack is stored at user defined address
         flexpret_thread_attr_entry[tid] = attr;
@@ -72,6 +66,9 @@ osThreadId_t osThreadNew (osThreadFunc_t func, void *argument, const osThreadAtt
             startup_state[tid].stack_address = (void *)flexpret_thread_init_stack_addr[tid];
         } else {
             startup_state[tid].stack_address = attr->stack_mem;
+        }
+        if (attr->stack_size == 0) {
+            flexpret_thread_attr_entry[tid]->stack_size = flexpret_thread_init_stack_addr[tid] - flexpret_thread_init_stack_addr[tid-1];
         }
     }
     startup_state[tid].func = func;
@@ -99,7 +96,22 @@ osThreadState_t osThreadGetState (osThreadId_t thread_id) {
     // hwthread_state* tmp = (hwthread_state*) thread_id;
     uint32_t tmp = (uint32_t) thread_id;
     uint32_t tid = get_tid_by_offset(tmp - (uint32_t)startup_state);
-    return tmodes[tid];
+    switch (tmodes[tid])
+    {
+    // osThreadInactive
+    // osThreadReady
+    // osThreadRunning
+    // osThreadBlocked
+    // osThreadTerminate
+    // TODO: map flexpret thread state to cmsis thread 
+    case TMODE_HZ:
+    case TMODE_SZ:
+        return osThreadInactive;
+    case TMODE_HA:
+    case TMODE_SA:
+        return osThreadRunning;
+    }
+    return osThreadError;
 }
  
 uint32_t osThreadGetStackSize (osThreadId_t thread_id) {
@@ -110,7 +122,21 @@ uint32_t osThreadGetStackSize (osThreadId_t thread_id) {
 }
  
 uint32_t osThreadGetStackSpace (osThreadId_t thread_id) {
-    // TODO
+    // hwthread_state* tmp = (hwthread_state*) thread_id;
+    uint32_t tmp = (uint32_t) thread_id;
+    uint32_t tid = get_tid_by_offset(tmp - (uint32_t)startup_state);
+    uint32_t current_tid = read_csr(hartid);
+    if (tid != current_tid) {
+        flexpret_error("osThreadGetStackSpace only supports querying threads' own space\n");
+        return 0;
+    }
+    uint32_t tid_addr = (uint32_t)&tid;
+    if ((uint32_t)flexpret_thread_attr_entry[tid]->stack_mem > tid_addr) {
+        if ((uint32_t)flexpret_thread_attr_entry[tid]->stack_size > (flexpret_thread_attr_entry[tid]->stack_mem - tid_addr)) {
+            return flexpret_thread_attr_entry[tid]->stack_size - ((uint32_t)flexpret_thread_attr_entry[tid]->stack_mem - tid_addr);
+        }
+    }
+    flexpret_error("Error calculating stack space");
     return 0;
 }
  
@@ -122,14 +148,49 @@ osStatus_t osThreadSetPriority (osThreadId_t thread_id, osPriority_t priority) {
     if (current_priority == priority) {
         return osOK;
     }
+
+    // TODO : set priority should be thread safe
+
     if (current_priority == osPriorityNormal) {
-        flexpret_thread_attr_entry[tid]->priority = osPriorityNormal;
-        // TODO: modify tmode csr if is hw thread, otherwise ...
-    } else if (current_priority == osPriorityRealtime) {
+        // change SRTT to HRTT
+        int32_t res = osSchedulerGetFreq(thread_id);
+        int32_t freq = THREAD_FREQ(res);
+        int32_t soft = SOFT_SLOT_COUNT(res);
         flexpret_thread_attr_entry[tid]->priority = osPriorityRealtime;
-        // TODO
+        if (freq != 0) {
+            // if thread has its own slot, dont touch slot.
+        } else {
+            // thread doesnt have its own slot, alloc one.
+            osSchedulerSetSlotNum(thread_id, 1);
+        }
+        osSchedulerSetTmodes(thread_id, TMODE_HARD);
+
+        // if it was the only SRTT before, remove the soft slot
+        int srtt_num = osSchedulerGetSRTTNum();
+        if (srtt_num == 0 && soft != 0){
+            osSchedulerSetSoftSlotNum(0);
+        }
+    } else if (current_priority == osPriorityRealtime) {
+        // change HRTT to SRTT
+        int32_t res = osSchedulerGetFreq(thread_id);
+        int32_t freq = THREAD_FREQ(res);
+        int32_t soft = SOFT_SLOT_COUNT(res);
+        flexpret_thread_attr_entry[tid]->priority = osPriorityNormal;
+
+        int srtt_num = osSchedulerGetSRTTNum();
+        if (srtt_num == 0 && soft == 0) {
+            osSchedulerSetSoftSlotNum(1);
+        }
+        osSchedulerSetTmodes(thread_id, TMODE_SOFT);
+        if (freq == 0) {
+            // if thread doesnt have its own slot, dont touch slot.
+        } else {
+            // thread have its own slot, remove it.
+            // before removing, alloc a soft slot if there is no one (line 182) 
+            osSchedulerSetSlotNum(thread_id, 0);
+        }
     } else {
-        flexpret_error("unsupported priority");
+        flexpret_error("unsupported priority\n");
         return osError;
     }
     return osOK;
@@ -143,17 +204,21 @@ osPriority_t osThreadGetPriority (osThreadId_t thread_id) {
 }
  
 osStatus_t osThreadYield (void) {
-    // TODO
+    flexpret_not_supported(__func__);
     return osOK;
 }
  
 osStatus_t osThreadSuspend (osThreadId_t thread_id) {
-    // TODO
+    // TODO : Separate Inactive and Blocked state from HZ/SZ
+    // if du/wu/ie/ee instruction is called before, thread will be woked up when timer is due, use set_compare to avoid this behavior
+    set_compare(0);
+    osSchedulerSetTmodes(thread_id, TMODE_ZOMBIE);
     return osOK;
 }
  
 osStatus_t osThreadResume (osThreadId_t thread_id) {
-    // TODO
+    // TODO : Separate Inactive and Blocked state from HZ/SZ
+    osSchedulerSetTmodes(thread_id, TMODE_ACTIVE);
     return osOK;
 }
  
@@ -187,23 +252,44 @@ osStatus_t osThreadJoin (osThreadId_t thread_id) {
 }
  
 __NO_RETURN void osThreadExit (void) {
-    // TODO
-    for (;;);
+    thread_after_return_handler();
+    // code will not reach here
+    for (;;) {}
 }
  
 osStatus_t osThreadTerminate (osThreadId_t thread_id) {
-    // TODO
+    uint32_t tmp = (uint32_t) thread_id;
+    uint32_t tid = get_tid_by_offset(tmp - (uint32_t)startup_state);
+    uint32_t current_tid = read_csr(hartid);
+    if (tid == current_tid) {
+        flexpret_error("Thread cannot terminate itself, use osThreadExit instead.\n");
+        return osError;
+    }
+    thread_terminate(tid);
     return osOK;
 }
  
 uint32_t osThreadGetCount (void) {
-    // TODO
-    return 0;
+    int count = 0;
+    register int i;
+    for (i = 0; i < FLEXPRET_HW_THREADS_NUMS; i++) {
+        if (startup_state[i].func != NULL) {
+            count++;
+        }
+    }
+    return count;
 }
  
 uint32_t osThreadEnumerate (osThreadId_t *thread_array, uint32_t array_items) {
-    // TODO
-    return 0;
+    uint32_t count = 0;
+    register uint32_t i;
+    for (i = 0; i < FLEXPRET_HW_THREADS_NUMS && i < array_items; i++) {
+        if (startup_state[i].func != NULL) {
+            thread_array[count] = (osThreadId_t)(&startup_state[i]);
+            count++;
+        }
+    }
+    return count;
 }
 
 //  ==== Generic Wait Functions ====

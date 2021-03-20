@@ -11,6 +11,7 @@ extern osThreadAttr_t flexpret_thread_attr[FLEXPRET_HW_THREADS_NUMS];
 extern const osThreadAttr_t flexpret_thread_init_attr;
 extern volatile hwthread_state startup_state[FLEXPRET_HW_THREADS_NUMS];
 extern const uint32_t flexpret_thread_init_stack_addr[FLEXPRET_HW_THREADS_NUMS];
+extern int soft_slot_id;
 
 void thread_after_return_handler() {
     uint32_t tid = read_csr(hartid);
@@ -31,6 +32,10 @@ void thread_terminate(int tid) {
     for (i = 0; i < FLEXPRET_MAX_HW_THREADS_NUMS; i++) {
         if (slots[i] == tid) {
             slots[i] = SLOT_D;
+        }
+        if (i == soft_slot_id && slots[i] == SLOT_S) {
+            slots[i] = SLOT_D;
+            soft_slot_id = -1;
         }
     }
     set_slots(slots[7], slots[6], slots[5], slots[4], slots[3], slots[2], slots[1], slots[0]);
@@ -123,14 +128,23 @@ osStatus_t osKernelStart (void) {
     modes[0] = TMODE_HA;
     for (i = 1; i < FLEXPRET_HW_THREADS_NUMS; i++) {
         if (startup_state[i].func != NULL) {
-            slots[i] = i; // SLOT_Ti
+            // slots[i] = i; // SLOT_Ti
+            // TODO soft不占slot？
             if (flexpret_thread_attr_entry[i]->priority == osPriorityRealtime) {
                 modes[i] = TMODE_HA;
+                slots[i] = i;
             } else if (flexpret_thread_attr_entry[i]->priority == osPriorityNormal) {
                 modes[i] = TMODE_SA;
+                if (soft_slot_id == -1) {
+                    slots[i] = SLOT_S;
+                    soft_slot_id = i;
+                } else {
+                    slots[i] = SLOT_D;
+                }
             } else {
-                flexpret_error("unsupported priority");
+                flexpret_error("Unsupported priority\n");
                 modes[i] = TMODE_SZ;
+                slots[i] = SLOT_D;
             }
         } else {
             slots[i] = SLOT_D;

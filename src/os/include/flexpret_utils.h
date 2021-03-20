@@ -8,6 +8,7 @@
 void flexpret_error(const char* msg);
 void flexpret_info(const char* msg);
 void flexpret_not_implemented(const char f[]);
+void flexpret_not_supported(const char f[]);
 
 char * strncpy(char *dest, const char *src, size_t size);
 size_t strlen(const char *s);

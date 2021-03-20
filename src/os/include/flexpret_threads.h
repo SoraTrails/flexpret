@@ -12,10 +12,6 @@
 #define FLEXPRET_MAX_HW_THREADS_NUMS 8
 #endif
 
-#ifndef FLEXPRET_SW_THREADS_NUMS
-#define FLEXPRET_SW_THREADS_NUMS 16
-#endif
-
 // CSR_SLOTS
 #define set_slots(s7, s6, s5, s4, s3, s2, s1, s0) (\
         {swap_csr(badvaddr, (\
@@ -77,6 +73,11 @@
 #define TMODE_SA 2
 #define TMODE_SZ 3
 
+#define TMODE_HARD 4
+#define TMODE_SOFT 5
+#define TMODE_ACTIVE 6
+#define TMODE_ZOMBIE 7
+
 // Memory Protection
 #define MEMP_T0 0
 #define MEMP_T1 1
@@ -95,10 +96,9 @@ typedef struct hwthread_state {
     void * stack_address;
 } hwthread_state;
 
-typedef enum {
-    hard  =  0,
-    soft  =  1,
-} thread_type;
+// #define FOREACH_THREAD() 
+//     register int titer; \
+//     for (titer = 0; titer < FLEXPRET_HW_THREADS_NUMS; titer++) 
 
 /// Attributes structure for thread, in cmsis_os2.h.
 // typedef struct {
@@ -115,6 +115,6 @@ typedef enum {
 
 // When priority is osPriorityRealtime, HRTT hw thread is created.
 // When priority is osPriorityNormal, SRTT hw thread is created.
-// More priority(sw thread) is not supported currently, default priority is osPriorityNormal.
+// More priority is not supported currently, default priority is osPriorityNormal.
 
 #endif

@@ -1,5 +1,12 @@
 # Build flexpret compatible simple operation system
+# RISCV_CC=/data/riscv-none-gcc/7.2.0-4-20180606-1631/bin/riscv-none-embed-gcc
+# RISCV_OBJDUMP=/data/riscv-none-gcc/7.2.0-4-20180606-1631/bin/riscv-none-embed-objdump
+# RISCV_OBJCOPY=/data/riscv-none-gcc/7.2.0-4-20180606-1631/bin/riscv-none-embed-objcopy
+# FLEXPRET_CFLAGS=-march=rv32i -mabi=ilp32 -mcmodel=medany -msmall-data-limit=8 -L. -nostartfiles -lc -O0
+
 RISCV_CC=riscv64-unknown-elf-gcc
+RISCV_OBJDUMP=riscv64-unknown-elf-objdump
+RISCV_OBJCOPY=riscv64-unknown-elf-objcopy
 FLEXPRET_CFLAGS=-m32 -msoft-float
 
 FLEXPRET_OS_SRC := $(wildcard src/*.c)
@@ -27,15 +34,15 @@ flexpret_os: layout.ld $(FLEXPRET_OS_APP_COBJ) $(FLEXPRET_OS_COBJ) $(FLEXPRET_OS
 	$(RISCV_CC) $(FLEXPRET_CFLAGS) -I$(INCLUDE) -nostdlib -Xlinker -defsym -Xlinker TEXT_START_ADDR=0x00000000 -Xlinker -defsym -Xlinker DATA_START_ADDR=0x20000000 -T $^ -o $@
 
 os.inst.mem.ins: flexpret_os
-	riscv64-unknown-elf-objdump -d --section=.text flexpret_os > os.inst.mem.ins
-	riscv64-unknown-elf-objdump --disassemble-all --section=.text --section=.data --section=.bss flexpret_os > os.dump
+	$(RISCV_OBJDUMP) -d --section=.text flexpret_os > os.inst.mem.ins
+	$(RISCV_OBJDUMP) --disassemble-all --section=.text --section=.data --section=.bss flexpret_os > os.dump
 
 os.inst.mem: flexpret_os
-	riscv64-unknown-elf-objcopy --only-section .text -O binary flexpret_os os.inst
+	$(RISCV_OBJCOPY) --only-section .text -O binary flexpret_os os.inst
 	hexdump -v -e '1/4 "%08X" "\n"' os.inst > os.inst.mem
 
 os.data.mem: flexpret_os
-	riscv64-unknown-elf-objcopy --only-section .data --only-section .bss -O binary flexpret_os os.data
+	$(RISCV_OBJCOPY) --only-section .data --only-section .bss -O binary flexpret_os os.data
 	hexdump -v -e '1/4 "%08X" "\n"' os.data > os.data.mem
 
 os_all: os.inst.mem os.data.mem os.inst.mem.ins
@@ -63,15 +70,15 @@ flexpret_test_os: layout.ld $(FLEXPRET_OS_COBJ) $(FLEXPRET_OS_SOBJ) $(FLEXPRET_O
 	$(RISCV_CC) $(FLEXPRET_CFLAGS) -I$(INCLUDE) -nostdlib -Xlinker -defsym -Xlinker TEXT_START_ADDR=0x00000000 -Xlinker -defsym -Xlinker DATA_START_ADDR=0x20000000 -T $^ -o $@
 
 test.inst.mem.ins: flexpret_test_os
-	riscv64-unknown-elf-objdump -d --section=.text flexpret_test_os > test.inst.mem.ins
-	riscv64-unknown-elf-objdump --disassemble-all --section=.text --section=.data --section=.bss flexpret_test_os > test.dump
+	$(RISCV_OBJDUMP) -d --section=.text flexpret_test_os > test.inst.mem.ins
+	$(RISCV_OBJDUMP) --disassemble-all --section=.text --section=.data --section=.bss flexpret_test_os > test.dump
 
 test.inst.mem: flexpret_test_os
-	riscv64-unknown-elf-objcopy --only-section .text -O binary flexpret_test_os test.inst
+	$(RISCV_OBJCOPY) --only-section .text -O binary flexpret_test_os test.inst
 	hexdump -v -e '1/4 "%08X" "\n"' test.inst > test.inst.mem
 
 test.data.mem: flexpret_test_os
-	riscv64-unknown-elf-objcopy --only-section .data --only-section .bss -O binary flexpret_test_os test.data
+	$(RISCV_OBJCOPY) --only-section .data --only-section .bss -O binary flexpret_test_os test.data
 	hexdump -v -e '1/4 "%08X" "\n"' test.data > test.data.mem
 
 clean:

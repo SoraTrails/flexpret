@@ -52,7 +52,7 @@ CORE=/opt/flexpret/emulator/generated-src/4tf-16i-16d-ti
 TESTBENCH=/opt/flexpret/emulator/testbench
 Core.o:${CORE}/Core.cpp ${CORE}/*.h
 	g++ -g -O2 -c ${CORE}/Core.cpp -o Core.o
-Core-os.o:${TESTBENCH}/Core-tb-os.cpp ${CORE}/*.h
+Core-os.o:${TESTBENCH}/Core-tb-os.cpp ${TESTBENCH}/Core-tb-os-gen.cpp ${CORE}/*.h
 	g++ -g -O2 -I${CORE} -c ${TESTBENCH}/Core-tb-os-gen.cpp -o Core-os.o
 Core:Core.o Core-os.o
 	g++ -g -O2 -o Core Core.o Core-os.o
@@ -82,10 +82,9 @@ test.data.mem: flexpret_test_os
 	hexdump -v -e '1/4 "%08X" "\n"' test.data > test.data.mem
 
 clean:
-	rm -f app/*.o asm/*.o src/*.o os.inst.mem.ins os.inst.mem os.data.mem flexpret_os
+	rm -f app/*.o asm/*.o src/*.o os.inst.mem.ins os.inst.mem os.data.mem os.data os.inst flexpret_os
 
 cleantest:
-	rm -f test/*.o asm/*.o src/*.o test.inst.mem.ins test.inst.mem test.data.mem flexpret_test_os
+	rm -f test/*.o asm/*.o src/*.o test.inst.mem.ins test.inst.mem test.data.mem test.data test.inst flexpret_test_os
 
-cleanall:
-	rm -f app/*.o test/*.o asm/*.o src/*.o test/*.o *.ins *.mem *.o Core *.dump
+cleanall: clean cleantest

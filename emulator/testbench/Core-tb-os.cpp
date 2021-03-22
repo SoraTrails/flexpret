@@ -194,6 +194,9 @@ int main (int argc, char* argv[])
 
             // Simulate processor until termination signal or max cycles reached
             done = false;
+            char io_buf[THREADS][4096];
+            int io_buf_len[THREADS] = {0};
+
             while(!done && (max_cycles == 0 || cycle < max_cycles)) {
 
                 // Setup inputs.
@@ -214,8 +217,14 @@ int main (int argc, char* argv[])
 
                 // Currently assume all peripheral bus writes are characters
                 //if(c->Core__io_bus_enable.to_bool() && c->Core__io_bus_write.to_bool() && ((c->Core__io_bus_addr.lo_word() & ) == 0x...)) {
+                
                 if(c->Core__io_bus_enable.to_bool() && c->Core__io_bus_write.to_bool()) {
-                    fprintf(stderr, "%c", c->Core__io_bus_data_in.lo_word());
+                    // loadstore.scala:173:thread id is in bus addr.
+                    int thread_index = c->Core__io_bus_addr.lo_word() >> 8;
+                    // fprintf(stderr, "%d", c->Core__io_bus_addr.lo_word());
+                    // fprintf(stderr, "%c %d\n", c->Core__io_bus_data_in.lo_word(),c->Core__io_bus_addr.lo_word());
+                    sprintf(io_buf[thread_index] + io_buf_len[thread_index], "%c", c->Core__io_bus_data_in.lo_word());
+                    io_buf_len[thread_index]++;
                 }
 
                 // Monitor GPIO
@@ -314,6 +323,15 @@ int main (int argc, char* argv[])
             //    fprintf(stderr, "Thread cycles = %llu\n", counter.thread_cycles[i]);
             //    fprintf(stderr, "Commit cycles = %llu\n", counter.commit_cycles[i]);
             //}
+
+            // print io_buf
+            for (int t = 0; t < THREADS; t++) {
+                // io_buf[t][io_buf_len[t]] = '\0';
+                fprintf(stderr, "[emulator]thread %i output:\n", t);
+                for(int j = 0; j < io_buf_len[t]; j++) {
+                    fputc(io_buf[t][j], stderr);
+                }
+            }
         }
     }
 

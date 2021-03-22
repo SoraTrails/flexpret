@@ -50,7 +50,7 @@ void stats_print(struct stats* s, struct stats* e) {
 }
 
 void emulator_outputstr(const char* str) {
-    volatile char* addr = (char*) EMULATOR_ADDR;
+    volatile char* addr = (char*) (EMULATOR_ADDR);
     while(*str != 0) {
         *addr = *str;
         str++;

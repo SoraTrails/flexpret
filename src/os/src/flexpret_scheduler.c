@@ -167,6 +167,15 @@ osStatus_t osSchedulerSetTmodes(osThreadId_t thread_id, int tmode) {
     return osOK;
 }
 
+int osSchedulerGetTmodes(osThreadId_t thread_id) {
+    uint32_t tmp = (uint32_t) thread_id;
+    uint32_t tid = get_tid_by_offset(tmp - (uint32_t)startup_state);
+
+    uint32_t tmodes[FLEXPRET_HW_THREADS_NUMS];
+    get_tmodes_4(tmodes, tmodes + 1, tmodes + 2, tmodes + 3);
+    return tmodes[tid];
+}
+
 int32_t osSchedulerGetSRTTNum() {
     uint32_t tmodes[FLEXPRET_HW_THREADS_NUMS];
     get_tmodes_4(tmodes, tmodes + 1, tmodes + 2, tmodes + 3);

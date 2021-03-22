@@ -16,6 +16,7 @@ int test_osKernelGetTickFreq();
 
 // Test Thread api
 int test_osThreadNew_osThreadJoin();
-int test_osThread_others();
+int test_osThread_info();
+int test_osThread_control();
 
 #endif

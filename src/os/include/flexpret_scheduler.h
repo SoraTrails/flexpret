@@ -33,6 +33,10 @@ osStatus_t osSchedulerSetSoftSlotNum(int count);
 /// \return status code that indicates the execution status of the function.
 osStatus_t osSchedulerSetTmodes(osThreadId_t tid, int tmode);
 
+/// Get thread mode of a thread.
+/// \param[in]     thread_id     thread ID obtained by \ref osThreadNew or \ref osThreadGetId.
+/// \return thread mode.
+int osSchedulerGetTmodes(osThreadId_t tid);
 
 /// Get SRTT Num.
 /// \return SRTT Num.

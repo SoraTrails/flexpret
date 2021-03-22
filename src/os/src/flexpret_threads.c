@@ -10,7 +10,7 @@ extern volatile hwthread_state startup_state[FLEXPRET_HW_THREADS_NUMS];
 static int flexpret_thread_num = 1;
 osThreadAttr_t *flexpret_thread_attr_entry[FLEXPRET_HW_THREADS_NUMS];
 osThreadAttr_t flexpret_thread_attr[FLEXPRET_HW_THREADS_NUMS];
-int soft_slot_id = -1;
+int default_soft_slot_id = -1;
 
 /********* OLD IMPLEMENTATION ***********
  * void hwthread_start(uint32_t tid, void (*func)(), uint32_t stack_address) {
@@ -42,6 +42,57 @@ const uint32_t flexpret_thread_init_stack_addr[FLEXPRET_HW_THREADS_NUMS] = {
     0x20003FFC
 };
 
+
+__NO_RETURN void thread_after_return_handler() {
+    uint32_t tid = read_csr(hartid);
+    startup_state[tid].func = NULL;
+    startup_state[tid].arg = NULL;
+    startup_state[tid].stack_address = (void *)flexpret_thread_init_stack_addr[tid];
+    // loop to sleep
+    while (1) {
+        uint32_t time = get_time();
+        delay_until_periodic(&time, FLEXPRET_WAIT_PERIOD);
+    }
+}
+
+// Thread cannot call thread_terminate to terminate itself
+static void thread_terminate(osThreadId_t thread_id, int state_clear) {
+    uint32_t tmp = (uint32_t) thread_id;
+    uint32_t tid = get_tid_by_offset(tmp - (uint32_t)startup_state);
+    if (state_clear) {
+        startup_state[tid].func = NULL;
+        startup_state[tid].arg = NULL;
+        startup_state[tid].stack_address = (void *)flexpret_thread_init_stack_addr[tid];
+    }
+
+    osPriority_t prior = flexpret_thread_attr_entry[tid]->priority;
+    do {
+        if (prior == osPriorityNormal) {
+            osSchedulerSetSlotNum(thread_id, 0);
+            if (osSchedulerGetSRTTNum() == 1) {
+                osSchedulerSetSoftSlotNum(0);
+            }
+            break;
+        } else if (prior == osPriorityRealtime) {
+            osSchedulerSetSlotNum(thread_id, 0);
+            break;
+        } else {
+            int tmode = osSchedulerGetTmodes(thread_id);
+            if (tmode == TMODE_HA || tmode == TMODE_HZ) {
+                prior = osPriorityRealtime;
+            } else if (tmode == TMODE_SA || tmode == TMODE_SZ) {
+                prior = osPriorityNormal;
+            } else {
+                flexpret_error("Bad priority\n");
+                osSchedulerSetSlotNum(thread_id, 0);
+                break;
+            }
+        }
+    } while (prior == osPriorityNormal || prior == osPriorityRealtime);
+
+    osSchedulerSetTmodes(thread_id, TMODE_ZOMBIE);
+}
+
 //  ==== Thread Management Functions ====
 osThreadId_t osThreadNew (osThreadFunc_t func, void *argument, const osThreadAttr_t *attr) {
     if (flexpret_thread_num == FLEXPRET_HW_THREADS_NUMS) {
@@ -64,11 +115,15 @@ osThreadId_t osThreadNew (osThreadFunc_t func, void *argument, const osThreadAtt
         flexpret_thread_attr_entry[tid] = attr;
         if (attr->stack_mem == NULL) {
             startup_state[tid].stack_address = (void *)flexpret_thread_init_stack_addr[tid];
+            flexpret_thread_attr_entry[tid]->stack_mem = (void *)flexpret_thread_init_stack_addr[tid];
         } else {
             startup_state[tid].stack_address = attr->stack_mem;
+            flexpret_thread_attr_entry[tid]->stack_mem = attr->stack_mem;
         }
         if (attr->stack_size == 0) {
             flexpret_thread_attr_entry[tid]->stack_size = flexpret_thread_init_stack_addr[tid] - flexpret_thread_init_stack_addr[tid-1];
+        } else {
+            flexpret_thread_attr_entry[tid]->stack_size = attr->stack_size;
         }
     }
     startup_state[tid].func = func;
@@ -131,9 +186,11 @@ uint32_t osThreadGetStackSpace (osThreadId_t thread_id) {
         return 0;
     }
     uint32_t tid_addr = (uint32_t)&tid;
-    if ((uint32_t)flexpret_thread_attr_entry[tid]->stack_mem > tid_addr) {
-        if ((uint32_t)flexpret_thread_attr_entry[tid]->stack_size > (flexpret_thread_attr_entry[tid]->stack_mem - tid_addr)) {
-            return flexpret_thread_attr_entry[tid]->stack_size - ((uint32_t)flexpret_thread_attr_entry[tid]->stack_mem - tid_addr);
+    uint32_t stack_mem = (uint32_t)flexpret_thread_attr_entry[tid]->stack_mem;
+    uint32_t stack_size = flexpret_thread_attr_entry[tid]->stack_size;
+    if (stack_mem > tid_addr) {
+        if (stack_size > (stack_mem - tid_addr)) {
+            return stack_size - (stack_mem - tid_addr);
         }
     }
     flexpret_error("Error calculating stack space");
@@ -240,6 +297,11 @@ osStatus_t osThreadJoin (osThreadId_t thread_id) {
         flexpret_error(" is not joinable\n");
         return osError;
     }
+    uint32_t current_tid = read_csr(hartid);
+    if (tid == current_tid) {
+        flexpret_error("Thread cannot join itself.\n");
+        return osError;
+    }
     // TODO: using event/thread flag mechanism
     while (((hwthread_state*)tmp)->func != NULL) {
         uint32_t time = get_time();
@@ -247,7 +309,7 @@ osStatus_t osThreadJoin (osThreadId_t thread_id) {
     }
 
     // eventually terminate sub thread.
-    thread_terminate(tid);
+    thread_terminate(thread_id, 0);
     return osOK;
 }
  
@@ -265,7 +327,7 @@ osStatus_t osThreadTerminate (osThreadId_t thread_id) {
         flexpret_error("Thread cannot terminate itself, use osThreadExit instead.\n");
         return osError;
     }
-    thread_terminate(tid);
+    thread_terminate(thread_id, 1);
     return osOK;
 }
  

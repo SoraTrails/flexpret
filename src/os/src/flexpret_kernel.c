@@ -5,46 +5,17 @@
 #include "flexpret_encoding.h"
 #include "flexpret_timing.h"
 #include "flexpret_threads.h"
+#include "flexpret_scheduler.h"
 
 extern osThreadAttr_t *flexpret_thread_attr_entry[FLEXPRET_HW_THREADS_NUMS];
 extern osThreadAttr_t flexpret_thread_attr[FLEXPRET_HW_THREADS_NUMS];
 extern const osThreadAttr_t flexpret_thread_init_attr;
 extern volatile hwthread_state startup_state[FLEXPRET_HW_THREADS_NUMS];
 extern const uint32_t flexpret_thread_init_stack_addr[FLEXPRET_HW_THREADS_NUMS];
-extern int soft_slot_id;
-
-void thread_after_return_handler() {
-    uint32_t tid = read_csr(hartid);
-    startup_state[tid].func = NULL;
-    startup_state[tid].arg = NULL;
-    startup_state[tid].stack_address = (void *)flexpret_thread_init_stack_addr[tid];
-    // 循环sleep
-    while (1) {
-        uint32_t time = get_time();
-        delay_until_periodic(&time, FLEXPRET_WAIT_PERIOD);
-    }
-}
-
-void thread_terminate(int tid) {
-    uint32_t slots[FLEXPRET_MAX_HW_THREADS_NUMS];
-    get_slots(slots, slots + 1, slots + 2, slots + 3, slots + 4, slots + 5, slots + 6, slots + 7);
-    register int i;
-    for (i = 0; i < FLEXPRET_MAX_HW_THREADS_NUMS; i++) {
-        if (slots[i] == tid) {
-            slots[i] = SLOT_D;
-        }
-        if (i == soft_slot_id && slots[i] == SLOT_S) {
-            slots[i] = SLOT_D;
-            soft_slot_id = -1;
-        }
-    }
-    set_slots(slots[7], slots[6], slots[5], slots[4], slots[3], slots[2], slots[1], slots[0]);
-
-    uint32_t tmodes[FLEXPRET_HW_THREADS_NUMS];
-    get_tmodes_4(tmodes, tmodes + 1, tmodes + 2, tmodes + 3);
-    tmodes[tid] = tmodes[tid] == TMODE_HA ? TMODE_HZ : TMODE_SZ;
-    set_tmodes_4(tmodes[3], tmodes[2], tmodes[1], tmodes[0]);
-}
+// Only used to record the soft_slot_id at initialization time
+extern int default_soft_slot_id;
+// bss_end addr flag, defined in linker script
+extern char bss_end;
 
 //  ==== Kernel Management Functions ====
 
@@ -59,6 +30,8 @@ osStatus_t osKernelInitialize (void) {
 
     // Init thread 0
     memcpy(flexpret_thread_attr_entry[0], &flexpret_thread_init_attr, sizeof(osThreadAttr_t));
+    flexpret_thread_attr_entry[0]->stack_mem = (void*)flexpret_thread_init_stack_addr[0];
+    flexpret_thread_attr_entry[0]->stack_size = flexpret_thread_init_stack_addr[0] - (uint32_t)&bss_end;
 
     return osOK;
 }
@@ -119,7 +92,6 @@ osKernelState_t osKernelGetState (void) {
 }
 
 osStatus_t osKernelStart (void) {
-    // TODO: start
     // run all threads
     register int i;
     int slots[FLEXPRET_MAX_HW_THREADS_NUMS];
@@ -135,9 +107,9 @@ osStatus_t osKernelStart (void) {
                 slots[i] = i;
             } else if (flexpret_thread_attr_entry[i]->priority == osPriorityNormal) {
                 modes[i] = TMODE_SA;
-                if (soft_slot_id == -1) {
+                if (default_soft_slot_id == -1) {
                     slots[i] = SLOT_S;
-                    soft_slot_id = i;
+                    default_soft_slot_id = i;
                 } else {
                     slots[i] = SLOT_D;
                 }

@@ -78,7 +78,7 @@ uint32_t get_tid_by_offset(uint32_t offset) {
     } else if (offset == sizeof(hwthread_state) << 2) {
         return 4;
     } else {
-        flexpret_error("bad offset calling get_tid_by_div");
+        flexpret_error("bad offset calling get_tid_by_div\n");
         return 0;
     }
 }

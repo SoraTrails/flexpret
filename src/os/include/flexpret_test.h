@@ -9,6 +9,30 @@
 #define PASSED 1
 #define FAILED 0
 
+#define FLEXPRET_ASSERT(e) \
+    { \
+        if (!(e)) { \
+            FLEXPRET_TEST_FAILED(); \
+            return FAILED; \
+        } \
+    }
+
+#define FLEXPRET_ASSERT_EQ_VAL(t, val) \
+    { \
+        if (t == val) { \
+            FLEXPRET_TEST_FAILED(); \
+            return FAILED; \
+        } \
+    }
+
+#define FLEXPRET_ASSERT_NEQ_VAL(t, val) \
+{ \
+    if (t != val) { \
+        FLEXPRET_TEST_FAILED(); \
+        return FAILED; \
+    } \
+}
+
 // Test Kernel api
 int test_osKernelGetInfo();
 int test_osKernelGetTickCount();

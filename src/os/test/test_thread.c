@@ -39,10 +39,8 @@ int test_osThreadNew_osThreadJoin() {
     osThreadId_t tid1 = osThreadNew((osThreadFunc_t)osTestThread1, (void*)(args + 0), &thread1);
     osThreadId_t tid2 = osThreadNew((osThreadFunc_t)osTestThread1, (void*)(args + 1), &thread2);
 
-    if (tid1 == NULL || tid2 == NULL) {
-        FLEXPRET_TEST_FAILED();
-        return FAILED;
-    }
+    FLEXPRET_ASSERT(tid1 != NULL && tid2 != NULL);
+
     osKernelStart();
     osThreadJoin(tid2);
     osThreadJoin(tid1);
@@ -51,19 +49,13 @@ int test_osThreadNew_osThreadJoin() {
     flexpret_info(itoa_hex(args[0].output));
     flexpret_info("\n");
 
-    if (args[0].output != 124) {
-        FLEXPRET_TEST_FAILED();
-        return FAILED;
-    }
-
+    FLEXPRET_ASSERT(args[0].output == 124);
+    
     flexpret_info("Thread2 returns :");
     flexpret_info(itoa_hex(args[1].output));
     flexpret_info("\n");
     
-    if (args[1].output != 42) {
-        FLEXPRET_TEST_FAILED();
-        return FAILED;
-    }
+    FLEXPRET_ASSERT(args[1].output == 42);
 
     return PASSED;
 }
@@ -90,17 +82,15 @@ static void osTestThread2 (void* arg) {
 
 int test_osThread_info() {
     osThreadAttr_t thread1;
-    thread1.name = "test Thread";
+    thread1.name = "test info thread";
     thread1.priority = osPriorityRealtime;
     thread1.attr_bits = osThreadJoinable;
 
     osKernelInitialize();
     osThreadId_t tid1 = osThreadNew((osThreadFunc_t)osTestThread2, NULL, &thread1);
 
-    if (tid1 == NULL) {
-        FLEXPRET_TEST_FAILED();
-        return FAILED;
-    }
+    FLEXPRET_ASSERT(tid1 != NULL);
+
     osThreadId_t tid0 = osThreadGetId();
     flexpret_info("mainThread: sub thread's name is ");
     flexpret_info(osThreadGetName(tid1));
@@ -119,20 +109,67 @@ int test_osThread_info() {
     return PASSED;
 }
 
+static void osTestThread3 (void* arg) {
+    osThreadId_t tid = osThreadGetId();
+    register int i;
+    for (i = 0; i < 100; i++) {}
+    osThreadExit();
+}
+
+static void osTestThread4 (void* arg) {
+    osThreadId_t tid = osThreadGetId();
+    for (;;) {}
+}
+
 int test_osThread_control() {
+    osThreadAttr_t thread1;
+    thread1.name = "test control thread1";
+    thread1.priority = osPriorityRealtime;
+    thread1.attr_bits = osThreadJoinable;
+    osThreadAttr_t thread2;
+    thread2.name = "test control thread2";
+    thread2.priority = osPriorityNormal;
+    thread2.attr_bits = osThreadJoinable;
 
+    osKernelInitialize();
+    osThreadId_t tid1 = osThreadNew((osThreadFunc_t)osTestThread3, NULL, &thread1);
+    osThreadId_t tid2 = osThreadNew((osThreadFunc_t)osTestThread4, NULL, NULL);
+    osThreadId_t tid3 = osThreadNew((osThreadFunc_t)osTestThread4, NULL, &thread2);
 
-// osThreadSetPriority
-// osThreadGetPriority
-// osThreadYield
-// osThreadSuspend
-// osThreadResume
-// osThreadDetach
-// osThreadExit
-// osThreadTerminate
-// osThreadGetCount
-// osThreadEnumerate
-// osDelay
-// osDelayUntil
+    FLEXPRET_ASSERT(tid1 != NULL && tid2 != NULL && tid3 != NULL);
 
+    osKernelStart();
+
+    osDelay(100);
+    FLEXPRET_ASSERT(osOK == osThreadSetPriority(tid1, osPriorityNormal));
+    FLEXPRET_ASSERT(osOK == osThreadSetPriority(tid2, osPriorityRealtime));
+    osDelay(100);
+
+    uint32_t count = osThreadGetCount();
+    flexpret_info("mainThread: 1. active thread count: ");
+    flexpret_info(itoa_hex_removing_ldz(count));
+    flexpret_info("\n");
+    osPriority_t prior = osThreadGetPriority(tid1);
+    FLEXPRET_ASSERT(prior == osPriorityNormal)
+    prior = osThreadGetPriority(tid2);
+    FLEXPRET_ASSERT(prior == osPriorityRealtime)
+    FLEXPRET_ASSERT(osOK == osThreadSuspend(tid2));
+    osDelay(100);
+    FLEXPRET_ASSERT(osOK == osThreadResume(tid2));
+    osDelay(100);
+    FLEXPRET_ASSERT(osOK == osThreadDetach(tid2));
+    uint32_t tick = osKernelGetTickCount();
+    osDelayUntil(tick + 100);
+    FLEXPRET_ASSERT(osOK != osThreadJoin(tid2));
+    FLEXPRET_ASSERT(osOK == osThreadTerminate(tid2));
+    FLEXPRET_ASSERT(osOK == osThreadTerminate(tid3));
+
+    osThreadId_t thread_array[4];
+    uint32_t array_items = 4;
+    count = osThreadEnumerate(thread_array, array_items);
+    flexpret_info("mainThread: 2. active thread count: ");
+    flexpret_info(itoa_hex_removing_ldz(count));
+    flexpret_info("\n");
+
+    return PASSED;
 }

@@ -52,7 +52,7 @@ CORE=/opt/flexpret/emulator/generated-src/4tf-16i-16d-ti
 TESTBENCH=/opt/flexpret/emulator/testbench
 Core.o:${CORE}/Core.cpp ${CORE}/*.h
 	g++ -g -O2 -c ${CORE}/Core.cpp -o Core.o
-Core-os.o:${TESTBENCH}/Core-tb-os.cpp ${TESTBENCH}/Core-tb-os-gen.cpp ${CORE}/*.h
+Core-os.o:${TESTBENCH}/Core-tb-os.cpp ${CORE}/*.h
 	g++ -g -O2 -I${CORE} -c ${TESTBENCH}/Core-tb-os-gen.cpp -o Core-os.o
 Core:Core.o Core-os.o
 	g++ -g -O2 -o Core Core.o Core-os.o

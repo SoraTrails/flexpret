@@ -102,15 +102,21 @@ RES_DIR=${ROOT_DIR}/emulator/generated-src/4tf-16i-16d-ti
 
 showHelp() {
 cat << EOF  
-Usage: ./run.sh [-h] [-s <before|after>] [-c [test]] [-r [test]]
+Usage: ./run.sh [-h] [-s <before|after>] [-c [test]] [-r [test]] [-C]
 Sync, compile, run flexpret simulator
 
 -h,  --help                    Display help
+-C,  --clean                    Clean file
 -s,  --sync <before|after>     Sync before: copy source file from docker mapped region to container
                                Sync after:  copy source file from container to docker mapped region
 -c,  --compile [target]        Compile source file to elf and generate inst&data file, default target is os.
 -r,  --run [target]            Compile testbench and run it using inst&data file, default target is os.
 EOF
+}
+
+cleanFile() {
+    WORK_DIR=${ROOT_DIR}/src/os
+    cd $WORK_DIR && make cleanall
 }
 
 syncFile() {
@@ -214,7 +220,7 @@ runTestbench() {
     gzip -c ${RES_DIR}/log > ${RES_DIR}/log.tar.gz
 }
 
-TEMP=`getopt -o hs:c::r:: --long help,sync:,compile::,run:: \
+TEMP=`getopt -o hs:c::r::C --long help,sync:,compile::,run::,clean \
      -n 'run.bash' -- "$@"`
 
 if [ $? != 0 ] ; then echo "bad args..." ; exit 1 ; fi
@@ -224,6 +230,7 @@ eval set -- "$TEMP"
 
 while true ; do
     case "$1" in
+        -C|--clean) cleanFile ; exit 0 ;; 
         -h|--help) showHelp ; exit 0 ;;
         -s|--sync) syncFile $2 ; exit 0 ;;
         -c|--compile) 

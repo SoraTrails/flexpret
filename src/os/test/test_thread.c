@@ -139,11 +139,14 @@ int test_osThread_control() {
     FLEXPRET_ASSERT(tid1 != NULL && tid2 != NULL && tid3 != NULL);
 
     osKernelStart();
-
-    osDelay(100);
+    const int delay_period = 1500;
+    FLEXPRET_DEBUG_SLOT_TMODE();
+    osDelay(delay_period);
     FLEXPRET_ASSERT(osOK == osThreadSetPriority(tid1, osPriorityNormal));
+    FLEXPRET_DEBUG_SLOT_TMODE();
     FLEXPRET_ASSERT(osOK == osThreadSetPriority(tid2, osPriorityRealtime));
-    osDelay(100);
+    FLEXPRET_DEBUG_SLOT_TMODE();
+    osDelay(delay_period);
 
     uint32_t count = osThreadGetCount();
     flexpret_info("mainThread: 1. active thread count: ");
@@ -154,15 +157,19 @@ int test_osThread_control() {
     prior = osThreadGetPriority(tid2);
     FLEXPRET_ASSERT(prior == osPriorityRealtime)
     FLEXPRET_ASSERT(osOK == osThreadSuspend(tid2));
-    osDelay(100);
+    FLEXPRET_DEBUG_SLOT_TMODE();
+    osDelay(delay_period);
     FLEXPRET_ASSERT(osOK == osThreadResume(tid2));
-    osDelay(100);
+    FLEXPRET_DEBUG_SLOT_TMODE();
+    osDelay(delay_period);
     FLEXPRET_ASSERT(osOK == osThreadDetach(tid2));
     uint32_t tick = osKernelGetTickCount();
-    osDelayUntil(tick + 100);
+    osDelayUntil(tick + delay_period);
     FLEXPRET_ASSERT(osOK != osThreadJoin(tid2));
     FLEXPRET_ASSERT(osOK == osThreadTerminate(tid2));
+    FLEXPRET_DEBUG_SLOT_TMODE();
     FLEXPRET_ASSERT(osOK == osThreadTerminate(tid3));
+    FLEXPRET_DEBUG_SLOT_TMODE();
 
     osThreadId_t thread_array[4];
     uint32_t array_items = 4;

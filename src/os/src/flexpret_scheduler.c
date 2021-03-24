@@ -3,6 +3,7 @@
 #include "flexpret_threads.h"
 
 extern volatile hwthread_state startup_state[FLEXPRET_HW_THREADS_NUMS];
+extern osThreadAttr_t *flexpret_thread_attr_entry[FLEXPRET_HW_THREADS_NUMS];
 
 int32_t osSchedulerGetFreq(osThreadId_t thread_id) {
     uint8_t slots[FLEXPRET_MAX_HW_THREADS_NUMS];
@@ -183,7 +184,9 @@ int32_t osSchedulerGetSRTTNum() {
     int res = 0;
     for (i = 0; i < FLEXPRET_HW_THREADS_NUMS; i++) {
         if (tmodes[i] == TMODE_SA || tmodes[i] == TMODE_SZ) {
-            res++;
+            if (startup_state[i].func != NULL) {
+                res++;
+            }
         }
     }
     return res;

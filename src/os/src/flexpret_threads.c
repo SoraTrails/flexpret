@@ -69,7 +69,8 @@ static void thread_terminate(osThreadId_t thread_id, int state_clear) {
     do {
         if (prior == osPriorityNormal) {
             osSchedulerSetSlotNum(thread_id, 0);
-            if (osSchedulerGetSRTTNum() == 1) {
+            uint32_t ss_num = osSchedulerGetSRTTNum();
+            if (ss_num == 0) {
                 osSchedulerSetSoftSlotNum(0);
             }
             break;
@@ -165,6 +166,8 @@ osThreadState_t osThreadGetState (osThreadId_t thread_id) {
     case TMODE_HA:
     case TMODE_SA:
         return osThreadRunning;
+    default:
+        return osThreadError;
     }
     return osThreadError;
 }
@@ -267,8 +270,13 @@ osStatus_t osThreadYield (void) {
  
 osStatus_t osThreadSuspend (osThreadId_t thread_id) {
     // TODO : Separate Inactive and Blocked state from HZ/SZ
-    // if du/wu/ie/ee instruction is called before, thread will be woked up when timer is due, use set_compare to avoid this behavior
-    set_compare(0);
+    if (thread_id == osThreadGetId()) {
+        // if du/wu/ie/ee instruction is called before, thread will be woked up when timer is due, use set_compare to avoid this behavior
+        set_compare(0);
+    } else {
+        // Thread may be woked up
+        flexpret_warn("[osThreadSuspend] Suspended thread may be woked up by timer, if du/wu/ie/ee instruction is called before.\n");
+    }
     osSchedulerSetTmodes(thread_id, TMODE_ZOMBIE);
     return osOK;
 }

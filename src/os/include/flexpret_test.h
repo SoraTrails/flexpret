@@ -1,6 +1,7 @@
 #ifndef FLEXPRET_TEST_H
 #define FLEXPRET_TEST_H
 #include "flexpret_utils.h"
+#include "flexpret_encoding.h"
 
 #define FLEXPRET_TEST_FAILED2(f,l) flexpret_error("Test case failed at file " f "(line:" #l ")\n")
 #define FLEXPRET_TEST_FAILED1(f,l) FLEXPRET_TEST_FAILED2(f,l)
@@ -17,21 +18,16 @@
         } \
     }
 
-#define FLEXPRET_ASSERT_EQ_VAL(t, val) \
+#define FLEXPRET_DEBUG_SLOT_TMODE() \
     { \
-        if (t == val) { \
-            FLEXPRET_TEST_FAILED(); \
-            return FAILED; \
-        } \
+        uint32_t _tmp_slot = read_csr(badvaddr); \
+        uint32_t _tmp_tmode = read_csr(ptbr); \
+        flexpret_info("[debug] slot: "); \
+        flexpret_info(itoa_hex(_tmp_slot)); \
+        flexpret_info(", tmode: "); \
+        flexpret_info(itoa_hex(_tmp_tmode)); \
+        flexpret_info("\n"); \
     }
-
-#define FLEXPRET_ASSERT_NEQ_VAL(t, val) \
-{ \
-    if (t != val) { \
-        FLEXPRET_TEST_FAILED(); \
-        return FAILED; \
-    } \
-}
 
 // Test Kernel api
 int test_osKernelGetInfo();

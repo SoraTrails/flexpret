@@ -10,6 +10,10 @@ void flexpret_info(const char* msg) {
     debug_string(msg);
 }
 
+void flexpret_warn(const char* msg) {
+    debug_string(msg);
+}
+
 void flexpret_not_implemented(const char f[])
 {
     flexpret_error("Function `");

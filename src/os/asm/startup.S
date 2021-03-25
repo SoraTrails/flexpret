@@ -62,6 +62,10 @@ startup:
 # Ignored: 0 to all registers
 # Ignored: 0 .bss (would require 2 more arguments)
 
+# intialize trap entry
+la a7, trap_entry
+csrw evec, a7
+
 # initialize the stack
 mv sp, a1 
 # run C program 
@@ -108,7 +112,6 @@ csrw tohost, a0
 .data
 .global startup_state
 .global thread_after_return
-.global sw_thread_num
 startup_state:
 .word main
 .word 0
@@ -125,6 +128,3 @@ startup_state:
 
 thread_after_return:
 .word thread_after_return_handler
-
-sw_thread_num:
-.word 0

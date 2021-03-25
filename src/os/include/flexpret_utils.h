@@ -1,5 +1,6 @@
 #ifndef FLEXPRET_UTILS_H
 #define FLEXPRET_UTILS_H
+#include "cmsis_os2.h"
 #include "flexpret_const.h"
 
 #define FLEXPRET_ERROR(msg) \
@@ -15,6 +16,6 @@ char * strncpy(char *dest, const char *src, size_t size);
 size_t strlen(const char *s);
 void *memset(void *s, int c, size_t n);
 void *memcpy(void *dst, const void *src, size_t len);
-uint32_t get_tid_by_offset(uint32_t offset);
+uint32_t get_tid(osThreadId_t tid);
 
 #endif

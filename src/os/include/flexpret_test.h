@@ -39,4 +39,7 @@ int test_osThreadNew_osThreadJoin();
 int test_osThread_info();
 int test_osThread_control();
 
+// Test trap
+int test_trap();
+
 #endif

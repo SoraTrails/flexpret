@@ -57,8 +57,7 @@ __NO_RETURN void thread_after_return_handler() {
 
 // Thread cannot call thread_terminate to terminate itself
 static void thread_terminate(osThreadId_t thread_id, int state_clear) {
-    uint32_t tmp = (uint32_t) thread_id;
-    uint32_t tid = get_tid_by_offset(tmp - (uint32_t)startup_state);
+    uint32_t tid = get_tid(thread_id);
     if (state_clear) {
         startup_state[tid].func = NULL;
         startup_state[tid].arg = NULL;
@@ -136,8 +135,7 @@ osThreadId_t osThreadNew (osThreadFunc_t func, void *argument, const osThreadAtt
  
 const char *osThreadGetName (osThreadId_t thread_id) {
     // hwthread_state* tmp = (hwthread_state*) thread_id;
-    uint32_t tmp = (uint32_t) thread_id;
-    uint32_t tid = get_tid_by_offset(tmp - (uint32_t)startup_state);
+    uint32_t tid = get_tid(thread_id);
     return flexpret_thread_attr_entry[tid]->name;
 }
  
@@ -150,8 +148,7 @@ osThreadState_t osThreadGetState (osThreadId_t thread_id) {
     uint32_t tmodes[FLEXPRET_HW_THREADS_NUMS];
     get_tmodes_4(tmodes, tmodes + 1, tmodes + 2, tmodes + 3);
     // hwthread_state* tmp = (hwthread_state*) thread_id;
-    uint32_t tmp = (uint32_t) thread_id;
-    uint32_t tid = get_tid_by_offset(tmp - (uint32_t)startup_state);
+    uint32_t tid = get_tid(thread_id);
     switch (tmodes[tid])
     {
     // osThreadInactive
@@ -173,16 +170,12 @@ osThreadState_t osThreadGetState (osThreadId_t thread_id) {
 }
  
 uint32_t osThreadGetStackSize (osThreadId_t thread_id) {
-    // hwthread_state* tmp = (hwthread_state*) thread_id;
-    uint32_t tmp = (uint32_t) thread_id;
-    uint32_t tid = get_tid_by_offset(tmp - (uint32_t)startup_state);
+    uint32_t tid = get_tid(thread_id);
     return flexpret_thread_attr_entry[tid]->stack_size;
 }
  
 uint32_t osThreadGetStackSpace (osThreadId_t thread_id) {
-    // hwthread_state* tmp = (hwthread_state*) thread_id;
-    uint32_t tmp = (uint32_t) thread_id;
-    uint32_t tid = get_tid_by_offset(tmp - (uint32_t)startup_state);
+    uint32_t tid = get_tid(thread_id);
     uint32_t current_tid = read_csr(hartid);
     if (tid != current_tid) {
         flexpret_error("osThreadGetStackSpace only supports querying threads' own space\n");
@@ -201,9 +194,7 @@ uint32_t osThreadGetStackSpace (osThreadId_t thread_id) {
 }
  
 osStatus_t osThreadSetPriority (osThreadId_t thread_id, osPriority_t priority) {
-    // hwthread_state* tmp = (hwthread_state*) thread_id;
-    uint32_t tmp = (uint32_t) thread_id;
-    uint32_t tid = get_tid_by_offset(tmp - (uint32_t)startup_state);
+    uint32_t tid = get_tid(thread_id);
     osPriority_t current_priority = flexpret_thread_attr_entry[tid]->priority;
     if (current_priority == priority) {
         return osOK;
@@ -257,9 +248,7 @@ osStatus_t osThreadSetPriority (osThreadId_t thread_id, osPriority_t priority) {
 }
  
 osPriority_t osThreadGetPriority (osThreadId_t thread_id) {
-    // hwthread_state* tmp = (hwthread_state*) thread_id;
-    uint32_t tmp = (uint32_t) thread_id;
-    uint32_t tid = get_tid_by_offset(tmp - (uint32_t)startup_state);
+    uint32_t tid = get_tid(thread_id);
     return flexpret_thread_attr_entry[tid]->priority;
 }
  
@@ -275,7 +264,7 @@ osStatus_t osThreadSuspend (osThreadId_t thread_id) {
         set_compare(0);
     } else {
         // Thread may be woked up
-        flexpret_warn("[osThreadSuspend] Suspended thread may be woked up by timer, if du/wu/ie/ee instruction is called before.\n");
+        flexpret_warn("[warn:osThreadSuspend] Suspended thread may be woked up by timer, if du/wu/ie/ee instruction is called before.\n");
     }
     osSchedulerSetTmodes(thread_id, TMODE_ZOMBIE);
     return osOK;
@@ -288,17 +277,13 @@ osStatus_t osThreadResume (osThreadId_t thread_id) {
 }
  
 osStatus_t osThreadDetach (osThreadId_t thread_id) {
-    // hwthread_state* tmp = (hwthread_state*) thread_id;
-    uint32_t tmp = (uint32_t) thread_id;
-    uint32_t tid = get_tid_by_offset(tmp - (uint32_t)startup_state);
+    uint32_t tid = get_tid(thread_id);
     flexpret_thread_attr_entry[tid]->attr_bits = osThreadDetached;
     return osOK;
 }
  
 osStatus_t osThreadJoin (osThreadId_t thread_id) {
-    // hwthread_state* tmp = (hwthread_state*) thread_id;
-    uint32_t tmp = (uint32_t) thread_id;
-    uint32_t tid = get_tid_by_offset(tmp - (uint32_t)startup_state);
+    uint32_t tid = get_tid(thread_id);
     if (flexpret_thread_attr_entry[tid]->attr_bits != osThreadJoinable) {
         flexpret_error("Thread ");
         flexpret_error(itoa_hex_removing_ldz(tid));
@@ -311,7 +296,7 @@ osStatus_t osThreadJoin (osThreadId_t thread_id) {
         return osError;
     }
     // TODO: using event/thread flag mechanism
-    while (((hwthread_state*)tmp)->func != NULL) {
+    while (((hwthread_state*)thread_id)->func != NULL) {
         uint32_t time = get_time();
         delay_until_periodic(&time, FLEXPRET_WAIT_PERIOD);
     }
@@ -328,8 +313,7 @@ __NO_RETURN void osThreadExit (void) {
 }
  
 osStatus_t osThreadTerminate (osThreadId_t thread_id) {
-    uint32_t tmp = (uint32_t) thread_id;
-    uint32_t tid = get_tid_by_offset(tmp - (uint32_t)startup_state);
+    uint32_t tid = get_tid(thread_id);
     uint32_t current_tid = read_csr(hartid);
     if (tid == current_tid) {
         flexpret_error("Thread cannot terminate itself, use osThreadExit instead.\n");

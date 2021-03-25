@@ -1,7 +1,7 @@
 # Build flexpret compatible simple operation system
-# RISCV_CC=/data/riscv-none-gcc/7.2.0-4-20180606-1631/bin/riscv-none-embed-gcc
-# RISCV_OBJDUMP=/data/riscv-none-gcc/7.2.0-4-20180606-1631/bin/riscv-none-embed-objdump
-# RISCV_OBJCOPY=/data/riscv-none-gcc/7.2.0-4-20180606-1631/bin/riscv-none-embed-objcopy
+# RISCV_CC=/data/xpack-riscv-none-embed-gcc-8.3.0-2.3/bin/riscv-none-embed-gcc
+# RISCV_OBJDUMP=/data/xpack-riscv-none-embed-gcc-8.3.0-2.3/bin/riscv-none-embed-objdump
+# RISCV_OBJCOPY=/data/xpack-riscv-none-embed-gcc-8.3.0-2.3/bin/riscv-none-embed-objcopy
 # FLEXPRET_CFLAGS=-march=rv32i -mabi=ilp32 -mcmodel=medany -msmall-data-limit=8 -L. -nostartfiles -lc -O0
 
 RISCV_CC=riscv64-unknown-elf-gcc

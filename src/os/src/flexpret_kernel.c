@@ -6,6 +6,7 @@
 #include "flexpret_timing.h"
 #include "flexpret_threads.h"
 #include "flexpret_scheduler.h"
+#include "flexpret_trap.h"
 
 extern osThreadAttr_t *flexpret_thread_attr_entry[FLEXPRET_HW_THREADS_NUMS];
 extern osThreadAttr_t flexpret_thread_attr[FLEXPRET_HW_THREADS_NUMS];

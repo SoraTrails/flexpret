@@ -12,8 +12,7 @@ int32_t osSchedulerGetFreq(osThreadId_t thread_id) {
     uint8_t soft_count = 0;
     uint8_t active_count = 0;
     uint8_t thread_count = 0;
-    uint32_t tmp = (uint32_t) thread_id;
-    uint32_t tid = get_tid_by_offset(tmp - (uint32_t)startup_state);
+    uint32_t tid = get_tid(thread_id);
 
     for(i = 0; i < FLEXPRET_MAX_HW_THREADS_NUMS; i++) {
         if (slots[i] == tid) {
@@ -84,8 +83,7 @@ osStatus_t osSchedulerSetSlotNum(osThreadId_t thread_id, int count) {
     if (count < 0 || count >= FLEXPRET_MAX_HW_THREADS_NUMS - 1) {
         return osErrorParameter;
     }
-    uint32_t tmp = (uint32_t) thread_id;
-    uint32_t tid = get_tid_by_offset(tmp - (uint32_t)startup_state);
+    uint32_t tid = get_tid(thread_id);
 
     return set_slot_num(tid, count);
 }
@@ -99,8 +97,7 @@ osStatus_t osSchedulerSetSoftSlotNum(int count) {
 }
 
 osStatus_t osSchedulerSetTmodes(osThreadId_t thread_id, int tmode) {
-    uint32_t tmp = (uint32_t) thread_id;
-    uint32_t tid = get_tid_by_offset(tmp - (uint32_t)startup_state);
+    uint32_t tid = get_tid(thread_id);
 
     uint32_t tmodes[FLEXPRET_HW_THREADS_NUMS];
     get_tmodes_4(tmodes, tmodes + 1, tmodes + 2, tmodes + 3);
@@ -169,8 +166,7 @@ osStatus_t osSchedulerSetTmodes(osThreadId_t thread_id, int tmode) {
 }
 
 int osSchedulerGetTmodes(osThreadId_t thread_id) {
-    uint32_t tmp = (uint32_t) thread_id;
-    uint32_t tid = get_tid_by_offset(tmp - (uint32_t)startup_state);
+    uint32_t tid = get_tid(thread_id);
 
     uint32_t tmodes[FLEXPRET_HW_THREADS_NUMS];
     get_tmodes_4(tmodes, tmodes + 1, tmodes + 2, tmodes + 3);

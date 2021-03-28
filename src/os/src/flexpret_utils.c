@@ -1,8 +1,10 @@
 #include "flexpret_utils.h"
 #include "flexpret_io.h"
 #include "flexpret_threads.h"
+#include "flexpret_timing.h"
 
 extern volatile hwthread_state startup_state[FLEXPRET_HW_THREADS_NUMS];
+extern volatile hwtimer_state startup_timer_state[FLEXPRET_HW_THREADS_NUMS];
 
 void flexpret_error(const char* msg) {
     debug_string(msg);
@@ -88,4 +90,23 @@ uint32_t get_tid(osThreadId_t thread_id) {
         flexpret_error("bad offset calling get_tid\n");
         return 0;
     }
+}
+
+uint32_t get_timer_tid(osTimerId_t timer_id) {
+    uint32_t offset = (uint32_t)timer_id - (uint32_t)startup_timer_state;
+    if (offset == 0) {
+        return 0;
+    } else if (offset == sizeof(hwtimer_state)) {
+        return 1;
+    } else if (offset == sizeof(hwtimer_state) << 1) {
+        return 2;
+    } else if (offset == ((sizeof(hwtimer_state) << 1) + sizeof(hwtimer_state))) {
+        return 3;
+    } else if (offset == sizeof(hwtimer_state) << 2) {
+        return 4;
+    } else {
+        flexpret_error("bad offset calling get_timer_tid\n");
+        return 0;
+    }
+
 }

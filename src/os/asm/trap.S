@@ -61,15 +61,19 @@ save_context:
     j fault
 ie:
     addi a2, a2, 0
+    addi s0, x0, 0
     j call_handler
 ee:
     addi a2, a2, 4
+    addi s0, x0, 0
     j call_handler
 int:
     addi a2, a2, 8
+    addi s0, x0, 0
     j call_handler
 fault:
     addi a2, a2, 12
+    addi s0, x0, 4
     # j call_handler
 call_handler:
     add a5, a5, a2
@@ -86,7 +90,7 @@ restore_epc:
     la a7, epc_vector
     add a7, a7, a6
     lw tp, 0(a7)
-    addi tp, tp, 4 # goto pc + 4
+    add tp, tp, s0 # when fault, goto pc + 4; else goto pc
 
     # restore context except tp(x4)
     # NOTE: sp should be equal to the value when it was saved
@@ -125,6 +129,8 @@ load_context:
     addi sp, sp, 32 * 4
 
 trap_ret:
+    # enable interrupts, because interrupts was disabled automatically by hardware when trap occurred.
+    csrrsi x0, status, 16 
     jalr x0, tp, 0
 
     # unreachable code
@@ -156,13 +162,29 @@ trap_handler_vector:
 .word default_int_handler
 .word default_fault_handler
 
-# trap_stack:
-# .word trap_stack + 0x0FC
-# .word trap_stack + 0x1FC
-# .word trap_stack + 0x2FC
-# .word trap_stack + 0x3FC
-
 epc_vector:
+.word 0
+.word 0
+.word 0
+.word 0
+
+.global startup_timer_state
+startup_timer_state:
+.word 0
+.word 0
+.word 0
+.word 0
+
+.word 0
+.word 0
+.word 0
+.word 0
+
+.word 0
+.word 0
+.word 0
+.word 0
+
 .word 0
 .word 0
 .word 0

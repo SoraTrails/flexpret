@@ -18,6 +18,14 @@
         } \
     }
 
+#define FLEXPRET_THREAD_ASSERT(e) \
+    { \
+        if (!(e)) { \
+            FLEXPRET_TEST_FAILED(); \
+            return ; \
+        } \
+    }
+
 #define FLEXPRET_DEBUG_SLOT_TMODE() \
     { \
         uint32_t _tmp_slot = read_csr(badvaddr); \
@@ -41,5 +49,8 @@ int test_osThread_control();
 
 // Test trap
 int test_trap();
+
+// Test timer
+int test_timer();
 
 #endif

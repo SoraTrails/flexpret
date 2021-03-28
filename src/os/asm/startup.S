@@ -65,6 +65,7 @@ startup:
 # intialize trap entry
 la a7, trap_entry
 csrw evec, a7
+csrrsi x0, status, 16 # enable interrupts for timer.
 
 # initialize the stack
 mv sp, a1 

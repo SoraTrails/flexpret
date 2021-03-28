@@ -5,18 +5,35 @@
 
 
 // timing instructions
-#define TI_DU custom0 zero, zero, zero, 0
-#define TI_WU custom1 zero, zero, zero, 0
-#define TI_EE custom2 zero, zero, zero, 0
-#define TI_IE custom2 zero, zero, zero, 1
+// #define TI_DU custom0 zero, zero, zero, 0
+// #define TI_WU custom1 zero, zero, zero, 0
+// #define TI_IE custom2 zero, zero, zero, 1
+// #define TI_EE custom2 zero, zero, zero, 0
 
 // temp for older RISC-V
 #define scause cause
 #define sepc epc
 
+// most significant bit of cause src is moved from 4th bit, see csr.scala:207
 #define CAUSE_IE 0x8000000d
 #define CAUSE_EE 0xd
 #define CAUSE_EXTERNAL_INT 0x8000000e
+
+// misaligned_fetch = 0x0
+// fault_fetch = 0x1
+// illegal_instruction = 0x2
+// privileged_instruction = 0x3
+// fp_disabled = 0x4
+// syscall = 0x6
+// breakpoint = 0x7
+// misaligned_load = 0x8
+// misaligned_store = 0x9
+// fault_load = 0xa
+// fault_store = 0xb
+// accelerator_disabled = 0xc
+// ie = 0x1d
+// ee = 0xd
+// interrupt = 0x1e
 
 // 5[8+]
 // Hack until csr instruction can take immediate value

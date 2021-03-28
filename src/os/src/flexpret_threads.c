@@ -28,7 +28,7 @@ const osThreadAttr_t flexpret_thread_init_attr = {
     .name = "FlexpretThread",
 	.attr_bits = osThreadDetached,
 	.cb_mem = NULL,
-	.cb_size = 0,
+	.cb_size = sizeof(hwthread_state),
 	.stack_mem = NULL,
 	.stack_size = 0,
 	.priority = osPriorityNormal,
@@ -48,6 +48,13 @@ __NO_RETURN void thread_after_return_handler() {
     startup_state[tid].func = NULL;
     startup_state[tid].arg = NULL;
     startup_state[tid].stack_address = (void *)flexpret_thread_init_stack_addr[tid];
+
+    // Delete timer before thread is terminated.
+    osTimerId_t timer = osThreadGetTimer(osThreadGetId());
+    if (timer != NULL) {
+        osTimerDelete(timer);
+    }
+
     // loop to sleep
     while (1) {
         uint32_t time = get_time();
@@ -62,6 +69,12 @@ static void thread_terminate(osThreadId_t thread_id, int state_clear) {
         startup_state[tid].func = NULL;
         startup_state[tid].arg = NULL;
         startup_state[tid].stack_address = (void *)flexpret_thread_init_stack_addr[tid];
+    }
+
+    // Delete timer before thread is terminated.
+    osTimerId_t timer = osThreadGetTimer(thread_id);
+    if (timer != NULL) {
+        osTimerDelete(timer);
     }
 
     osPriority_t prior = flexpret_thread_attr_entry[tid]->priority;
@@ -110,6 +123,7 @@ osThreadId_t osThreadNew (osThreadFunc_t func, void *argument, const osThreadAtt
         // tid will not be 0
         attr_ptr->stack_size = flexpret_thread_init_stack_addr[tid] - flexpret_thread_init_stack_addr[tid-1];
         // startup_state[tid].stack_address will be set in startup.S by default.
+        attr_ptr->cb_mem = (void*)(startup_state + tid);
     } else {
         // If attr is not null, cb&stack is stored at user defined address
         flexpret_thread_attr_entry[tid] = attr;
@@ -125,6 +139,15 @@ osThreadId_t osThreadNew (osThreadFunc_t func, void *argument, const osThreadAtt
         } else {
             flexpret_thread_attr_entry[tid]->stack_size = attr->stack_size;
         }
+        // if (attr->name == NULL) {
+        //     flexpret_thread_attr_entry[tid]->name = "FlexpretThread";
+        // }
+        // if (attr->cb_mem == NULL) {
+        //     flexpret_thread_attr_entry[tid]->cb_mem = (void*)attr;
+        // }
+        // if (attr->cb_size == 0) {
+        //     flexpret_thread_attr_entry[tid]->cb_size = sizeof(osThreadAttr_t);
+        // }
     }
     startup_state[tid].func = func;
     startup_state[tid].arg = argument;
@@ -181,15 +204,15 @@ uint32_t osThreadGetStackSpace (osThreadId_t thread_id) {
         flexpret_error("osThreadGetStackSpace only supports querying threads' own space\n");
         return 0;
     }
-    uint32_t tid_addr = (uint32_t)&tid;
     uint32_t stack_mem = (uint32_t)flexpret_thread_attr_entry[tid]->stack_mem;
     uint32_t stack_size = flexpret_thread_attr_entry[tid]->stack_size;
+    uint32_t tid_addr = (uint32_t)&tid_addr;
     if (stack_mem > tid_addr) {
         if (stack_size > (stack_mem - tid_addr)) {
             return stack_size - (stack_mem - tid_addr);
         }
     }
-    flexpret_error("Error calculating stack space");
+    flexpret_error("Error calculating stack space.\n");
     return 0;
 }
  
@@ -296,7 +319,7 @@ osStatus_t osThreadJoin (osThreadId_t thread_id) {
         return osError;
     }
     // TODO: using event/thread flag mechanism
-    while (((hwthread_state*)thread_id)->func != NULL) {
+    while (((volatile hwthread_state*)thread_id)->func != NULL) {
         uint32_t time = get_time();
         delay_until_periodic(&time, FLEXPRET_WAIT_PERIOD);
     }
@@ -349,12 +372,22 @@ uint32_t osThreadEnumerate (osThreadId_t *thread_array, uint32_t array_items) {
 //  ==== Generic Wait Functions ====
  
 osStatus_t osDelay (uint32_t ticks) {
+    osTimerId_t timer = osThreadGetTimer(osThreadGetId());
+    if (osTimerIsRunning(timer)) {
+        flexpret_error("A thread CANNOT call osDelay when it has a running timer because of Flexpret's timing mechanism.\n");
+        return osError;
+    }
     uint32_t time = get_time();
     delay_until_periodic(&time, ticks);
     return osOK;
 }
  
 osStatus_t osDelayUntil (uint32_t ticks) {
+    osTimerId_t timer = osThreadGetTimer(osThreadGetId());
+    if (osTimerIsRunning(timer)) {
+        flexpret_error("A thread CANNOT call osDelayUntil when it has a running timer because of Flexpret's timing mechanism.\n");
+        return osError;
+    }
     set_compare(ticks);
     delay_until();
     return osOK;

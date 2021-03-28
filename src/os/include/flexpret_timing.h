@@ -1,6 +1,6 @@
 #ifndef FLEXPRET_TIMING_H
 #define FLEXPRET_TIMING_H
-
+#include "cmsis_os2.h"
 #include "flexpret_encoding.h"
 #include "flexpret_const.h"
 
@@ -29,10 +29,10 @@ static inline void delay_until() { asm volatile ("custom0 zero, zero, zero, 0");
 static inline void wait_until() { asm volatile ("custom1 zero, zero, zero, 0"); };
 // Interrupt execution when compare expires (cause = CAUSE_IE)
 // TI_EE
-static inline void interrupt_expire() { asm volatile ("custom2 zero, zero, zero, 0"); };
+static inline void interrupt_expire() { asm volatile ("custom2 zero, zero, zero, 1"); };
 // Throw exception when compare expires (cause = CAUSE_EE)
 // TI_IE
-static inline void exception_expire() { asm volatile ("custom2 zero, zero, zero, 1"); };
+static inline void exception_expire() { asm volatile ("custom2 zero, zero, zero, 0"); };
 
 // Helper functions for timing instructions
 
@@ -52,5 +52,17 @@ static inline void disable_interrupts() { asm volatile ("csrrci x0, status, 16")
 // Emulator support
 static inline void  counters_start() { asm volatile ("csrrsi x0, uarch14,1"); }
 static inline void  counters_end() { asm volatile ("csrrsi x0, uarch15,1"); }
+
+typedef struct hwtimer_state {
+    uint32_t ticks;
+    osTimerFunc_t func;
+    int type;
+    void* arg;
+} hwtimer_state;
+
+/// Get timer id of a thread, cause flexpret only supports one thread has one timer.
+/// \param[in]     thread_id     thread ID obtained by \ref osThreadNew or \ref osThreadGetId.
+/// \return timer ID for reference by other functions or NULL in case of error.
+osTimerId_t osThreadGetTimer (osThreadId_t thread_id);
 
 #endif

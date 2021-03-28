@@ -10,6 +10,8 @@
 
 extern osThreadAttr_t *flexpret_thread_attr_entry[FLEXPRET_HW_THREADS_NUMS];
 extern osThreadAttr_t flexpret_thread_attr[FLEXPRET_HW_THREADS_NUMS];
+extern osTimerAttr_t *flexpret_timer_attr_entry[FLEXPRET_HW_THREADS_NUMS];
+// extern osTimerAttr_t flexpret_timer_attr[FLEXPRET_HW_THREADS_NUMS];
 extern const osThreadAttr_t flexpret_thread_init_attr;
 extern volatile hwthread_state startup_state[FLEXPRET_HW_THREADS_NUMS];
 extern const uint32_t flexpret_thread_init_stack_addr[FLEXPRET_HW_THREADS_NUMS];
@@ -23,17 +25,17 @@ extern char bss_end;
 osStatus_t osKernelInitialize (void) {
     // TODO: init
 
-    // Init thread attr entry
+    // Init thread&timer attr entry
     register int i;
     for (i = 0; i < FLEXPRET_HW_THREADS_NUMS; i++) {
         flexpret_thread_attr_entry[i] = flexpret_thread_attr + i;
+        flexpret_timer_attr_entry[i] = NULL;
     }
 
     // Init thread 0
     memcpy(flexpret_thread_attr_entry[0], &flexpret_thread_init_attr, sizeof(osThreadAttr_t));
     flexpret_thread_attr_entry[0]->stack_mem = (void*)flexpret_thread_init_stack_addr[0];
     flexpret_thread_attr_entry[0]->stack_size = flexpret_thread_init_stack_addr[0] - (uint32_t)&bss_end;
-
     return osOK;
 }
 

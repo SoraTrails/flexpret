@@ -17,5 +17,6 @@ size_t strlen(const char *s);
 void *memset(void *s, int c, size_t n);
 void *memcpy(void *dst, const void *src, size_t len);
 uint32_t get_tid(osThreadId_t tid);
+uint32_t get_timer_tid(osTimerId_t tid);
 
 #endif

@@ -12,6 +12,7 @@ int main() {
     // res &= test_osThreadNew_osThreadJoin();
     // res &= test_osThread_info();
     // res &= test_osThread_control();
-    res &= test_trap();
+    // res &= test_trap();
+    res &= test_timer();
     return !res;
 }

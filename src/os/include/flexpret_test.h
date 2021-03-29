@@ -53,4 +53,7 @@ int test_trap();
 // Test timer
 int test_timer();
 
+// Test mutex
+int test_mutex();
+
 #endif

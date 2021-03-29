@@ -5,8 +5,10 @@
 #include "flexpret_timing.h"
 #include "flexpret_io.h"
 #include "flexpret_scheduler.h"
+#include "flexpret_mutex.h"
 
 extern volatile hwthread_state startup_state[FLEXPRET_HW_THREADS_NUMS];
+extern volatile mutex_state startup_mutex_state[FLEXPRET_MUTEX_MAX_NUM];
 static int flexpret_thread_num = 1;
 osThreadAttr_t *flexpret_thread_attr_entry[FLEXPRET_HW_THREADS_NUMS];
 osThreadAttr_t flexpret_thread_attr[FLEXPRET_HW_THREADS_NUMS];
@@ -42,6 +44,24 @@ const uint32_t flexpret_thread_init_stack_addr[FLEXPRET_HW_THREADS_NUMS] = {
     0x20003FFC
 };
 
+static void thread_clean(osThreadId_t thread_id) {
+    // Delete timer before thread is terminated.
+    osTimerId_t timer = osThreadGetTimer(thread_id);
+    if (timer != NULL) {
+        osTimerDelete(timer);
+    }
+
+    // Release Robust Mutex
+    register int i;
+    for (i = 0; i < FLEXPRET_MUTEX_MAX_NUM; i++) {
+        mutex_state mu = startup_mutex_state[i];
+        if (mu.ifRobust && mu.active && mu.owner == thread_id) {
+            mu.owner = NULL;
+            mu.count = 0;
+            write_mutex_csr(mu.csr_addr, FLEXPRET_MUTEX_ACTIVE);
+        }
+    }
+}
 
 __NO_RETURN void thread_after_return_handler() {
     uint32_t tid = read_csr(hartid);
@@ -49,11 +69,7 @@ __NO_RETURN void thread_after_return_handler() {
     startup_state[tid].arg = NULL;
     startup_state[tid].stack_address = (void *)flexpret_thread_init_stack_addr[tid];
 
-    // Delete timer before thread is terminated.
-    osTimerId_t timer = osThreadGetTimer(osThreadGetId());
-    if (timer != NULL) {
-        osTimerDelete(timer);
-    }
+    thread_clean(osThreadGetId());
 
     // loop to sleep
     while (1) {
@@ -71,11 +87,7 @@ static void thread_terminate(osThreadId_t thread_id, int state_clear) {
         startup_state[tid].stack_address = (void *)flexpret_thread_init_stack_addr[tid];
     }
 
-    // Delete timer before thread is terminated.
-    osTimerId_t timer = osThreadGetTimer(thread_id);
-    if (timer != NULL) {
-        osTimerDelete(timer);
-    }
+    thread_clean(thread_id);
 
     osPriority_t prior = flexpret_thread_attr_entry[tid]->priority;
     do {

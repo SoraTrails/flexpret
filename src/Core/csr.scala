@@ -90,6 +90,9 @@ class CSR(implicit conf: FlexpretConfiguration) extends Module
   val reg_prv             = Vec.fill(conf.threads) { Reg(init = UInt(3, 2)) }
   val reg_ie              = Vec.fill(conf.threads) { Reg(init = Bool(false)) }
   val reg_msip            = Vec.fill(conf.threads) { Reg(init = Bool(false)) }
+
+  // all threads shares 8 mutex.
+  val reg_mutex           = Vec.fill(8) { Reg(UInt(width = 4)) }
   
   // Invisible 
   val reg_timer = Vec.fill(conf.threads) { Reg(init = TIMER_OFF) }
@@ -186,6 +189,14 @@ class CSR(implicit conf: FlexpretConfiguration) extends Module
         reg_msip(io.rw.thread) := data_in(3).toBool
       }
     }
+    when(compare_addr(CSRs.uarch8)) { reg_mutex(0) := data_in(3, 0) }
+    when(compare_addr(CSRs.uarch9)) { reg_mutex(1) := data_in(3, 0) }
+    when(compare_addr(CSRs.uarch10)) { reg_mutex(2) := data_in(3, 0) }
+    when(compare_addr(CSRs.uarch11)) { reg_mutex(3) := data_in(3, 0) }
+    when(compare_addr(CSRs.uarch12)) { reg_mutex(4) := data_in(3, 0) }
+    when(compare_addr(CSRs.uarch13)) { reg_mutex(5) := data_in(3, 0) }
+    when(compare_addr(CSRs.uarch14)) { reg_mutex(6) := data_in(3, 0) }
+    when(compare_addr(CSRs.uarch15)) { reg_mutex(7) := data_in(3, 0) }
   }
   
   // ************************************************************
@@ -241,6 +252,15 @@ class CSR(implicit conf: FlexpretConfiguration) extends Module
     when(compare_addr(CSRs.instreth)) { data_out := reg_instret(io.rw.thread)(63,32) }
   }
   when(compare_addr(CSRs.status)) { data_out := status(io.rw.thread) }
+
+  when(compare_addr(CSRs.uarch8)) { data_out := zero_extend(reg_mutex(0), 4) }
+  when(compare_addr(CSRs.uarch9)) { data_out := zero_extend(reg_mutex(1), 4) }
+  when(compare_addr(CSRs.uarch10)) { data_out := zero_extend(reg_mutex(2), 4) }
+  when(compare_addr(CSRs.uarch11)) { data_out := zero_extend(reg_mutex(3), 4) }
+  when(compare_addr(CSRs.uarch12)) { data_out := zero_extend(reg_mutex(4), 4) }
+  when(compare_addr(CSRs.uarch13)) { data_out := zero_extend(reg_mutex(5), 4) }
+  when(compare_addr(CSRs.uarch14)) { data_out := zero_extend(reg_mutex(6), 4) }
+  when(compare_addr(CSRs.uarch15)) { data_out := zero_extend(reg_mutex(7), 4) }
 
   // ************************************************************
   // State update (override any CSR write)

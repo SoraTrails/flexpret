@@ -4,6 +4,9 @@
 static char qbuf[FLEXPRET_HW_THREADS_NUMS][9];
 
 void emulator_outputstr(const char* str) {
+    if (!str) {
+        return;
+    }
     volatile char* addr = (char*) (EMULATOR_ADDR);
     while(*str != 0) {
         *addr = *str;

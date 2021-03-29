@@ -54,6 +54,16 @@
 #define CSR_GPO_2 uarch6
 #define CSR_GPO_3 uarch7
 
+// for mutex
+#define CSR_MUTEX_0 uarch8
+#define CSR_MUTEX_1 uarch9
+#define CSR_MUTEX_2 uarch10
+#define CSR_MUTEX_3 uarch11
+#define CSR_MUTEX_4 uarch12
+#define CSR_MUTEX_5 uarch13
+#define CSR_MUTEX_6 uarch14
+#define CSR_MUTEX_7 uarch15
+
 #define SR_S     0x00000001
 #define SR_PS    0x00000002
 #define SR_EI    0x00000004
@@ -103,12 +113,18 @@
 
 #ifndef __ASSEMBLER__
 
+#define read_csr_marco(reg, val) read_csr(reg, val)
+
 #define read_csr(reg) ({ long __tmp; \
   asm volatile ("csrr %0, " #reg : "=r"(__tmp)); \
   __tmp; })
 
+#define write_csr_marco(reg, val) write_csr(reg, val)
+
 #define write_csr(reg, val) \
   asm volatile ("csrw " #reg ", %0" :: "r"(val))
+
+#define swap_csr_marco(reg, val) swap_csr(reg, val)
 
 #define swap_csr(reg, val) ({ long __tmp; \
   asm volatile ("csrrw %0, " #reg ", %1" : "=r"(__tmp) : "r"(val)); \

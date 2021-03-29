@@ -262,7 +262,7 @@ int main (int argc, char* argv[])
                 counter.if_valid = c->Core_control__if_reg_valid.to_bool();
                 counter.if_tid = c->Core_datapath__if_reg_tid.lo_word();
                 // Print counter for thread
-                if(c->Core_datapath_csr__io_rw_write.to_bool() && c->Core_datapath_csr__io_rw_addr.lo_word() == 0xCCF) {
+                if(c->Core_datapath_csr__io_rw_write.to_bool() && c->Core_datapath_csr__io_rw_addr.lo_word() == 0x50F) {
                     fprintf(stderr, "cycle %llu:\t, tid = %d\t, proc_cycles = %llu\t, thread_cycles = %llu\t, commit_cycles = %llu\n", cycle, exe_tid, counter.processor_cycles[exe_tid], counter.thread_cycles[exe_tid], counter.commit_cycles[exe_tid]);
                     //printf("Counters for tid = %d\n", exe_tid);
                     //printf("Processor cycles = %llu\n", counter.processor_cycles[exe_tid]);
@@ -279,7 +279,7 @@ int main (int argc, char* argv[])
                     counter.commit_cycles[exe_tid]++;
                 }
                 // Reset counter for thread
-                if(c->Core_datapath_csr__io_rw_write.to_bool() && c->Core_datapath_csr__io_rw_addr.lo_word() == 0xCCE) {
+                if(c->Core_datapath_csr__io_rw_write.to_bool() && c->Core_datapath_csr__io_rw_addr.lo_word() == 0x50E) {
                     counter.processor_cycles[exe_tid] = 0;
                     counter.thread_cycles[exe_tid] = 0;
                     counter.commit_cycles[exe_tid] = 0;

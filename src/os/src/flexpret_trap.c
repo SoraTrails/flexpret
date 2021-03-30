@@ -60,6 +60,5 @@ trap_handler osKernelGetTrapHandler(osThreadId_t thread_id, osTrapType_t t) {
         return NULL;
     }
     uint32_t tid = thread_id == NULL ? read_csr(hartid) : get_tid(thread_id);
-
     return trap_handler_vector[tid].handler[t];
 }

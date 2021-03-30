@@ -86,6 +86,12 @@ uint32_t get_tid(osThreadId_t thread_id) {
         return 3;
     } else if (offset == sizeof(hwthread_state) << 2) {
         return 4;
+    } else if (offset == ((sizeof(hwthread_state) << 2) + sizeof(hwthread_state))) {
+        return 5;
+    } else if (offset == ((sizeof(hwthread_state) << 2) + (sizeof(hwthread_state) << 1))) {
+        return 6;
+    } else if (offset == ((sizeof(hwthread_state) << 2) + (sizeof(hwthread_state) << 1) + sizeof(hwthread_state))) {
+        return 7;
     } else {
         flexpret_error("bad offset calling get_tid\n");
         return 0;
@@ -104,6 +110,12 @@ uint32_t get_timer_tid(osTimerId_t timer_id) {
         return 3;
     } else if (offset == sizeof(hwtimer_state) << 2) {
         return 4;
+    } else if (offset == ((sizeof(hwtimer_state) << 2) + sizeof(hwtimer_state))) {
+        return 5;
+    } else if (offset == ((sizeof(hwtimer_state) << 2) + (sizeof(hwtimer_state) << 1))) {
+        return 6;
+    } else if (offset == ((sizeof(hwtimer_state) << 2) + (sizeof(hwtimer_state) << 1) + sizeof(hwtimer_state))) {
+        return 7;
     } else {
         flexpret_error("bad offset calling get_timer_tid\n");
         return 0;

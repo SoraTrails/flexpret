@@ -53,8 +53,6 @@ osStatus_t osKernelInitialize (void) {
     write_csr_marco(CSR_MUTEX_6, FLEXPRET_MUTEX_INACTIVE);
     write_csr_marco(CSR_MUTEX_7, FLEXPRET_MUTEX_INACTIVE);
 
-    
-
     // Init thread 0
     memcpy(flexpret_thread_attr_entry[0], &flexpret_thread_init_attr, sizeof(osThreadAttr_t));
     flexpret_thread_attr_entry[0]->stack_mem = (void*)flexpret_thread_init_stack_addr[0];
@@ -126,7 +124,7 @@ osStatus_t osKernelStart (void) {
     modes[0] = TMODE_HA;
     for (i = 1; i < FLEXPRET_HW_THREADS_NUMS; i++) {
         if (startup_state[i].func != NULL) {
-            // slots[i] = i; // SLOT_Ti
+            // slots[i] = i; // SLOT_Ti 
             // TODO soft不占slot？
             if (flexpret_thread_attr_entry[i]->priority == osPriorityRealtime) {
                 modes[i] = TMODE_HA;

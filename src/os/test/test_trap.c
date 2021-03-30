@@ -35,7 +35,6 @@ int test_trap() {
     thread.attr_bits = osThreadJoinable;
     osKernelInitialize();
     osThreadId_t tid = osThreadNew((osThreadFunc_t)osTestFault, NULL, &thread);
-
     FLEXPRET_ASSERT(tid != NULL);
 
     osKernelStart();

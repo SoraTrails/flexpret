@@ -137,6 +137,7 @@ trap_ret:
 1:
     j 1b
 
+#include "flexpret_config.h"
 
 .data
 # format: t0: ie_handler, ee_handler, int_handler, fault_handler, t1:...
@@ -157,7 +158,7 @@ trap_handler_vector:
 .word default_ie_handler, default_ee_handler, default_int_handler, default_fault_handler
 .word default_ie_handler, default_ee_handler, default_int_handler, default_fault_handler
 #endif
-
+ 
 epc_vector:
 #if FLEXPRET_HW_THREADS_NUMS == 4
 .word 0, 0, 0, 0

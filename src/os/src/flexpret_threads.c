@@ -151,7 +151,6 @@ osThreadId_t osThreadNew (osThreadFunc_t func, void *argument, const osThreadAtt
     }
     // TODO: thread num inc should be an atomic operation.
     int tid = flexpret_thread_num++;
-
     if (attr == NULL) {
         // If attr is null, cb is stored at `flexpret_thread_attr`, stack is defined at startup.S
         osThreadAttr_t * attr_ptr = flexpret_thread_attr_entry[tid];

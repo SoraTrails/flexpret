@@ -33,7 +33,7 @@ Authors:
 ******************************************************************************/
 #include "Core.h"
 #include <getopt.h> // For getopt_long().
-#define THREADS 4
+#define THREADS 8
 int main (int argc, char* argv[]) 
 {
     
@@ -220,7 +220,11 @@ int main (int argc, char* argv[])
                 
                 if(c->Core__io_bus_enable.to_bool() && c->Core__io_bus_write.to_bool()) {
                     // loadstore.scala:173:thread id is in bus addr.
+                    #if THREADS == 4
                     int thread_index = c->Core__io_bus_addr.lo_word() >> 8;
+                    #elif THREADS == 8
+                    int thread_index = c->Core__io_bus_addr.lo_word() >> 7;
+                    #endif
                     // fprintf(stderr, "%d", c->Core__io_bus_addr.lo_word());
                     // fprintf(stderr, "%c %d\n", c->Core__io_bus_data_in.lo_word(),c->Core__io_bus_addr.lo_word());
                     sprintf(io_buf[thread_index] + io_buf_len[thread_index], "%c", c->Core__io_bus_data_in.lo_word());

@@ -1,19 +1,12 @@
 #ifndef FLEXPRET_THREADS_H
 #define FLEXPRET_THREADS_H
 
+#include "flexpret_config.h"
 #include "flexpret_encoding.h"
 #include "flexpret_const.h"
 
-#ifndef FLEXPRET_HW_THREADS_NUMS
-#define FLEXPRET_HW_THREADS_NUMS 4
-#endif
-
-#ifndef FLEXPRET_MAX_HW_THREADS_NUMS
-#define FLEXPRET_MAX_HW_THREADS_NUMS 8
-#endif
-
 // CSR_SLOTS
-#define set_slots(s7, s6, s5, s4, s3, s2, s1, s0) (\
+#define set_slots_0(s7, s6, s5, s4, s3, s2, s1, s0) (\
         {swap_csr(badvaddr, (\
         ((s7 & 0xF) << 28) | \
         ((s6 & 0xF) << 24) | \
@@ -25,7 +18,7 @@
         ((s0 & 0xF) <<  0)   \
         ));})
 
-#define get_slots(p_s0, p_s1, p_s2, p_s3, p_s4, p_s5, p_s6, p_s7) ( \
+#define get_slots_0(p_s0, p_s1, p_s2, p_s3, p_s4, p_s5, p_s6, p_s7) ( \
     {   \
         long __tmp; \
         asm volatile ("csrr %0, badvaddr" : "=r"(__tmp)); \
@@ -68,6 +61,44 @@
         *(p_t2) = (__tmp >> 4) & 0x3; \
         *(p_t3) = (__tmp >> 6) & 0x3; \
     })
+
+#define set_tmodes_8(t7, t6, t5, t4, t3, t2, t1, t0) (\
+        {write_csr(ptbr, (\
+        ((t7 & 0x3) << 14) | \
+        ((t6 & 0x3) << 12) | \
+        ((t5 & 0x3) << 10) | \
+        ((t4 & 0x3) <<  8) | \
+        ((t3 & 0x3) <<  6) | \
+        ((t2 & 0x3) <<  4) | \
+        ((t1 & 0x3) <<  2) | \
+        ((t0 & 0x3) <<  0)   \
+        ));})
+#define get_tmodes_8(p_t0, p_t1, p_t2, p_t3, p_t4, p_t5, p_t6, p_t7) ( \
+    {   \
+        long __tmp; \
+        asm volatile ("csrr %0, ptbr" : "=r"(__tmp)); \
+        *(p_t0) = __tmp & 0x3; \
+        *(p_t1) = (__tmp >>  2) & 0x3; \
+        *(p_t2) = (__tmp >>  4) & 0x3; \
+        *(p_t3) = (__tmp >>  6) & 0x3; \
+        *(p_t4) = (__tmp >>  8) & 0x3; \
+        *(p_t5) = (__tmp >> 10) & 0x3; \
+        *(p_t6) = (__tmp >> 12) & 0x3; \
+        *(p_t7) = (__tmp >> 14) & 0x3; \
+    })
+
+#if FLEXPRET_HW_THREADS_NUMS == 4
+#define set_tmodes(t) set_tmodes_4(t[3], t[2], t[1], t[0])
+#define get_tmodes(p) get_tmodes_4(p + 0, p + 1, p + 2, p + 3)
+#elif FLEXPRET_HW_THREADS_NUMS == 8
+#define set_tmodes(t) set_tmodes_8(t[7], t[6], t[5], t[4], t[3], t[2], t[1], t[0])
+#define get_tmodes(p) get_tmodes_8(p + 0, p + 1, p + 2, p + 3, p + 4, p + 5, p + 6, p + 7)
+#else
+#error FLEXPRET_HW_THREADS_NUMS should be 4 or 8
+#endif
+#define set_slots(s) set_slots_0(s[7], s[6], s[5], s[4], s[3], s[2], s[1], s[0])
+#define get_slots(p) get_slots_0(p + 0, p + 1, p + 2, p + 3, p + 4, p + 5, p + 6, p + 7)
+
 #define TMODE_HA 0
 #define TMODE_HZ 1
 #define TMODE_SA 2
@@ -95,10 +126,6 @@ typedef struct hwthread_state {
     void * arg;
     void * stack_address;
 } hwthread_state;
-
-// #define FOREACH_THREAD() 
-//     register int titer; \
-//     for (titer = 0; titer < FLEXPRET_HW_THREADS_NUMS; titer++) 
 
 /// Attributes structure for thread, in cmsis_os2.h.
 // typedef struct {

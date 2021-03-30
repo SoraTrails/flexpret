@@ -105,27 +105,46 @@ csrw tohost, a0
 
 
 # Format is t0_PC, t0_stack, t1_PC, t1_stack, ...
-# NOTE(zxj):should make sure bss_end do NOT exceed 0x20001BFC
+# NOTE(zxj):should make sure bss_end do NOT exceed thread0's stack end
 # Format: t0_PC, t0_arg, t0_stack, t1_PC, t1_arg, t1_stack, ...
-# hw thread 0 stack size: 0x1C00
-# hw thread 1,2,3 stack size: 0x0C00
-# sw thread should reside in thread0
+#include "flexpret_config.h"
+
 .data
 .global startup_state
 .global thread_after_return
 startup_state:
-.word main
-.word 0
-.word startup_state+0x1BFC
-.word 0
-.word 0
-.word startup_state+0x27FC
-.word 0
-.word 0
-.word startup_state+0x33FC
-.word 0
-.word 0
-.word startup_state+0x3FFC
-
+#if FLEXPRET_HW_THREADS_NUMS == 4
+    #if FLEXPRET_DSPM_SIZE == 12
+        # stack: 7/16 (0x1C00), 3/16 * 3 (0x0C00 * 3)
+        .word main, 0, startup_state+0x1BFC
+        .word 0,    0, startup_state+0x27FC
+        .word 0,    0, startup_state+0x33FC
+        .word 0,    0, startup_state+0x3FFC
+    #elif FLEXPRET_DSPM_SIZE == 64
+        # stack: 7/16 (0x7000), 3/16 * 3 (0x3000 * 3)
+        .word main, 0, startup_state+0x6FFC
+        .word 0,    0, startup_state+0x9FFC
+        .word 0,    0, startup_state+0xCFFC
+        .word 0,    0, startup_state+0xFFFC
+    #else
+        #error bad FLEXPRET_DSPM_SIZE
+    #endif
+#elif FLEXPRET_HW_THREADS_NUMS == 8
+    #if FLEXPRET_DSPM_SIZE == 64
+        # stack: 15/64 (0x3C00), 7/64 * 7 (0x1C00 * 7)
+        .word main, 0, startup_state+0x3BFC
+        .word 0,    0, startup_state+0x57FC
+        .word 0,    0, startup_state+0x73FC
+        .word 0,    0, startup_state+0x8FFC
+        .word 0,    0, startup_state+0xABFC
+        .word 0,    0, startup_state+0xC7FC
+        .word 0,    0, startup_state+0xE3FC
+        .word 0,    0, startup_state+0xFFFC
+    #else
+        #error bad FLEXPRET_DSPM_SIZE
+    #endif
+#else
+    #error bad FLEXPRET_HW_THREADS_NUMS
+#endif
 thread_after_return:
 .word thread_after_return_handler

@@ -37,12 +37,37 @@ const osThreadAttr_t flexpret_thread_init_attr = {
 	.tz_module = 0,
 	.reserved = 0,
 };
+
+#if FLEXPRET_HW_THREADS_NUMS == 4
+    #if FLEXPRET_DSPM_SIZE == 12
 const uint32_t flexpret_thread_init_stack_addr[FLEXPRET_HW_THREADS_NUMS] = {
     0x20001BFC,
     0x200027FC,
     0x200033FC,
     0x20003FFC
 };
+    #elif FLEXPRET_DSPM_SIZE == 64
+const uint32_t flexpret_thread_init_stack_addr[FLEXPRET_HW_THREADS_NUMS] = {
+    0x20006FFC,
+    0x20009FFC,
+    0x2000CFFC,
+    0x2000FFFC
+};
+    #else
+        #error bad FLEXPRET_DSPM_SIZE
+    #endif
+#elif FLEXPRET_HW_THREADS_NUMS == 8
+const uint32_t flexpret_thread_init_stack_addr[FLEXPRET_HW_THREADS_NUMS] = {
+    0x20003BFC,
+    0x200057FC,
+    0x200073FC,
+    0x20008FFC,
+    0x2000ABFC,
+    0x2000C7FC,
+    0x2000E3FC,
+    0x2000FFFC
+};
+#endif
 
 static void thread_clean(osThreadId_t thread_id) {
     // Delete timer before thread is terminated.
@@ -181,7 +206,7 @@ osThreadId_t osThreadGetId (void) {
 
 osThreadState_t osThreadGetState (osThreadId_t thread_id) {
     uint32_t tmodes[FLEXPRET_HW_THREADS_NUMS];
-    get_tmodes_4(tmodes, tmodes + 1, tmodes + 2, tmodes + 3);
+    get_tmodes(tmodes);
     // hwthread_state* tmp = (hwthread_state*) thread_id;
     uint32_t tid = get_tid(thread_id);
     switch (tmodes[tid])

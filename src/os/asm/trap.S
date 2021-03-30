@@ -142,50 +142,44 @@ trap_ret:
 # format: t0: ie_handler, ee_handler, int_handler, fault_handler, t1:...
 .global trap_handler_vector
 trap_handler_vector:
-.word default_ie_handler
-.word default_ee_handler
-.word default_int_handler
-.word default_fault_handler
-
-.word default_ie_handler
-.word default_ee_handler
-.word default_int_handler
-.word default_fault_handler
-
-.word default_ie_handler
-.word default_ee_handler
-.word default_int_handler
-.word default_fault_handler
-
-.word default_ie_handler
-.word default_ee_handler
-.word default_int_handler
-.word default_fault_handler
+#if FLEXPRET_HW_THREADS_NUMS == 4
+.word default_ie_handler, default_ee_handler, default_int_handler, default_fault_handler
+.word default_ie_handler, default_ee_handler, default_int_handler, default_fault_handler
+.word default_ie_handler, default_ee_handler, default_int_handler, default_fault_handler
+.word default_ie_handler, default_ee_handler, default_int_handler, default_fault_handler
+#elif FLEXPRET_HW_THREADS_NUMS == 8
+.word default_ie_handler, default_ee_handler, default_int_handler, default_fault_handler
+.word default_ie_handler, default_ee_handler, default_int_handler, default_fault_handler
+.word default_ie_handler, default_ee_handler, default_int_handler, default_fault_handler
+.word default_ie_handler, default_ee_handler, default_int_handler, default_fault_handler
+.word default_ie_handler, default_ee_handler, default_int_handler, default_fault_handler
+.word default_ie_handler, default_ee_handler, default_int_handler, default_fault_handler
+.word default_ie_handler, default_ee_handler, default_int_handler, default_fault_handler
+.word default_ie_handler, default_ee_handler, default_int_handler, default_fault_handler
+#endif
 
 epc_vector:
-.word 0
-.word 0
-.word 0
-.word 0
+#if FLEXPRET_HW_THREADS_NUMS == 4
+.word 0, 0, 0, 0
+#elif FLEXPRET_HW_THREADS_NUMS == 8
+.word 0, 0, 0, 0
+.word 0, 0, 0, 0
+#endif
 
 .global startup_timer_state
 startup_timer_state:
-.word 0
-.word 0
-.word 0
-.word 0
-
-.word 0
-.word 0
-.word 0
-.word 0
-
-.word 0
-.word 0
-.word 0
-.word 0
-
-.word 0
-.word 0
-.word 0
-.word 0
+#if FLEXPRET_HW_THREADS_NUMS == 4
+.word 0, 0, 0, 0
+.word 0, 0, 0, 0
+.word 0, 0, 0, 0
+.word 0, 0, 0, 0
+#elif FLEXPRET_HW_THREADS_NUMS == 8
+.word 0, 0, 0, 0
+.word 0, 0, 0, 0
+.word 0, 0, 0, 0
+.word 0, 0, 0, 0
+.word 0, 0, 0, 0
+.word 0, 0, 0, 0
+.word 0, 0, 0, 0
+.word 0, 0, 0, 0
+#endif

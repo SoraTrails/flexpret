@@ -7,7 +7,7 @@ extern osThreadAttr_t *flexpret_thread_attr_entry[FLEXPRET_HW_THREADS_NUMS];
 
 int32_t osSchedulerGetFreq(osThreadId_t thread_id) {
     uint8_t slots[FLEXPRET_MAX_HW_THREADS_NUMS];
-    get_slots(slots, slots + 1, slots + 2, slots + 3, slots + 4, slots + 5, slots + 6, slots + 7);
+    get_slots(slots);
     register int i;
     uint8_t soft_count = 0;
     uint8_t active_count = 0;
@@ -30,7 +30,7 @@ int32_t osSchedulerGetFreq(osThreadId_t thread_id) {
 
 static osStatus_t set_slot_num (int tid, int count) {
     uint8_t slots[FLEXPRET_MAX_HW_THREADS_NUMS];
-    get_slots(slots, slots + 1, slots + 2, slots + 3, slots + 4, slots + 5, slots + 6, slots + 7);
+    get_slots(slots);
     register int i;
     int32_t active_count = 0;
     int32_t thread_count = 0;
@@ -74,7 +74,7 @@ static osStatus_t set_slot_num (int tid, int count) {
             }
         }
     }
-    set_slots(slots[7], slots[6], slots[5], slots[4], slots[3], slots[2], slots[1], slots[0]);
+    set_slots(slots);
     return osOK;
 }
 
@@ -100,7 +100,7 @@ osStatus_t osSchedulerSetTmodes(osThreadId_t thread_id, int tmode) {
     uint32_t tid = get_tid(thread_id);
 
     uint32_t tmodes[FLEXPRET_HW_THREADS_NUMS];
-    get_tmodes_4(tmodes, tmodes + 1, tmodes + 2, tmodes + 3);
+    get_tmodes(tmodes);
     switch (tmode) {
     case TMODE_HARD:
         if (tmodes[tid] == TMODE_HZ || tmodes[tid] == TMODE_HA) {
@@ -161,7 +161,7 @@ osStatus_t osSchedulerSetTmodes(osThreadId_t thread_id, int tmode) {
         return osError;
     }
 
-    set_tmodes_4(tmodes[3], tmodes[2], tmodes[1], tmodes[0]);
+    set_tmodes(tmodes);
     return osOK;
 }
 
@@ -169,13 +169,13 @@ int osSchedulerGetTmodes(osThreadId_t thread_id) {
     uint32_t tid = get_tid(thread_id);
 
     uint32_t tmodes[FLEXPRET_HW_THREADS_NUMS];
-    get_tmodes_4(tmodes, tmodes + 1, tmodes + 2, tmodes + 3);
+    get_tmodes(tmodes);
     return tmodes[tid];
 }
 
 int32_t osSchedulerGetSRTTNum() {
     uint32_t tmodes[FLEXPRET_HW_THREADS_NUMS];
-    get_tmodes_4(tmodes, tmodes + 1, tmodes + 2, tmodes + 3);
+    get_tmodes(tmodes);
     register int i;
     int res = 0;
     for (i = 0; i < FLEXPRET_HW_THREADS_NUMS; i++) {

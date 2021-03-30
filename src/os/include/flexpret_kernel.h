@@ -1,6 +1,8 @@
 #ifndef FLEXPRET_KERNEL_H
 #define FLEXPRET_KERNEL_H
 
+#include "flexpret_config.h"
+
 #define KERNEL_VER_MAJOR(ver) (((ver) >> 16) & 0xFF)
 #define KERNEL_VER_MINOR(ver) (((ver) >> 8) & 0xFF)
 #define KERNEL_VER_PATCHLEVEL(ver) ((ver) & 0xFF)

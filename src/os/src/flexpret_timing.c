@@ -101,7 +101,7 @@ osStatus_t osTimerStart (osTimerId_t timer_id, uint32_t ticks) {
     interrupt_expire();
     return osOK;
 }
- 
+
 osStatus_t osTimerStop (osTimerId_t timer_id) {
     uint32_t tid = get_timer_tid(timer_id);
     if (flexpret_timer_attr_entry[tid] == NULL) {

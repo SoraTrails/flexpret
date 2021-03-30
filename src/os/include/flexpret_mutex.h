@@ -1,6 +1,8 @@
 #ifndef FLEXPRET_MUTEX_H
 #define FLEXPRET_MUTEX_H
+
 #include "cmsis_os2.h"
+#include "flexpret_config.h"
 
 typedef struct mutex_state {
     osThreadId_t owner;
@@ -11,9 +13,6 @@ typedef struct mutex_state {
     unsigned char ifRobust;
     unsigned char active;
 } mutex_state;
-
-#define FLEXPRET_MUTEX_MAX_NUM 8
-// #define FLEXPRET_MUTEX_WIDTH 4
 
 #define FLEXPRET_MUTEX_INACTIVE 1
 #define FLEXPRET_MUTEX_ACTIVE 0

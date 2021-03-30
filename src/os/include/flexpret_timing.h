@@ -1,16 +1,10 @@
 #ifndef FLEXPRET_TIMING_H
 #define FLEXPRET_TIMING_H
+
 #include "cmsis_os2.h"
+#include "flexpret_config.h"
 #include "flexpret_encoding.h"
 #include "flexpret_const.h"
-
-#ifndef FLEXPRET_FREQ
-#define FLEXPRET_FREQ 100000000 // 100Mhz
-#endif
-
-#ifndef FLEXPRET_WAIT_PERIOD
-#define FLEXPRET_WAIT_PERIOD 10000 // 10000 cycle
-#endif
 
 // Timing instructions
 // Read current time

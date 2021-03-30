@@ -48,7 +48,8 @@ os.data.mem: flexpret_os
 os_all: os.inst.mem os.data.mem os.inst.mem.ins
 
 # emulator and testbench
-CORE=/opt/flexpret/emulator/generated-src/4tf-16i-16d-ti
+# CORE=/opt/flexpret/emulator/generated-src/4tf-16i-16d-ti
+CORE=/opt/flexpret/emulator/generated-src/8tf-64i-64d-ti
 TESTBENCH=/opt/flexpret/emulator/testbench
 Core.o:${CORE}/Core.cpp ${CORE}/*.h
 	g++ -g -O2 -c ${CORE}/Core.cpp -o Core.o

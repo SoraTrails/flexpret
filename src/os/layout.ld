@@ -25,8 +25,13 @@ SECTIONS
   .bss :
   {
     *(.bss*);
-    ASSERT ((bss_end < 0x20001bfc), "Error: No room left for the thread 0's stack, cause data&bss is too large");
-    ASSERT ((text_end < 0x00003fff), "Error: No room left for the text");
+    /* for 4tf-16i-16d-ti */
+    /* ASSERT ((bss_end < 0x20001bfc), "Error: No room left for the thread 0's stack, cause data&bss is too large"); */
+    /* ASSERT ((text_end < 0x00003fff), "Error: No room left for the text"); */
+    /* for 8tf-64i-64d-ti */
+    ASSERT ((bss_end < 0x20003bfc), "Error: No room left for the thread 0's stack, cause data&bss is too large");
+    ASSERT ((text_end < 0x0000ffff), "Error: No room left for the text");
+
   }
   bss_end = .;
   bss_size = bss_end - bss_start;

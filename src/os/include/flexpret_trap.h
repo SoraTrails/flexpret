@@ -13,7 +13,7 @@ typedef enum  {
     InterruptOnExpire = 0,
     ExceptionOnExpire = 1,
     ExternalInterrupt = 2,
-    Fault             = 3,
+    Exception         = 3,
     TRAP_NUM_MAX      = 4
 }osTrapType_t;
 

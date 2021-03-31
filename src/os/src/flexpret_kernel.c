@@ -22,7 +22,15 @@ extern int default_soft_slot_id;
 // bss_end addr flag, defined in linker script
 extern char bss_end;
 
-osMutexId_t slot_mutex;
+osMutexId_t slot_mutex, tmode_mutex;
+
+static const osMutexAttr_t slotMutexAttr = {
+    "slotMutex", osMutexRecursive | osMutexRobust, NULL, 0U
+};
+
+static const osMutexAttr_t tmodeMutexAttr = {
+    "tmodeMutex", osMutexRecursive | osMutexRobust, NULL, 0U
+};
 
 //  ==== Kernel Management Functions ====
 
@@ -52,6 +60,9 @@ osStatus_t osKernelInitialize (void) {
     write_csr_marco(CSR_MUTEX_5, FLEXPRET_MUTEX_INACTIVE);
     write_csr_marco(CSR_MUTEX_6, FLEXPRET_MUTEX_INACTIVE);
     write_csr_marco(CSR_MUTEX_7, FLEXPRET_MUTEX_INACTIVE);
+
+    slot_mutex = osMutexNew(&slotMutexAttr);
+    tmode_mutex = osMutexNew(&tmodeMutexAttr);
 
     // Init thread 0
     memcpy(flexpret_thread_attr_entry[0], &flexpret_thread_init_attr, sizeof(osThreadAttr_t));

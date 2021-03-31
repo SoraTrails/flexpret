@@ -42,6 +42,9 @@ int osSchedulerGetTmodes(osThreadId_t tid);
 /// \return SRTT Num.
 int32_t osSchedulerGetSRTTNum();
 
+/// only for terminaing srtt, user should not call this func.
+void srtt_terminate(uint32_t tid);
+
 
 #endif
 

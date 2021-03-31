@@ -211,3 +211,40 @@ int32_t osSchedulerGetSRTTNum() {
     }
     return res;
 }
+
+void srtt_terminate(uint32_t tid) {
+    osStatus_t tmode_res, slot_res;
+    while(1) {
+        tmode_res = osMutexAcquire(tmode_mutex, 0);
+        slot_res = osMutexAcquire(slot_mutex, 0);
+        if (tmode_res == osOK && slot_res == osOK) {
+            break;
+        } else {
+            if (slot_res == osOK) {
+                osMutexRelease(slot_mutex);
+            }
+            if (tmode_res == osOK) {
+                osMutexRelease(tmode_mutex);
+            }        }
+    }
+    uint32_t tmodes[FLEXPRET_HW_THREADS_NUMS];
+    get_tmodes(tmodes);
+    register int i;
+    int res = 0;
+    for (i = 0; i < FLEXPRET_HW_THREADS_NUMS; i++) {
+        if (i == tid) {
+            continue;
+        }
+        if (tmodes[i] == TMODE_SA || tmodes[i] == TMODE_SZ) {
+            if (startup_state[i].func != NULL) {
+                res++;
+            }
+        }
+    }
+    if (res == 0) {
+        set_slot_num(SLOT_S, 0);
+    }
+    set_slot_num(tid, 0);
+    osMutexRelease(slot_mutex);
+    osMutexRelease(tmode_mutex);
+}

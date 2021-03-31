@@ -117,11 +117,12 @@ static void thread_terminate(osThreadId_t thread_id, int state_clear) {
     osPriority_t prior = flexpret_thread_attr_entry[tid]->priority;
     do {
         if (prior == osPriorityNormal) {
-            osSchedulerSetSlotNum(thread_id, 0);
-            uint32_t ss_num = osSchedulerGetSRTTNum();
-            if (ss_num == 0) {
-                osSchedulerSetSoftSlotNum(0);
-            }
+            srtt_terminate(tid);
+            // osSchedulerSetSlotNum(thread_id, 0);
+            // uint32_t ss_num = osSchedulerGetSRTTNum();
+            // if (ss_num == 0) {
+            //     osSchedulerSetSoftSlotNum(0);
+            // }
             break;
         } else if (prior == osPriorityRealtime) {
             osSchedulerSetSlotNum(thread_id, 0);

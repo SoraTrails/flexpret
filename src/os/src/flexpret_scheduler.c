@@ -32,9 +32,6 @@ int32_t osSchedulerGetFreq(osThreadId_t thread_id) {
 
 static osStatus_t set_slot_num (int tid, int count) {
     uint8_t slots[FLEXPRET_MAX_HW_THREADS_NUMS];
-    if (osMutexAcquire(slot_mutex, osWaitForever) != osOK) {
-        flexpret_error("Error acquire slot mutex\n");
-    }
 
     get_slots(slots);
     register int i;
@@ -50,9 +47,6 @@ static osStatus_t set_slot_num (int tid, int count) {
     }
 
     if (count == thread_count) {
-        if (osMutexRelease(slot_mutex) != osOK) {
-            flexpret_error("Error release slot mutex\n");
-        }
         return osOK;
     } else if (count > thread_count) {
         // add `count - thread_count` slot
@@ -84,9 +78,6 @@ static osStatus_t set_slot_num (int tid, int count) {
         }
     }
     set_slots(slots);
-    if (osMutexRelease(slot_mutex) != osOK) {
-        flexpret_error("Error release slot mutex\n");
-    }
     return osOK;
 }
 
@@ -96,8 +87,14 @@ osStatus_t osSchedulerSetSlotNum(osThreadId_t thread_id, int count) {
         return osErrorParameter;
     }
     uint32_t tid = get_tid(thread_id);
-
-    return set_slot_num(tid, count);
+    if (osMutexAcquire(slot_mutex, osWaitForever) != osOK) {
+        flexpret_error("Error acquire slot mutex.\n");
+    }
+    uint32_t ret = set_slot_num(tid, count);
+    if (osMutexRelease(slot_mutex) != osOK) {
+        flexpret_error("Error release slot mutex.\n");
+    }
+    return ret;
 }
 
 osStatus_t osSchedulerSetSoftSlotNum(int count) {
@@ -105,67 +102,66 @@ osStatus_t osSchedulerSetSoftSlotNum(int count) {
         return osErrorParameter;
     }
 
-    return set_slot_num(SLOT_S, count);
+    if (osMutexAcquire(slot_mutex, osWaitForever) != osOK) {
+        flexpret_error("Error acquire slot mutex.\n");
+    }
+    uint32_t ret = set_slot_num(SLOT_S, count);
+    if (osMutexRelease(slot_mutex) != osOK) {
+        flexpret_error("Error release slot mutex.\n");
+    }
+    return ret;
 }
 
-osStatus_t osSchedulerSetTmodes(osThreadId_t thread_id, int tmode) {
-    uint32_t tid = get_tid(thread_id);
-
+static osStatus_t set_thread_mode(uint32_t tid, int tmode) {
     uint32_t tmodes[FLEXPRET_HW_THREADS_NUMS];
-    osStatus_t ret = osOK;
-    int modify = 1;
-    if (osMutexAcquire(tmode_mutex, osWaitForever) != osOK) {
-        flexpret_error("Error acquire tmode mutex\n");
-    }
-    
     get_tmodes(tmodes);
     switch (tmode) {
     case TMODE_HARD:
         if (tmodes[tid] == TMODE_HZ || tmodes[tid] == TMODE_HA) {
-            modify = 0;
+            return osOK;
         } else if (tmodes[tid] == TMODE_SZ) {
             tmodes[tid] = TMODE_HZ;
         } else if (tmodes[tid] == TMODE_SA) {
             tmodes[tid] = TMODE_HA;
         } else {
             flexpret_error("Bad tmode.\n");
-            ret = osError;
+            return osError;
         }
         break;
     case TMODE_SOFT:
         if (tmodes[tid] == TMODE_SZ || tmodes[tid] == TMODE_SA) {
-            modify = 0;
+            return osOK;
         } else if (tmodes[tid] == TMODE_HZ) {
             tmodes[tid] = TMODE_SZ;
         } else if (tmodes[tid] == TMODE_HA) {
             tmodes[tid] = TMODE_SA;
         } else {
             flexpret_error("Bad tmode.\n");
-            ret = osError;
+            return osError;
         }
         break;
     case TMODE_ACTIVE:
         if (tmodes[tid] == TMODE_SA || tmodes[tid] == TMODE_HA) {
-            modify = 0;
+            return osOK;
         } else if (tmodes[tid] == TMODE_HZ) {
             tmodes[tid] = TMODE_HA;
         } else if (tmodes[tid] == TMODE_SZ) {
             tmodes[tid] = TMODE_SA;
         } else {
             flexpret_error("Bad tmode.\n");
-            ret = osError;
+            return osError;
         }
         break;
     case TMODE_ZOMBIE:
         if (tmodes[tid] == TMODE_SZ || tmodes[tid] == TMODE_HZ) {
-            modify = 0;
+            return osOK;
         } else if (tmodes[tid] == TMODE_HA) {
             tmodes[tid] = TMODE_HZ;
         } else if (tmodes[tid] == TMODE_SA) {
             tmodes[tid] = TMODE_SZ;
         } else {
             flexpret_error("Bad tmode.\n");
-            ret = osError;
+            return osError;
         }
         break;
     case TMODE_SZ:
@@ -176,13 +172,21 @@ osStatus_t osSchedulerSetTmodes(osThreadId_t thread_id, int tmode) {
         break;
     default:
         flexpret_error("Bad tmode.\n");
-        ret = osError;
-        break;
+        return osError;
     }
+    set_tmodes(tmodes);
+    return osOK;
+}
 
-    if (modify && ret == osOK) {
-        set_tmodes(tmodes);
+osStatus_t osSchedulerSetTmodes(osThreadId_t thread_id, int tmode) {
+    uint32_t tid = get_tid(thread_id);
+
+    if (osMutexAcquire(tmode_mutex, osWaitForever) != osOK) {
+        flexpret_error("Error acquire tmode mutex\n");
     }
+    
+    osStatus_t ret = set_thread_mode(tid, tmode);
+
     if (osMutexRelease(tmode_mutex) != osOK) {
         flexpret_error("Error release tmode mutex\n");
     }
@@ -212,7 +216,7 @@ int32_t osSchedulerGetSRTTNum() {
     return res;
 }
 
-void srtt_terminate(uint32_t tid) {
+static void acquire_slot_tmode_mutex() {
     osStatus_t tmode_res, slot_res;
     while(1) {
         tmode_res = osMutexAcquire(tmode_mutex, 0);
@@ -225,8 +229,19 @@ void srtt_terminate(uint32_t tid) {
             }
             if (tmode_res == osOK) {
                 osMutexRelease(tmode_mutex);
-            }        }
+            }       
+        }
     }
+}
+
+static void release_slot_tmode_mutex() {
+    osMutexRelease(slot_mutex);
+    osMutexRelease(tmode_mutex);
+}
+
+void srtt_terminate(uint32_t tid) {
+    acquire_slot_tmode_mutex();
+    
     uint32_t tmodes[FLEXPRET_HW_THREADS_NUMS];
     get_tmodes(tmodes);
     register int i;
@@ -245,6 +260,89 @@ void srtt_terminate(uint32_t tid) {
         set_slot_num(SLOT_S, 0);
     }
     set_slot_num(tid, 0);
-    osMutexRelease(slot_mutex);
-    osMutexRelease(tmode_mutex);
+
+    release_slot_tmode_mutex();
+}
+
+void change_srtt_to_hrtt(uint32_t tid) {
+    acquire_slot_tmode_mutex();
+    
+    uint8_t slots[FLEXPRET_MAX_HW_THREADS_NUMS];
+    get_slots(slots);
+
+    uint32_t tmodes[FLEXPRET_HW_THREADS_NUMS];
+    get_tmodes(tmodes);
+
+    register int i;
+    int32_t soft_count = 0;
+    int32_t thread_count = 0;
+    for(i = 0; i < FLEXPRET_MAX_HW_THREADS_NUMS; i++) {
+        if (slots[i] == tid) {
+            thread_count++;
+        } else if (slots[i] == SLOT_S) {
+            soft_count++;
+        }
+    }
+    int srtt_num = 0;
+    for (i = 0; i < FLEXPRET_HW_THREADS_NUMS; i++) {
+        if (i == tid) {
+            continue;
+        }
+        if (tmodes[i] == TMODE_SA || tmodes[i] == TMODE_SZ) {
+            if (startup_state[i].func != NULL) {
+                srtt_num++;
+            }
+        }
+    }
+    if (thread_count == 0) {
+        set_slot_num(tid, 1);
+    }
+    set_thread_mode(tid, TMODE_HARD);
+
+    if (srtt_num == 0 && soft_count != 0) {
+        set_slot_num(SLOT_S, 0);
+    }
+    
+    release_slot_tmode_mutex();
+}
+
+void change_hrtt_to_srtt(uint32_t tid) {
+    acquire_slot_tmode_mutex();
+
+    uint8_t slots[FLEXPRET_MAX_HW_THREADS_NUMS];
+    get_slots(slots);
+
+    uint32_t tmodes[FLEXPRET_HW_THREADS_NUMS];
+    get_tmodes(tmodes);
+
+    register int i;
+    int32_t soft_count = 0;
+    int32_t thread_count = 0;
+    for(i = 0; i < FLEXPRET_MAX_HW_THREADS_NUMS; i++) {
+        if (slots[i] == tid) {
+            thread_count++;
+        } else if (slots[i] == SLOT_S) {
+            soft_count++;
+        }
+    }
+    int srtt_num = 0;
+    for (i = 0; i < FLEXPRET_HW_THREADS_NUMS; i++) {
+        if (i == tid) {
+            continue;
+        }
+        if (tmodes[i] == TMODE_SA || tmodes[i] == TMODE_SZ) {
+            if (startup_state[i].func != NULL) {
+                srtt_num++;
+            }
+        }
+    }
+    if (srtt_num == 0 && soft_count == 0) {
+        set_slot_num(SLOT_S, 1);
+    }
+    set_thread_mode(tid, TMODE_SOFT);
+    if (thread_count != 0) {
+        set_slot_num(tid, 0);
+    }
+
+    release_slot_tmode_mutex();
 }

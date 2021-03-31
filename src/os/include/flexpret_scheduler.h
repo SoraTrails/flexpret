@@ -42,9 +42,12 @@ int osSchedulerGetTmodes(osThreadId_t tid);
 /// \return SRTT Num.
 int32_t osSchedulerGetSRTTNum();
 
-/// only for terminaing srtt, user should not call this func.
+/// Terminaing srtt, user should not call this func.
 void srtt_terminate(uint32_t tid);
 
+/// Changing tmode of a thread, user should not call these two funcs.
+void change_srtt_to_hrtt(uint32_t tid);
+void change_hrtt_to_srtt(uint32_t tid);
 
 #endif
 

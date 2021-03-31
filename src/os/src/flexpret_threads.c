@@ -260,46 +260,47 @@ osStatus_t osThreadSetPriority (osThreadId_t thread_id, osPriority_t priority) {
         return osOK;
     }
 
-    // TODO : set priority should be thread safe
-
     if (current_priority == osPriorityNormal) {
-        // change SRTT to HRTT
-        int32_t res = osSchedulerGetFreq(thread_id);
-        int32_t freq = THREAD_FREQ(res);
-        int32_t soft = SOFT_SLOT_COUNT(res);
+        change_srtt_to_hrtt(tid);
+        // // change SRTT to HRTT (thread unsafe implement)
+        // int32_t res = osSchedulerGetFreq(thread_id);
+        // int32_t freq = THREAD_FREQ(res);
+        // int32_t soft = SOFT_SLOT_COUNT(res);
+        // if (freq != 0) {
+        //     // if thread has its own slot, dont touch slot.
+        // } else {
+        //     // thread doesnt have its own slot, alloc one.
+        //     osSchedulerSetSlotNum(thread_id, 1);
+        // }
+        // osSchedulerSetTmodes(thread_id, TMODE_HARD);
+
+        // // if it was the only SRTT before, remove the soft slot
+        // int srtt_num = osSchedulerGetSRTTNum();
+        // if (srtt_num == 0 && soft != 0){
+        //     osSchedulerSetSoftSlotNum(0);
+        // }
         flexpret_thread_attr_entry[tid]->priority = osPriorityRealtime;
-        if (freq != 0) {
-            // if thread has its own slot, dont touch slot.
-        } else {
-            // thread doesnt have its own slot, alloc one.
-            osSchedulerSetSlotNum(thread_id, 1);
-        }
-        osSchedulerSetTmodes(thread_id, TMODE_HARD);
 
-        // if it was the only SRTT before, remove the soft slot
-        int srtt_num = osSchedulerGetSRTTNum();
-        if (srtt_num == 0 && soft != 0){
-            osSchedulerSetSoftSlotNum(0);
-        }
     } else if (current_priority == osPriorityRealtime) {
-        // change HRTT to SRTT
-        int32_t res = osSchedulerGetFreq(thread_id);
-        int32_t freq = THREAD_FREQ(res);
-        int32_t soft = SOFT_SLOT_COUNT(res);
-        flexpret_thread_attr_entry[tid]->priority = osPriorityNormal;
+        change_hrtt_to_srtt(tid);
+        // // change HRTT to SRTT (thread unsafe implement)
+        // int32_t res = osSchedulerGetFreq(thread_id);
+        // int32_t freq = THREAD_FREQ(res);
+        // int32_t soft = SOFT_SLOT_COUNT(res);
 
-        int srtt_num = osSchedulerGetSRTTNum();
-        if (srtt_num == 0 && soft == 0) {
-            osSchedulerSetSoftSlotNum(1);
-        }
-        osSchedulerSetTmodes(thread_id, TMODE_SOFT);
-        if (freq == 0) {
-            // if thread doesnt have its own slot, dont touch slot.
-        } else {
-            // thread have its own slot, remove it.
-            // before removing, alloc a soft slot if there is no one (line 182) 
-            osSchedulerSetSlotNum(thread_id, 0);
-        }
+        // int srtt_num = osSchedulerGetSRTTNum();
+        // if (srtt_num == 0 && soft == 0) {
+        //     osSchedulerSetSoftSlotNum(1);
+        // }
+        // osSchedulerSetTmodes(thread_id, TMODE_SOFT);
+        // if (freq == 0) {
+        //     // if thread doesnt have its own slot, dont touch slot.
+        // } else {
+        //     // thread have its own slot, remove it.
+        //     // before removing, alloc a soft slot if there is no one (line 182) 
+        //     osSchedulerSetSlotNum(thread_id, 0);
+        // }
+        flexpret_thread_attr_entry[tid]->priority = osPriorityNormal;
     } else {
         flexpret_error("unsupported priority\n");
         return osError;

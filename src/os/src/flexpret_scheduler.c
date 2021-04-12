@@ -112,69 +112,74 @@ osStatus_t osSchedulerSetSoftSlotNum(int count) {
     return ret;
 }
 
-static osStatus_t set_thread_mode(uint32_t tid, int tmode) {
-    uint32_t tmodes[FLEXPRET_HW_THREADS_NUMS];
-    get_tmodes(tmodes);
+static osStatus_t get_tmode_mask(uint32_t tid, int tmode, int *mask, int *type) {
+    // type 0 : xor
+    // type 1 : substitute
     switch (tmode) {
     case TMODE_HARD:
-        if (tmodes[tid] == TMODE_HZ || tmodes[tid] == TMODE_HA) {
-            return osOK;
-        } else if (tmodes[tid] == TMODE_SZ) {
-            tmodes[tid] = TMODE_HZ;
-        } else if (tmodes[tid] == TMODE_SA) {
-            tmodes[tid] = TMODE_HA;
-        } else {
-            flexpret_error("Bad tmode.\n");
-            return osError;
-        }
-        break;
     case TMODE_SOFT:
-        if (tmodes[tid] == TMODE_SZ || tmodes[tid] == TMODE_SA) {
-            return osOK;
-        } else if (tmodes[tid] == TMODE_HZ) {
-            tmodes[tid] = TMODE_SZ;
-        } else if (tmodes[tid] == TMODE_HA) {
-            tmodes[tid] = TMODE_SA;
-        } else {
-            flexpret_error("Bad tmode.\n");
-            return osError;
-        }
+        // HA ^ 10 = SA
+        // SA ^ 10 = HA
+        *mask = 2 << (tid << 1);
+        *type = 0;
         break;
     case TMODE_ACTIVE:
-        if (tmodes[tid] == TMODE_SA || tmodes[tid] == TMODE_HA) {
-            return osOK;
-        } else if (tmodes[tid] == TMODE_HZ) {
-            tmodes[tid] = TMODE_HA;
-        } else if (tmodes[tid] == TMODE_SZ) {
-            tmodes[tid] = TMODE_SA;
-        } else {
-            flexpret_error("Bad tmode.\n");
-            return osError;
-        }
-        break;
     case TMODE_ZOMBIE:
-        if (tmodes[tid] == TMODE_SZ || tmodes[tid] == TMODE_HZ) {
-            return osOK;
-        } else if (tmodes[tid] == TMODE_HA) {
-            tmodes[tid] = TMODE_HZ;
-        } else if (tmodes[tid] == TMODE_SA) {
-            tmodes[tid] = TMODE_SZ;
-        } else {
-            flexpret_error("Bad tmode.\n");
-            return osError;
-        }
+        // HA ^ 01 = HZ
+        // SA ^ 01 = SZ
+        *mask = 1 << (tid << 1);
+        *type = 0;
         break;
     case TMODE_SZ:
     case TMODE_SA:
     case TMODE_HZ:
     case TMODE_HA:
-        tmodes[tid] = tmode;
+        *mask = tmode << (tid << 1);
+        *type = 1;
         break;
     default:
         flexpret_error("Bad tmode.\n");
         return osError;
     }
-    set_tmodes(tmodes);
+    return osOK;
+}
+
+static osStatus_t set_thread_mode(uint32_t tid, int tmode) {
+    // should be atomic
+    uint32_t tmodes[FLEXPRET_HW_THREADS_NUMS];
+    // NOTE: One thread will write HZ/SZ to itself ONLY when osThreadSuspend(osGetThreadId()) is called, 
+    // IN THIS CIRCUMSTANCE, BAD CASE MAY OCCUR when other thread(e.g. thread 2) just resumed from osDelay
+    // but tmode is still HZ/SZ read by get_tmode macro by current thread, and then `swap_csr` will suspend thread 2 again and
+    // current thread will be zombie at the same time. Thread 2 will never be resumed again unless osThreadResume is explicitly called.
+
+    int mask, type;
+    if (get_tmode_mask(tid, tmode, &mask, &type) != osOK) {
+        return osError;
+    }
+    // get_tmodes(tmodes);
+    uint32_t tmode_oldval, tmode_currentval;
+    uint32_t tid_mask = 0x3 << (tid << 1);
+
+    uint32_t res_mask;
+
+    uint32_t tmode_newval;
+    tmode_oldval = read_csr(ptbr);
+    if (type) {
+        uint32_t tmp = tmode_oldval & tid_mask;
+        tmode_newval = (tmode_oldval ^ mask) ^ tmp;
+    } else {
+        tmode_newval = tmode_oldval ^ mask;
+    }
+    res_mask = tmode_newval & tid_mask;
+    tmode_currentval = swap_csr(ptbr, tmode_newval);
+    if (tmode_currentval != tmode_oldval) {
+        do {
+            uint32_t tmp = tmode_currentval & tid_mask;
+            tmode_newval = (tmode_currentval ^ res_mask) ^ tmp;
+            tmode_currentval = swap_csr(ptbr, tmode_newval);
+        } while (tmode_newval != tmode_currentval);
+    }
+    // set_tmodes(tmodes);
     return osOK;
 }
 
@@ -342,6 +347,38 @@ void change_hrtt_to_srtt(uint32_t tid) {
     set_thread_mode(tid, TMODE_SOFT);
     if (thread_count != 0) {
         set_slot_num(tid, 0);
+    }
+
+    release_slot_tmode_mutex();
+}
+
+void thread_after_create(uint32_t tid) {
+    acquire_slot_tmode_mutex();
+
+    if (flexpret_thread_attr_entry[tid]->priority == osPriorityRealtime) {
+        set_thread_mode(tid, TMODE_HA);
+        set_slot_num(tid, 1);
+    } else if (flexpret_thread_attr_entry[tid]->priority == osPriorityNormal) {
+        set_thread_mode(tid, TMODE_SA);
+        uint8_t slots[FLEXPRET_MAX_HW_THREADS_NUMS];
+        get_slots(slots);
+
+        int32_t soft_count = 0;
+        if (startup_state[tid].func != NULL) {
+            register int i;
+            for (i = 0; i < FLEXPRET_MAX_HW_THREADS_NUMS; i++) {
+                if (slots[i] == SLOT_S) {
+                    soft_count++;
+                }
+            }
+        } else {
+            flexpret_error("Internal error\n");
+        }
+        if (soft_count == 0) {
+            set_slot_num(SLOT_S, 1);
+        }
+    } else {
+        flexpret_error("Unsupported priority\n");
     }
 
     release_slot_tmode_mutex();

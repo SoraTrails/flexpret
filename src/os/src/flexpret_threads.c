@@ -9,6 +9,7 @@
 
 extern volatile hwthread_state startup_state[FLEXPRET_HW_THREADS_NUMS];
 extern volatile mutex_state startup_mutex_state[FLEXPRET_MUTEX_MAX_NUM];
+extern osKernelState_t kernel_state;
 static int flexpret_thread_num = 1;
 osThreadAttr_t *flexpret_thread_attr_entry[FLEXPRET_HW_THREADS_NUMS];
 osThreadAttr_t flexpret_thread_attr[FLEXPRET_HW_THREADS_NUMS];
@@ -189,7 +190,10 @@ osThreadId_t osThreadNew (osThreadFunc_t func, void *argument, const osThreadAtt
     startup_state[tid].func = func;
     startup_state[tid].arg = argument;
 
-    // Thread will not run until osKernelStart is called.
+    // Thread will not run until osKernelStart is called, otherwise set tmode&slot to create thread.
+    if (osKernelGetState == osKernelRunning) {
+        thread_after_create(tid);
+    }
     return (osThreadId_t)&(startup_state[tid]);
 }
  

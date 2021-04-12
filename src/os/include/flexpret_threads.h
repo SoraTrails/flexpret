@@ -144,4 +144,6 @@ typedef struct hwthread_state {
 // When priority is osPriorityNormal, SRTT hw thread is created.
 // More priority is not supported currently, default priority is osPriorityNormal.
 
+void thread_after_return_handler(void);
+
 #endif

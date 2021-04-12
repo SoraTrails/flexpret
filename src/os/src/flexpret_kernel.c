@@ -23,6 +23,7 @@ extern int default_soft_slot_id;
 extern char bss_end;
 
 osMutexId_t slot_mutex, tmode_mutex;
+osKernelState_t kernel_state = osKernelInactive;
 
 static const osMutexAttr_t slotMutexAttr = {
     "slotMutex", osMutexRecursive | osMutexRobust, NULL, 0U
@@ -68,6 +69,8 @@ osStatus_t osKernelInitialize (void) {
     memcpy(flexpret_thread_attr_entry[0], &flexpret_thread_init_attr, sizeof(osThreadAttr_t));
     flexpret_thread_attr_entry[0]->stack_mem = (void*)flexpret_thread_init_stack_addr[0];
     flexpret_thread_attr_entry[0]->stack_size = flexpret_thread_init_stack_addr[0] - (uint32_t)&bss_end;
+
+    kernel_state = osKernelReady;
     return osOK;
 }
 
@@ -122,8 +125,7 @@ osStatus_t osKernelGetInfo (osVersion_t *version, char *id_buf, uint32_t id_size
 }
 
 osKernelState_t osKernelGetState (void) {
-    flexpret_not_implemented(__func__);
-    return osKernelReserved;
+    return kernel_state;
 }
 
 osStatus_t osKernelStart (void) {
@@ -166,7 +168,7 @@ osStatus_t osKernelStart (void) {
     set_slots(slots);
     // set modes, reverse order
     set_tmodes(modes);
-
+    kernel_state = osKernelRunning;
     return osOK;
 }
 
@@ -195,6 +197,7 @@ void osKernelResume (uint32_t sleep_ticks) {
 }
 
 uint32_t osKernelGetTickCount (void) {
+    // NOTE: in nanoseconds
     return get_time();
 }
  

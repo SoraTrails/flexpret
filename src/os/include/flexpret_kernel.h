@@ -12,6 +12,4 @@
 #define FLEXPRET_OS_VERSION KERNEL_VER(1, 0, 0)
 #endif
 
-void thread_after_return_handler(void);
-
 #endif

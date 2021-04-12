@@ -49,5 +49,8 @@ void srtt_terminate(uint32_t tid);
 void change_srtt_to_hrtt(uint32_t tid);
 void change_hrtt_to_srtt(uint32_t tid);
 
+/// change slot&tmode to create thread after kernel is started, user should not call this func too.
+void thread_after_create(uint32_t tid);
+
 #endif
 

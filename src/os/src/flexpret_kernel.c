@@ -19,6 +19,12 @@ extern volatile hwthread_state startup_state[FLEXPRET_HW_THREADS_NUMS];
 extern const uint32_t flexpret_thread_init_stack_addr[FLEXPRET_HW_THREADS_NUMS];
 // Only used to record the soft_slot_id at initialization time
 extern int default_soft_slot_id;
+
+// Extern global variable for kernel reset
+extern int flexpret_thread_num;
+extern int flexpret_mutex_num;
+extern volatile trap_vector trap_handler_vector[FLEXPRET_HW_THREADS_NUMS];
+
 // bss_end addr flag, defined in linker script
 extern char bss_end;
 
@@ -213,4 +219,30 @@ uint32_t osKernelGetSysTimerCount (void) {
 uint32_t osKernelGetSysTimerFreq (void) {
     flexpret_not_implemented(__func__);
     return osOK;
+}
+
+osStatus_t osKernelReset() {
+    // SLOT_D * 7, SLOT_0
+    write_csr(badvaddr, 0xfffffff0);
+    // TMODE_HZ * 7, TMODE_HA
+    write_csr(ptbr, 0x55555554);
+    register int i;
+    for (i = 1; i < FLEXPRET_HW_THREADS_NUMS; i++) {
+        startup_state[i].func = NULL;
+        startup_state[i].stack_address = NULL;
+        startup_state[i].arg = NULL;
+    }
+
+    // global variable reset
+    flexpret_thread_num = 1;
+    default_soft_slot_id = -1;
+    flexpret_mutex_num = 0;
+    for (i = 0; i < FLEXPRET_HW_THREADS_NUMS; i++) {
+        trap_handler_vector[i].handler[0] = default_ie_handler;
+        trap_handler_vector[i].handler[1] = default_ee_handler;
+        trap_handler_vector[i].handler[2] = default_int_handler;
+        trap_handler_vector[i].handler[3] = default_fault_handler;
+    }
+
+    return osKernelInitialize();
 }

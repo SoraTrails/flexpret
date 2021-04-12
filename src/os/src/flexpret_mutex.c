@@ -4,7 +4,7 @@
 #include "flexpret_threads.h"
 #include "flexpret_timing.h"
 
-static int flexpret_mutex_num = 0;
+int flexpret_mutex_num = 0;
 volatile mutex_state startup_mutex_state[FLEXPRET_MUTEX_MAX_NUM];
 
 void write_mutex_csr(int i, int val) {

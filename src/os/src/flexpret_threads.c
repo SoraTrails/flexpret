@@ -10,7 +10,7 @@
 extern volatile hwthread_state startup_state[FLEXPRET_HW_THREADS_NUMS];
 extern volatile mutex_state startup_mutex_state[FLEXPRET_MUTEX_MAX_NUM];
 extern osKernelState_t kernel_state;
-static int flexpret_thread_num = 1;
+int flexpret_thread_num = 1;
 osThreadAttr_t *flexpret_thread_attr_entry[FLEXPRET_HW_THREADS_NUMS];
 osThreadAttr_t flexpret_thread_attr[FLEXPRET_HW_THREADS_NUMS];
 int default_soft_slot_id = -1;

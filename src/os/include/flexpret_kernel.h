@@ -12,4 +12,7 @@
 #define FLEXPRET_OS_VERSION KERNEL_VER(1, 0, 0)
 #endif
 
+// Should only be called by thread 0
+osStatus_t osKernelReset();
+
 #endif

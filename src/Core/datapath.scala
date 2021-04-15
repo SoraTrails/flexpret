@@ -323,6 +323,14 @@ class Datapath(implicit conf: FlexpretConfiguration) extends Module
   io.control.exe_expire := csr.io.expire
   csr.io.dec_tid := dec_reg_tid
 
+  // mtfd
+  csr.io.mt := io.control.exe_mt_reg || io.control.exe_mt_imm
+  csr.io.fd := io.control.exe_fd
+  csr.io.mtfd_val := Mux(io.control.exe_mt_reg, exe_reg_rs1_data, 
+                     Mux(io.control.exe_mt_imm, Cat(Bits(0, 12), exe_reg_inst(31,12)), 
+                     Bits(0, 32)))
+  io.control.exe_exc_mtfd := csr.io.mtfd_exception
+
   // privileged
   csr.io.sret := io.control.exe_sret
 

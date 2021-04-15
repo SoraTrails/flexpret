@@ -127,6 +127,7 @@ runTestbench() {
     # echo "${WORK_DIR}/Core --maxcycles=100000 --ispm=${1}.inst.mem --dspm=${1}.data.mem 2> ${RES_DIR}/raw_log > ${RES_DIR}/log"
     ${WORK_DIR}/Core --maxcycles=100000 --ispm=${WORK_DIR}/${1}.inst.mem --dspm=${WORK_DIR}/${1}.data.mem 2> ${RES_DIR}/raw_log > ${RES_DIR}/log
     echo "Core return $?."
+    grep "\*\*\*" /opt/flexpret/emulator/generated-src/8tf-64i-64d-ti/raw_log
     gzip -c ${RES_DIR}/log > ${RES_DIR}/log.tar.gz
 }
 

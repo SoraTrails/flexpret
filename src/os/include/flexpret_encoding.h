@@ -17,6 +17,7 @@
 // most significant bit of cause src is moved from 4th bit, see csr.scala:207
 #define CAUSE_IE 0x8000000d
 #define CAUSE_EE 0xd
+#define CAUSE_FD 0xf
 #define CAUSE_EXTERNAL_INT 0x8000000e
 
 // misaligned_fetch = 0x0

@@ -80,3 +80,39 @@ int test_timer() {
     
     return PASSED;
 }
+
+static void osTestMtfdImm() {
+    mt_imm(1000);
+    register int i;
+    for (i = 0; i < 100; i++) {}
+    fd();
+}
+
+static void osTestMtfdReg() {
+    register int a = 100000;
+    mt_reg(a);
+    register int i;
+    for (i = 0; i < 100; i++) {}
+    fd();
+}
+
+int test_mtfd() {
+    osKernelInitialize();
+    osThreadAttr_t thread1;
+    thread1.priority = osPriorityRealtime;
+    thread1.attr_bits = osThreadJoinable;
+    osThreadAttr_t thread2;
+    thread2.priority = osPriorityRealtime;
+    thread2.attr_bits = osThreadJoinable;
+    osThreadId_t tid1 = osThreadNew((osThreadFunc_t)osTestMtfdImm, NULL, &thread1);
+    osThreadId_t tid2 = osThreadNew((osThreadFunc_t)osTestMtfdReg, NULL, &thread2);
+
+    FLEXPRET_ASSERT(tid1 != NULL && tid2 != NULL);
+
+    osKernelStart();
+
+    osThreadJoin(tid1);
+    osThreadJoin(tid2);
+
+    return PASSED;
+}

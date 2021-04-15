@@ -42,6 +42,9 @@ class ControlDatapathIO(implicit conf: FlexpretConfiguration) extends Bundle
   val exe_sleep       = Bool(OUTPUT) // DU, WU
   val exe_ie          = Bool(OUTPUT) // IE
   val exe_ee          = Bool(OUTPUT) // EE
+  val exe_mt_reg      = Bool(OUTPUT)
+  val exe_mt_imm      = Bool(OUTPUT)
+  val exe_fd          = Bool(OUTPUT)
   val exe_sret        = Bool(OUTPUT)
   val exe_cycle       = Bool(OUTPUT) // stats
   val exe_instret     = Bool(OUTPUT) // stats
@@ -71,6 +74,7 @@ class ControlDatapathIO(implicit conf: FlexpretConfiguration) extends Bundle
   val exe_exc_store_misaligned = Bool(INPUT)
   val exe_exc_store_fault      = Bool(INPUT)
   val exe_exc_expire           = Bool(INPUT)
+  val exe_exc_mtfd             = Bool(INPUT)
   val exe_int_expire           = Bool(INPUT)
   val exe_int_ext              = Bool(INPUT)
 }
@@ -86,83 +90,85 @@ class Control(implicit conf: FlexpretConfiguration) extends Module
   //               |  imm_sel                                                      |           mem_type                         |  store                
   //               |  |      op1_sel                                               |           |        mem_rd_data_sel         |  |  fence                    
   //               |  |      |        op1_sel                                      |           |        |           rd_en       |  |  |  fence_i        
-  //               |  |      |        |        alu_type                            |           |        |           |  branch   |  |  |  |  scall       
-  //               |  |      |        |        |         br_type                   |           |        |           |  |  jump  |  |  |  |  |  sret            
-  //               |  |      |        |        |         |       csr_type          |           |        |           |  |  |  csr|  |  |  |  |  |  du ie         
-  //               |  |      |        |        |         |       |        mul_type |           |        |           |  |  |  |  |  |  |  |  |  |  |  |   
+  //               |  |      |        |        alu_type                            |           |        |           |  branch   |  |  |  |  scall       mt_reg
+  //               |  |      |        |        |         br_type                   |           |        |           |  |  jump  |  |  |  |  |  sret     |  mt_imm     
+  //               |  |      |        |        |         |       csr_type          |           |        |           |  |  |  csr|  |  |  |  |  |  du ie |  |  fd     
+  //               |  |      |        |        |         |       |        mul_type |           |        |           |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
   val default =                                                                                                                
-              List(F, IMM_X, OP1_X,   OP2_X,   ALU_X,    BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X  , F, F, F, F, F, F, F, F, F, F, F, F)   
+              List(F, IMM_X, OP1_X,   OP2_X,   ALU_X,    BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X  , F, F, F, F, F, F, F, F, F, F, F, F, F, F, F)
   val decode_table = Array(             
-    LUI    -> List(T, IMM_U, OP1_0,   OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F),  
-    AUIPC  -> List(T, IMM_U, OP1_PC,  OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F),  
-    JAL    -> List(T, IMM_J, OP1_PC,  OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_PC4, MEM_X,   MEM_RD_REG, T, F, T, F, F, F, F, F, F, F, F, F),  
-    JALR   -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_PC4, MEM_X,   MEM_RD_REG, T, F, T, F, F, F, F, F, F, F, F, F),  
-    BEQ    -> List(T, IMM_B, OP1_PC,  OP2_IMM, ALU_ADD,  BR_EQ,  CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X  , F, T, F, F, F, F, F, F, F, F, F, F),  
-    BNE    -> List(T, IMM_B, OP1_PC,  OP2_IMM, ALU_ADD,  BR_NE,  CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X  , F, T, F, F, F, F, F, F, F, F, F, F),  
-    BLT    -> List(T, IMM_B, OP1_PC,  OP2_IMM, ALU_ADD,  BR_LT,  CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X  , F, T, F, F, F, F, F, F, F, F, F, F),  
-    BGE    -> List(T, IMM_B, OP1_PC,  OP2_IMM, ALU_ADD,  BR_GE,  CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X  , F, T, F, F, F, F, F, F, F, F, F, F),  
-    BLTU   -> List(T, IMM_B, OP1_PC,  OP2_IMM, ALU_ADD,  BR_LTU, CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X  , F, T, F, F, F, F, F, F, F, F, F, F),  
-    BGEU   -> List(T, IMM_B, OP1_PC,  OP2_IMM, ALU_ADD,  BR_GEU, CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X  , F, T, F, F, F, F, F, F, F, F, F, F),  
-    LB     -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_LB,  MEM_RD_MEM, T, F, F, F, T, F, F, F, F, F, F, F),  
-    LH     -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_LH,  MEM_RD_MEM, T, F, F, F, T, F, F, F, F, F, F, F),  
-    LW     -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_LW,  MEM_RD_MEM, T, F, F, F, T, F, F, F, F, F, F, F),  
-    LBU    -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_LBU, MEM_RD_MEM, T, F, F, F, T, F, F, F, F, F, F, F),  
-    LHU    -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_LHU, MEM_RD_MEM, T, F, F, F, T, F, F, F, F, F, F, F),  
-    SB     -> List(T, IMM_S, OP1_RS1, OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_SB,  MEM_RD_X  , F, F, F, F, F, T, F, F, F, F, F, F),  
-    SH     -> List(T, IMM_S, OP1_RS1, OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_SH,  MEM_RD_X  , F, F, F, F, F, T, F, F, F, F, F, F),  
-    SW     -> List(T, IMM_S, OP1_RS1, OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_SW,  MEM_RD_X  , F, F, F, F, F, T, F, F, F, F, F, F),  
-    ADDI   -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F),  
-    SLTI   -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_SLT,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F),  
-    SLTIU  -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_SLTU, BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F),  
-    XORI   -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_XOR,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F),  
-    ORI    -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_OR,   BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F),  
-    ANDI   -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_AND,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F),  
-    SLLI   -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_SLL,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F),  
-    SRLI   -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_SRL,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F),  
-    SRAI   -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_SRA,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F),  
-    ADD    -> List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F),  
-    SUB    -> List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_SUB,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F),  
-    SLL    -> List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_SLL,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F),  
-    SLT    -> List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_SLT,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F),  
-    SLTU   -> List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_SLTU, BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F),  
-    XOR    -> List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_XOR,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F),  
-    SRL    -> List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_SRL,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F),  
-    SRA    -> List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_SRA,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F),  
-    OR     -> List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_OR,   BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F),  
-    AND    -> List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_AND,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F),  
-    CSRRW  -> List(T, IMM_X, OP1_RS1, OP2_0,   ALU_ADD,  BR_X,   CSR_W,   MUL_X,   EXE_RD_CSR, MEM_X,   MEM_RD_REG, T, F, F, T, F, F, F, F, F, F, F, F),  
-    CSRRS  -> List(T, IMM_X, OP1_RS1, OP2_0,   ALU_ADD,  BR_X,   CSR_S,   MUL_X,   EXE_RD_CSR, MEM_X,   MEM_RD_REG, T, F, F, T, F, F, F, F, F, F, F, F),  
-    CSRRC  -> List(T, IMM_X, OP1_RS1, OP2_0,   ALU_ADD,  BR_X,   CSR_C,   MUL_X,   EXE_RD_CSR, MEM_X,   MEM_RD_REG, T, F, F, T, F, F, F, F, F, F, F, F),  
-    CSRRWI -> List(T, IMM_Z, OP1_0,   OP2_IMM, ALU_ADD,  BR_X,   CSR_W,   MUL_X,   EXE_RD_CSR, MEM_X,   MEM_RD_REG, T, F, F, T, F, F, F, F, F, F, F, F),  
-    CSRRSI -> List(T, IMM_Z, OP1_0,   OP2_IMM, ALU_ADD,  BR_X,   CSR_S,   MUL_X,   EXE_RD_CSR, MEM_X,   MEM_RD_REG, T, F, F, T, F, F, F, F, F, F, F, F),  
-    CSRRCI -> List(T, IMM_Z, OP1_0,   OP2_IMM, ALU_ADD,  BR_X,   CSR_C,   MUL_X,   EXE_RD_CSR, MEM_X,   MEM_RD_REG, T, F, F, T, F, F, F, F, F, F, F, F),  
-    FENCE  -> List(T, IMM_X, OP1_X,   OP2_X,   ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X,   F, F, F, F, F, F, T, F, F, F, F, F),  
-    FENCE_I-> List(T, IMM_X, OP1_X,   OP2_X,   ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X,   F, F, F, F, F, F, F, T, F, F, F, F),  
+    LUI    -> List(T, IMM_U, OP1_0,   OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F, F, T, F),  
+    AUIPC  -> List(T, IMM_U, OP1_PC,  OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    JAL    -> List(T, IMM_J, OP1_PC,  OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_PC4, MEM_X,   MEM_RD_REG, T, F, T, F, F, F, F, F, F, F, F, F, F, F, F),  
+    JALR   -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_PC4, MEM_X,   MEM_RD_REG, T, F, T, F, F, F, F, F, F, F, F, F, F, F, F),  
+    BEQ    -> List(T, IMM_B, OP1_PC,  OP2_IMM, ALU_ADD,  BR_EQ,  CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X  , F, T, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    BNE    -> List(T, IMM_B, OP1_PC,  OP2_IMM, ALU_ADD,  BR_NE,  CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X  , F, T, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    BLT    -> List(T, IMM_B, OP1_PC,  OP2_IMM, ALU_ADD,  BR_LT,  CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X  , F, T, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    BGE    -> List(T, IMM_B, OP1_PC,  OP2_IMM, ALU_ADD,  BR_GE,  CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X  , F, T, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    BLTU   -> List(T, IMM_B, OP1_PC,  OP2_IMM, ALU_ADD,  BR_LTU, CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X  , F, T, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    BGEU   -> List(T, IMM_B, OP1_PC,  OP2_IMM, ALU_ADD,  BR_GEU, CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X  , F, T, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    LB     -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_LB,  MEM_RD_MEM, T, F, F, F, T, F, F, F, F, F, F, F, F, F, F),  
+    LH     -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_LH,  MEM_RD_MEM, T, F, F, F, T, F, F, F, F, F, F, F, F, F, F),  
+    LW     -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_LW,  MEM_RD_MEM, T, F, F, F, T, F, F, F, F, F, F, F, F, F, F),  
+    LBU    -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_LBU, MEM_RD_MEM, T, F, F, F, T, F, F, F, F, F, F, F, F, F, F),  
+    LHU    -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_LHU, MEM_RD_MEM, T, F, F, F, T, F, F, F, F, F, F, F, F, F, F),  
+    SB     -> List(T, IMM_S, OP1_RS1, OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_SB,  MEM_RD_X  , F, F, F, F, F, T, F, F, F, F, F, F, F, F, F),  
+    SH     -> List(T, IMM_S, OP1_RS1, OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_SH,  MEM_RD_X  , F, F, F, F, F, T, F, F, F, F, F, F, F, F, F),  
+    SW     -> List(T, IMM_S, OP1_RS1, OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_SW,  MEM_RD_X  , F, F, F, F, F, T, F, F, F, F, F, F, F, F, F),  
+    ADDI   -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    SLTI   -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_SLT,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    SLTIU  -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_SLTU, BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    XORI   -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_XOR,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    ORI    -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_OR,   BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    ANDI   -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_AND,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    SLLI   -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_SLL,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    SRLI   -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_SRL,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    SRAI   -> List(T, IMM_I, OP1_RS1, OP2_IMM, ALU_SRA,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    ADD    -> List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    SUB    -> List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_SUB,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    SLL    -> List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_SLL,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    SLT    -> List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_SLT,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    SLTU   -> List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_SLTU, BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    XOR    -> List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_XOR,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    SRL    -> List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_SRL,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    SRA    -> List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_SRA,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    OR     -> List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_OR,   BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    AND    -> List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_AND,  BR_X,   CSR_X,   MUL_X,   EXE_RD_ALU, MEM_X,   MEM_RD_REG, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F),  
+    CSRRW  -> List(T, IMM_X, OP1_RS1, OP2_0,   ALU_ADD,  BR_X,   CSR_W,   MUL_X,   EXE_RD_CSR, MEM_X,   MEM_RD_REG, T, F, F, T, F, F, F, F, F, F, F, F, F, F, F),  
+    CSRRS  -> List(T, IMM_X, OP1_RS1, OP2_0,   ALU_ADD,  BR_X,   CSR_S,   MUL_X,   EXE_RD_CSR, MEM_X,   MEM_RD_REG, T, F, F, T, F, F, F, F, F, F, F, F, F, F, F),  
+    CSRRC  -> List(T, IMM_X, OP1_RS1, OP2_0,   ALU_ADD,  BR_X,   CSR_C,   MUL_X,   EXE_RD_CSR, MEM_X,   MEM_RD_REG, T, F, F, T, F, F, F, F, F, F, F, F, F, F, F),  
+    CSRRWI -> List(T, IMM_Z, OP1_0,   OP2_IMM, ALU_ADD,  BR_X,   CSR_W,   MUL_X,   EXE_RD_CSR, MEM_X,   MEM_RD_REG, T, F, F, T, F, F, F, F, F, F, F, F, F, F, F),  
+    CSRRSI -> List(T, IMM_Z, OP1_0,   OP2_IMM, ALU_ADD,  BR_X,   CSR_S,   MUL_X,   EXE_RD_CSR, MEM_X,   MEM_RD_REG, T, F, F, T, F, F, F, F, F, F, F, F, F, F, F),  
+    CSRRCI -> List(T, IMM_Z, OP1_0,   OP2_IMM, ALU_ADD,  BR_X,   CSR_C,   MUL_X,   EXE_RD_CSR, MEM_X,   MEM_RD_REG, T, F, F, T, F, F, F, F, F, F, F, F, F, F, F),  
+    FENCE  -> List(T, IMM_X, OP1_X,   OP2_X,   ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X,   F, F, F, F, F, F, T, F, F, F, F, F, F, F, F),  
+    FENCE_I-> List(T, IMM_X, OP1_X,   OP2_X,   ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X,   F, F, F, F, F, F, F, T, F, F, F, F, F, F, F),  
     MUL    -> (if(conf.mul) {
-              List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_X,    BR_X,   CSR_X,   MUL_L,   EXE_RD_X,   MEM_X,   MEM_RD_MUL, T, F, F, F, F, F, F, F, F, F, F, F)
+              List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_X,    BR_X,   CSR_X,   MUL_L,   EXE_RD_X,   MEM_X,   MEM_RD_MUL, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F)
               } else { default }),
     MULH   -> (if(conf.mul) {
-              List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_X,    BR_X,   CSR_X,   MUL_H,   EXE_RD_X,   MEM_X,   MEM_RD_MUL, T, F, F, F, F, F, F, F, F, F, F, F)
+              List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_X,    BR_X,   CSR_X,   MUL_H,   EXE_RD_X,   MEM_X,   MEM_RD_MUL, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F)
               } else { default }),
     MULHSU -> (if(conf.mul) {
-              List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_X,    BR_X,   CSR_X,   MUL_HSU, EXE_RD_X,   MEM_X,   MEM_RD_MUL, T, F, F, F, F, F, F, F, F, F, F, F)
+              List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_X,    BR_X,   CSR_X,   MUL_HSU, EXE_RD_X,   MEM_X,   MEM_RD_MUL, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F)
               } else { default }),
     MULHU  -> (if(conf.mul) {
-              List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_X,    BR_X,   CSR_X,   MUL_HU,  EXE_RD_X,   MEM_X,   MEM_RD_MUL, T, F, F, F, F, F, F, F, F, F, F, F)
+              List(T, IMM_X, OP1_RS1, OP2_RS2, ALU_X,    BR_X,   CSR_X,   MUL_HU,  EXE_RD_X,   MEM_X,   MEM_RD_MUL, T, F, F, F, F, F, F, F, F, F, F, F, F, F, F)
               } else { default }),
-    SCALL  -> List(T, IMM_X, OP1_X,   OP2_X,   ALU_X,    BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X,   F, F, F, F, F, F, F, F, T, F, F, F),
+    SCALL  -> List(T, IMM_X, OP1_X,   OP2_X,   ALU_X,    BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X,   F, F, F, F, F, F, F, F, T, F, F, F, F, F, F),
     SRET   -> (if(conf.privilegedMode) {
-              List(T, IMM_X, OP1_X,   OP2_X,   ALU_X,    BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X,   F, F, F, F, F, F, F, F, F, T, F, F)
+              List(T, IMM_X, OP1_X,   OP2_X,   ALU_X,    BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X,   F, F, F, F, F, F, F, F, F, T, F, F, F, F, F)
               } else { default }),
     DU     -> (if(conf.delayUntil) {
-              List(T, IMM_X, OP1_PC,  OP2_0,   ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X,   F, F, F, F, F, F, F, F, F, F, T, F)
+              List(T, IMM_X, OP1_PC,  OP2_0,   ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X,   F, F, F, F, F, F, F, F, F, F, T, F, F, F, F)
               } else { default }),
     WU     -> (if(conf.delayUntil) {
-              List(T, IMM_X, OP1_PC,  OP2_4,   ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X,   F, F, F, F, F, F, F, F, F, F, T, F) 
+              List(T, IMM_X, OP1_PC,  OP2_4,   ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X,   F, F, F, F, F, F, F, F, F, F, T, F, F, F, F)
               } else { default }),
     IE     -> (if(conf.interruptExpire) {
-              List(T, IMM_X, OP1_PC,  OP2_4,   ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X,   F, F, F, F, F, F, F, F, F, F, F, T) 
-              } else { default })
+              List(T, IMM_X, OP1_PC,  OP2_4,   ALU_ADD,  BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X,   F, F, F, F, F, F, F, F, F, F, F, T, F, F, F)
+              } else { default }),
+    MT_REG -> List(T, IMM_X, OP1_RS1, OP2_X,   ALU_X,    BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X  , F, F, F, F, F, F, F, F, F, F, F, F, T, F, F),
+    FD     -> List(T, IMM_X, OP1_X,   OP2_X,   ALU_X,    BR_X,   CSR_X,   MUL_X,   EXE_RD_X,   MEM_X,   MEM_RD_X  , F, F, F, F, F, F, F, F, F, F, F, F, F, F, T)
   )
 
   //val decoded_inst = ListLookup(io.dec_inst, default, decode_table)
@@ -171,7 +177,7 @@ class Control(implicit conf: FlexpretConfiguration) extends Module
   // decoded information
 
   val dec_legal :: dec_imm_sel :: dec_op1_sel :: dec_op2_sel :: dec_alu_type :: dec_br_type :: dec_csr_type :: dec_mul_type :: dec_exe_rd_data_sel :: dec_mem_type :: dec_mem_rd_data_sel :: Nil = decoded_inst.slice(0,11)
-  val dec_rd_en :: dec_branch :: dec_jump :: dec_csr :: dec_load :: dec_store :: dec_fence :: dec_fence_i :: dec_scall :: dec_sret :: dec_du :: dec_ie :: Nil = decoded_inst.slice(11,23)
+  val dec_rd_en :: dec_branch :: dec_jump :: dec_csr :: dec_load :: dec_store :: dec_fence :: dec_fence_i :: dec_scall :: dec_sret :: dec_du :: dec_ie :: dec_mt_reg :: dec_mt_imm :: dec_fd :: Nil = decoded_inst.slice(11,26)
   
   // ************************************************************
   // Decoded control signals for datapath operation of stages after decode, 
@@ -343,6 +349,18 @@ class Control(implicit conf: FlexpretConfiguration) extends Module
     exe_ie := Bool(false)
     exe_ee := Bool(false)
   }
+
+  // mtfd signal gen
+  val exe_mt_reg = Bool()
+  val exe_mt_imm = Bool()
+  val exe_fd = Bool()
+  // exe_exc_mtfd 处理
+  val exe_reg_mt_reg = Reg(next = dec_mt_reg.toBool)
+  exe_mt_reg := exe_valid && exe_reg_mt_reg
+  val exe_reg_mt_imm = Reg(next = dec_mt_imm.toBool && io.dec_inst(11, 7) === UInt(0))
+  exe_mt_imm := exe_valid && exe_reg_mt_imm
+  val exe_reg_fd = Reg(next = dec_fd.toBool)
+  exe_fd := exe_valid && exe_reg_fd
   
   // Forwarding logic for rs1 and rs2
   val dec_rs1_sel = UInt()
@@ -479,6 +497,7 @@ class Control(implicit conf: FlexpretConfiguration) extends Module
     ))
   // Caused by unknown instruction in execute stage, prevent all commits
   val (exe_any_exc, exe_any_cause) = check_exceptions(List(
+      (io.exe_exc_mtfd, Causes.fd),
       (io.exe_exc_expire, Causes.ee),
       (io.exe_int_expire, Causes.ie),
       (io.exe_int_ext, Causes.external_int)
@@ -538,6 +557,9 @@ class Control(implicit conf: FlexpretConfiguration) extends Module
   io.exe_sleep     := exe_sleep
   io.exe_ie        := exe_ie
   io.exe_ee        := exe_ee
+  io.exe_mt_reg    := exe_mt_reg
+  io.exe_mt_imm    := exe_mt_imm
+  io.exe_fd        := exe_fd
   io.exe_sret      := exe_sret
   io.exe_cycle     := exe_cycle
   io.exe_instret   := exe_instret

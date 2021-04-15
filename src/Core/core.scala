@@ -100,7 +100,7 @@ case class FlexpretConfiguration(threads: Int, flex: Boolean, iMemKB: Int, dMemK
   val exceptions = !supportedCauses.isEmpty || interruptExpire || externalInterrupt
   val causes =
     supportedCauses ++
-    (if(interruptExpire) List(Causes.ee, Causes.ie) else Nil) ++
+    (if(interruptExpire) List(Causes.ee, Causes.ie, Causes.fd) else Nil) ++
     (if(externalInterrupt) List(Causes.external_int) else Nil)
 
 }

@@ -55,6 +55,12 @@ class CSR(implicit conf: FlexpretConfiguration) extends Module
     val exc_expire      = Bool(OUTPUT) // EE time expired
     val int_ext         = Bool(OUTPUT) // external interrupt
     val priv_fault      = Bool(OUTPUT) // CSR permission
+
+    // mtfd --- meet the final deadline implementation
+    val mt              = Bool(INPUT)  // mt flag
+    val fd              = Bool(INPUT)  // fd flag
+    val mtfd_val        = UInt(INPUT, 32)
+    val mtfd_exception  = Bool(OUTPUT)
   }
 
  
@@ -93,6 +99,7 @@ class CSR(implicit conf: FlexpretConfiguration) extends Module
 
   // all threads shares 8 mutex.
   val reg_mutex           = Vec.fill(8) { Reg(UInt(width = 4)) }
+  val reg_mtfd            = Vec.fill(conf.threads) { Reg(UInt(width = conf.timeBits)) }
   
   // Invisible 
   val reg_timer = Vec.fill(conf.threads) { Reg(init = TIMER_OFF) }
@@ -402,6 +409,22 @@ class CSR(implicit conf: FlexpretConfiguration) extends Module
     }
   }
 
+  // mtfd implementation
+  val mtfd_exception = Bool()
+  mtfd_exception := Bool(false)
+  val fd_reg = Reg(next = io.fd)
+  val thread_reg = Reg(next = io.rw.thread)
+  val mtfd_exception_reg = Vec.fill(conf.threads) { Reg(init = Bool(false)) }
+  when(io.mt) {
+    reg_mtfd(io.rw.thread) := reg_time(conf.timeBits-1,0) + io.mtfd_val
+  }
+  when(fd_reg) {
+    // assume fd is always called before mt
+    when(reg_mtfd(thread_reg) != UInt(0, 32)) {
+      mtfd_exception := (reg_time(conf.timeBits-1,0) - reg_mtfd(thread_reg))(conf.timeBits-1) === UInt(0, 1)
+    }
+  }
+  mtfd_exception_reg(thread_reg) := mtfd_exception
 
   io.rw.data_out := data_out
   io.slots := reg_slots
@@ -418,6 +441,6 @@ class CSR(implicit conf: FlexpretConfiguration) extends Module
   io.int_expire := int_expire
   io.int_ext := int_ext
   io.priv_fault := priv_fault
-
+  io.mtfd_exception := mtfd_exception_reg(io.rw.thread)
 
 }

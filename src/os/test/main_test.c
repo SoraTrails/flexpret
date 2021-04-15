@@ -11,9 +11,10 @@ int main() {
     // res &= test_osKernelGetTickFreq();
     // res &= test_osThreadNew_osThreadJoin();
     // res &= test_osThread_info();
-    res &= test_osThread_control();
+    // res &= test_osThread_control();
     // res &= test_trap();
     // res &= test_timer();
+    res &= test_mtfd();
     // res &= test_mutex(); 
     return !res;
 }

@@ -56,6 +56,8 @@ save_context:
     beq a0, a3, ie
     li a3, 0xd # CAUSE_EE
     beq a0, a3, ee
+    li a3, 0xf # CAUSE_FD
+    beq a0, a3, ee # currently use ee handler
     li a3, 0x8000000e # CAUSE_EXTERNAL_INT
     beq a0, a3, int
     j fault

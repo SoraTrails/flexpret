@@ -196,6 +196,9 @@ object Instructions {
   val DU = CUSTOM0_RD_RS1_RS2
   val WU = CUSTOM1_RD_RS1_RS2
   val IE = CUSTOM2_RD_RS1_RS2
+  val MT_REG = CUSTOM3_RS1
+  def MT_IMM = LUI
+  val FD = CUSTOM3_RD_RS1_RS2
   def SCALL              = Bits("b0??????????0?????000?????1110011")
   def SRET               = Bits("b1????????????????000?????1110011")
 }
@@ -213,6 +216,7 @@ object Causes {
   val fault_store = 0xb
   val accelerator_disabled = 0xc
   // custom (5th bit is interrupt)
+  val fd = 0xf
   val ee = 0xd
   val ie = 0x1d
   val external_int = 0x1e
@@ -230,6 +234,7 @@ object Causes {
     res += fault_load
     res += fault_store
     res += accelerator_disabled
+    res += fd
     res.toArray
   }
 }

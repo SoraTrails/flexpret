@@ -77,6 +77,7 @@ osStatus_t osKernelInitialize (void) {
     flexpret_thread_attr_entry[0]->stack_size = flexpret_thread_init_stack_addr[0] - (uint32_t)&bss_end;
 
     kernel_state = osKernelReady;
+    startup_state[0].state = FLEXPRET_ACTIVE;
     return osOK;
 }
 
@@ -144,6 +145,7 @@ osStatus_t osKernelStart (void) {
     for (i = 1; i < FLEXPRET_HW_THREADS_NUMS; i++) {
         if (startup_state[i].func != NULL) {
             // slots[i] = i; // SLOT_Ti 
+            startup_state[i].state = FLEXPRET_ACTIVE;
             // TODO soft不占slot？
             if (flexpret_thread_attr_entry[i]->priority == osPriorityRealtime) {
                 modes[i] = TMODE_HA;
@@ -231,6 +233,7 @@ osStatus_t osKernelReset() {
         startup_state[i].func = NULL;
         startup_state[i].stack_address = NULL;
         startup_state[i].arg = NULL;
+        startup_state[i].state = FLEXPRET_INACTIVE;
     }
 
     // global variable reset

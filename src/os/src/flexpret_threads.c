@@ -93,6 +93,7 @@ __NO_RETURN void thread_after_return_handler() {
     uint32_t tid = read_csr(hartid);
     startup_state[tid].func = NULL;
     startup_state[tid].arg = NULL;
+    startup_state[tid].state = FLEXPRET_TERMINATED;
     startup_state[tid].stack_address = (void *)flexpret_thread_init_stack_addr[tid];
 
     thread_clean(osThreadGetId());
@@ -110,6 +111,7 @@ static void thread_terminate(osThreadId_t thread_id, int state_clear) {
     if (state_clear) {
         startup_state[tid].func = NULL;
         startup_state[tid].arg = NULL;
+        startup_state[tid].state = FLEXPRET_TERMINATED;
         startup_state[tid].stack_address = (void *)flexpret_thread_init_stack_addr[tid];
     }
 
@@ -188,6 +190,7 @@ osThreadId_t osThreadNew (osThreadFunc_t func, void *argument, const osThreadAtt
         // }
     }
     startup_state[tid].func = func;
+    startup_state[tid].state = FLEXPRET_ACTIVE;
     startup_state[tid].arg = argument;
 
     // Thread will not run until osKernelStart is called, otherwise set tmode&slot to create thread.
@@ -209,24 +212,17 @@ osThreadId_t osThreadGetId (void) {
 }
 
 osThreadState_t osThreadGetState (osThreadId_t thread_id) {
-    uint32_t tmodes[FLEXPRET_HW_THREADS_NUMS];
-    get_tmodes(tmodes);
-    // hwthread_state* tmp = (hwthread_state*) thread_id;
     uint32_t tid = get_tid(thread_id);
-    switch (tmodes[tid])
+    switch (startup_state[tid].state)
     {
-    // osThreadInactive
-    // osThreadReady
-    // osThreadRunning
-    // osThreadBlocked
-    // osThreadTerminate
-    // TODO: map flexpret thread state to cmsis thread 
-    case TMODE_HZ:
-    case TMODE_SZ:
-        return osThreadInactive;
-    case TMODE_HA:
-    case TMODE_SA:
+    case FLEXPRET_ACTIVE:
         return osThreadRunning;
+    case FLEXPRET_BLOCKED:
+        return osThreadBlocked;
+    case FLEXPRET_INACTIVE:
+        return osThreadInactive;
+    case FLEXPRET_TERMINATED:
+        return osThreadTerminate;
     default:
         return osThreadError;
     }
@@ -332,12 +328,16 @@ osStatus_t osThreadSuspend (osThreadId_t thread_id) {
         flexpret_warn("[warn:osThreadSuspend] Suspended thread may be woked up by timer, if du/wu/ie/ee instruction is called before.\n");
     }
     osSchedulerSetTmodes(thread_id, TMODE_ZOMBIE);
+    uint32_t tid = get_tid(thread_id);
+    startup_state[tid].state = FLEXPRET_BLOCKED;
     return osOK;
 }
  
 osStatus_t osThreadResume (osThreadId_t thread_id) {
     // TODO : Separate Inactive and Blocked state from HZ/SZ
+    uint32_t tid = get_tid(thread_id);
     osSchedulerSetTmodes(thread_id, TMODE_ACTIVE);
+    startup_state[tid].state = FLEXPRET_ACTIVE;
     return osOK;
 }
  

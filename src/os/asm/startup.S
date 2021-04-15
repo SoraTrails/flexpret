@@ -29,10 +29,10 @@ beqz a0, init
 # compute address (using thread ID)
 la a2, startup_state
 # a0 = a0 * sizeof(hwthread_state)
-slli a0, a0, 2
-addi a3, a0, 0
-slli a0, a0, 1
-add a0, a0, a3
+slli a0, a0, 4
+# addi a3, a0, 0
+# slli a0, a0, 1
+# add a0, a0, a3
 
 add a2, a2, a0
 # check data at address and just loop if 0
@@ -41,8 +41,8 @@ lw a3, 0(a2)
 beqz a3, wait
 # desired PC set, load stack address and run startup code
 # NOTE(zxj): set tid and move arg to a3 
-lw a1, 8(a2) # sp
-lw a0, 4(a2) # arg
+lw a1, 12(a2) # sp
+lw a0, 8(a2) # arg
 addi a2, a3, 0
 j startup
 
@@ -53,7 +53,7 @@ init:
 la a1, startup_state
 #lw a0, 0(a1)
 la a0, main
-lw a1, 8(a1)
+lw a1, 12(a1)
 addi a2, a0, 0
 # j startup
 
@@ -116,30 +116,30 @@ startup_state:
 #if FLEXPRET_HW_THREADS_NUMS == 4
     #if FLEXPRET_DSPM_SIZE == 12
         # stack: 7/16 (0x1C00), 3/16 * 3 (0x0C00 * 3)
-        .word main, 0, startup_state+0x1BFC
-        .word 0,    0, startup_state+0x27FC
-        .word 0,    0, startup_state+0x33FC
-        .word 0,    0, startup_state+0x3FFC
+        .word main, 0, 0, startup_state+0x1BFC
+        .word 0,    0, 0, startup_state+0x27FC
+        .word 0,    0, 0, startup_state+0x33FC
+        .word 0,    0, 0, startup_state+0x3FFC
     #elif FLEXPRET_DSPM_SIZE == 64
         # stack: 7/16 (0x7000), 3/16 * 3 (0x3000 * 3)
-        .word main, 0, startup_state+0x6FFC
-        .word 0,    0, startup_state+0x9FFC
-        .word 0,    0, startup_state+0xCFFC
-        .word 0,    0, startup_state+0xFFFC
+        .word main, 0, 0, startup_state+0x6FFC
+        .word 0,    0, 0, startup_state+0x9FFC
+        .word 0,    0, 0, startup_state+0xCFFC
+        .word 0,    0, 0, startup_state+0xFFFC
     #else
         #error bad FLEXPRET_DSPM_SIZE
     #endif
 #elif FLEXPRET_HW_THREADS_NUMS == 8
     #if FLEXPRET_DSPM_SIZE == 64
         # stack: 15/64 (0x3C00), 7/64 * 7 (0x1C00 * 7)
-        .word main, 0, startup_state+0x3BFC
-        .word 0,    0, startup_state+0x57FC
-        .word 0,    0, startup_state+0x73FC
-        .word 0,    0, startup_state+0x8FFC
-        .word 0,    0, startup_state+0xABFC
-        .word 0,    0, startup_state+0xC7FC
-        .word 0,    0, startup_state+0xE3FC
-        .word 0,    0, startup_state+0xFFFC
+        .word main, 0, 0, startup_state+0x3BFC
+        .word 0,    0, 0, startup_state+0x57FC
+        .word 0,    0, 0, startup_state+0x73FC
+        .word 0,    0, 0, startup_state+0x8FFC
+        .word 0,    0, 0, startup_state+0xABFC
+        .word 0,    0, 0, startup_state+0xC7FC
+        .word 0,    0, 0, startup_state+0xE3FC
+        .word 0,    0, 0, startup_state+0xFFFC
     #else
         #error bad FLEXPRET_DSPM_SIZE
     #endif

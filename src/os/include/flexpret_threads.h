@@ -121,8 +121,16 @@
 #define MEMP_SH 8
 #define MEMP_RO 9
 
+typedef enum {
+    FLEXPRET_INACTIVE = 0,
+    FLEXPRET_ACTIVE = 1,
+    FLEXPRET_BLOCKED = 2, // only used in osThreadSuspend
+    FLEXPRET_TERMINATED = 3
+} hwthread_state_type;
+
 typedef struct hwthread_state {
     void (*func)(void* arg);
+    hwthread_state_type state;
     void * arg;
     void * stack_address;
 } hwthread_state;

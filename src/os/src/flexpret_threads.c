@@ -194,7 +194,7 @@ osThreadId_t osThreadNew (osThreadFunc_t func, void *argument, const osThreadAtt
     startup_state[tid].arg = argument;
 
     // Thread will not run until osKernelStart is called, otherwise set tmode&slot to create thread.
-    if (osKernelGetState == osKernelRunning) {
+    if (osKernelGetState() == osKernelRunning) {
         thread_after_create(tid);
     }
     return (osThreadId_t)&(startup_state[tid]);
@@ -222,7 +222,7 @@ osThreadState_t osThreadGetState (osThreadId_t thread_id) {
     case FLEXPRET_INACTIVE:
         return osThreadInactive;
     case FLEXPRET_TERMINATED:
-        return osThreadTerminate;
+        return osThreadTerminated;
     default:
         return osThreadError;
     }
@@ -319,17 +319,14 @@ osStatus_t osThreadYield (void) {
 }
  
 osStatus_t osThreadSuspend (osThreadId_t thread_id) {
-    // TODO : Separate Inactive and Blocked state from HZ/SZ
-    if (thread_id == osThreadGetId()) {
-        // if du/wu/ie/ee instruction is called before, thread will be woked up when timer is due, use set_compare to avoid this behavior
-        set_compare(0);
-    } else {
-        // Thread may be woked up
-        flexpret_warn("[warn:osThreadSuspend] Suspended thread may be woked up by timer, if du/wu/ie/ee instruction is called before.\n");
-    }
-    osSchedulerSetTmodes(thread_id, TMODE_ZOMBIE);
+    // if (thread_id == osThreadGetId()) {
+    //     flexpret_warn("[warn:osThreadSuspend] thread suspending itself is not currently supported.\n");
+    //     return osError;
+    // }
+    flexpret_warn("[warn:osThreadSuspend] Suspended thread may be woked up by timer, if du/wu/ie/ee instruction is called before.\n");
     uint32_t tid = get_tid(thread_id);
     startup_state[tid].state = FLEXPRET_BLOCKED;
+    osSchedulerSetTmodes(thread_id, TMODE_ZOMBIE);
     return osOK;
 }
  

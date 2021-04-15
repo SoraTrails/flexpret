@@ -112,89 +112,53 @@ osStatus_t osSchedulerSetSoftSlotNum(int count) {
     return ret;
 }
 
-static osStatus_t get_tmode_mask(uint32_t tid, int tmode, int *mask, int *type) {
-    // type 0 : xor
-    // type 1 : substitute
+static osStatus_t set_thread_mode(uint32_t tid, int tmode) {
+    uint32_t hbit = 1 << ((tid << 1) + 1);
+    uint32_t lbit = 1 << ((tid << 1) + 0);
     switch (tmode) {
     case TMODE_HARD:
+        clear_csr(ptbr, hbit);
+        break;
     case TMODE_SOFT:
-        // HA ^ 10 = SA
-        // SA ^ 10 = HA
-        *mask = 2 << (tid << 1);
-        *type = 0;
+        set_csr(ptbr, hbit);
         break;
     case TMODE_ACTIVE:
+        clear_csr(ptbr, lbit);
+        break;
     case TMODE_ZOMBIE:
-        // HA ^ 01 = HZ
-        // SA ^ 01 = SZ
-        *mask = 1 << (tid << 1);
-        *type = 0;
+        set_csr(ptbr, lbit);
         break;
     case TMODE_SZ:
+        set_csr(ptbr, hbit);
+        set_csr(ptbr, lbit);
+        break;
     case TMODE_SA:
+        set_csr(ptbr, hbit);
+        clear_csr(ptbr, lbit);
+        break;
     case TMODE_HZ:
+        clear_csr(ptbr, hbit);
+        set_csr(ptbr, lbit);
+        break;
     case TMODE_HA:
-        *mask = tmode << (tid << 1);
-        *type = 1;
+        clear_csr(ptbr, hbit);
+        clear_csr(ptbr, lbit);
         break;
     default:
-        flexpret_error("Bad tmode.\n");
-        return osError;
+        break;
     }
-    return osOK;
-}
-
-static osStatus_t set_thread_mode(uint32_t tid, int tmode) {
-    // should be atomic
-    uint32_t tmodes[FLEXPRET_HW_THREADS_NUMS];
-    // NOTE: One thread will write HZ/SZ to itself ONLY when osThreadSuspend(osGetThreadId()) is called, 
-    // IN THIS CIRCUMSTANCE, BAD CASE MAY OCCUR when other thread(e.g. thread 2) just resumed from osDelay
-    // but tmode is still HZ/SZ read by get_tmode macro by current thread, and then `swap_csr` will suspend thread 2 again and
-    // current thread will be zombie at the same time. Thread 2 will never be resumed again unless osThreadResume is explicitly called.
-
-    int mask, type;
-    if (get_tmode_mask(tid, tmode, &mask, &type) != osOK) {
-        return osError;
-    }
-    // get_tmodes(tmodes);
-    uint32_t tmode_oldval, tmode_currentval;
-    uint32_t tid_mask = 0x3 << (tid << 1);
-
-    uint32_t res_mask;
-
-    uint32_t tmode_newval;
-    tmode_oldval = read_csr(ptbr);
-    if (type) {
-        uint32_t tmp = tmode_oldval & tid_mask;
-        tmode_newval = (tmode_oldval ^ mask) ^ tmp;
-    } else {
-        tmode_newval = tmode_oldval ^ mask;
-    }
-    res_mask = tmode_newval & tid_mask;
-    tmode_currentval = swap_csr(ptbr, tmode_newval);
-    if (tmode_currentval != tmode_oldval) {
-        do {
-            uint32_t tmp = tmode_currentval & tid_mask;
-            tmode_newval = (tmode_currentval ^ res_mask) ^ tmp;
-            tmode_currentval = swap_csr(ptbr, tmode_newval);
-        } while (tmode_newval != tmode_currentval);
-    }
-    // set_tmodes(tmodes);
     return osOK;
 }
 
 osStatus_t osSchedulerSetTmodes(osThreadId_t thread_id, int tmode) {
     uint32_t tid = get_tid(thread_id);
-
-    if (osMutexAcquire(tmode_mutex, osWaitForever) != osOK) {
-        flexpret_error("Error acquire tmode mutex\n");
-    }
-    
+    // if (osMutexAcquire(tmode_mutex, osWaitForever) != osOK) {
+    //     flexpret_error("Error acquire tmode mutex\n");
+    // }
     osStatus_t ret = set_thread_mode(tid, tmode);
-
-    if (osMutexRelease(tmode_mutex) != osOK) {
-        flexpret_error("Error release tmode mutex\n");
-    }
+    // if (osMutexRelease(tmode_mutex) != osOK) {
+    //     flexpret_error("Error release tmode mutex\n");
+    // }
     return ret;
 }
 
@@ -221,31 +185,16 @@ int32_t osSchedulerGetSRTTNum() {
     return res;
 }
 
-static void acquire_slot_tmode_mutex() {
-    osStatus_t tmode_res, slot_res;
-    while(1) {
-        tmode_res = osMutexAcquire(tmode_mutex, 0);
-        slot_res = osMutexAcquire(slot_mutex, 0);
-        if (tmode_res == osOK && slot_res == osOK) {
-            break;
-        } else {
-            if (slot_res == osOK) {
-                osMutexRelease(slot_mutex);
-            }
-            if (tmode_res == osOK) {
-                osMutexRelease(tmode_mutex);
-            }       
-        }
-    }
+static void acquire_slot_mutex() {
+    osMutexAcquire(slot_mutex, osWaitForever);
 }
 
-static void release_slot_tmode_mutex() {
+static void release_slot_mutex() {
     osMutexRelease(slot_mutex);
-    osMutexRelease(tmode_mutex);
 }
 
 void srtt_terminate(uint32_t tid) {
-    acquire_slot_tmode_mutex();
+    acquire_slot_mutex();
     
     uint32_t tmodes[FLEXPRET_HW_THREADS_NUMS];
     get_tmodes(tmodes);
@@ -266,11 +215,11 @@ void srtt_terminate(uint32_t tid) {
     }
     set_slot_num(tid, 0);
 
-    release_slot_tmode_mutex();
+    release_slot_mutex();
 }
 
 void change_srtt_to_hrtt(uint32_t tid) {
-    acquire_slot_tmode_mutex();
+    acquire_slot_mutex();
     
     uint8_t slots[FLEXPRET_MAX_HW_THREADS_NUMS];
     get_slots(slots);
@@ -308,11 +257,11 @@ void change_srtt_to_hrtt(uint32_t tid) {
         set_slot_num(SLOT_S, 0);
     }
     
-    release_slot_tmode_mutex();
+    release_slot_mutex();
 }
 
 void change_hrtt_to_srtt(uint32_t tid) {
-    acquire_slot_tmode_mutex();
+    acquire_slot_mutex();
 
     uint8_t slots[FLEXPRET_MAX_HW_THREADS_NUMS];
     get_slots(slots);
@@ -349,11 +298,11 @@ void change_hrtt_to_srtt(uint32_t tid) {
         set_slot_num(tid, 0);
     }
 
-    release_slot_tmode_mutex();
+    release_slot_mutex();
 }
 
 void thread_after_create(uint32_t tid) {
-    acquire_slot_tmode_mutex();
+    acquire_slot_mutex();
 
     if (flexpret_thread_attr_entry[tid]->priority == osPriorityRealtime) {
         set_thread_mode(tid, TMODE_HA);
@@ -381,5 +330,5 @@ void thread_after_create(uint32_t tid) {
         flexpret_error("Unsupported priority\n");
     }
 
-    release_slot_tmode_mutex();
+    release_slot_mutex();
 }

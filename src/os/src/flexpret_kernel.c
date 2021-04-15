@@ -69,7 +69,7 @@ osStatus_t osKernelInitialize (void) {
     write_csr_marco(CSR_MUTEX_7, FLEXPRET_MUTEX_INACTIVE);
 
     slot_mutex = osMutexNew(&slotMutexAttr);
-    tmode_mutex = osMutexNew(&tmodeMutexAttr);
+    // tmode_mutex = osMutexNew(&tmodeMutexAttr);
 
     // Init thread 0
     memcpy(flexpret_thread_attr_entry[0], &flexpret_thread_init_attr, sizeof(osThreadAttr_t));

@@ -323,7 +323,7 @@ osStatus_t osThreadSuspend (osThreadId_t thread_id) {
     //     flexpret_warn("[warn:osThreadSuspend] thread suspending itself is not currently supported.\n");
     //     return osError;
     // }
-    flexpret_warn("[warn:osThreadSuspend] Suspended thread may be woked up by timer, if du/wu/ie/ee instruction is called before.\n");
+    // flexpret_warn("[warn:osThreadSuspend] Suspended thread may be woked up by timer, if du/wu/ie/ee instruction is called before.\n");
     uint32_t tid = get_tid(thread_id);
     startup_state[tid].state = FLEXPRET_BLOCKED;
     osSchedulerSetTmodes(thread_id, TMODE_ZOMBIE);

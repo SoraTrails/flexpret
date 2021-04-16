@@ -38,13 +38,13 @@ int test_trap() {
     FLEXPRET_ASSERT(tid != NULL);
 
     osKernelStart();
-    FLEXPRET_ASSERT(osKernelSetTrapHandler(tid, (trap_handler)fault_handler, Exception) == osOK);
+    FLEXPRET_ASSERT(osThreadSetTrapHandler(tid, (trap_handler)fault_handler, Exception) == osOK);
 
-    FLEXPRET_ASSERT(osKernelGetTrapHandler(tid, InterruptOnExpire) == (trap_handler)default_ie_handler);
-    FLEXPRET_ASSERT(osKernelGetTrapHandler(tid, ExceptionOnExpire) == (trap_handler)default_ee_handler);
-    FLEXPRET_ASSERT(osKernelGetTrapHandler(tid, ExternalInterrupt) == (trap_handler)default_int_handler);
+    FLEXPRET_ASSERT(osThreadGetTrapHandler(tid, InterruptOnExpire) == (trap_handler)default_ie_handler);
+    FLEXPRET_ASSERT(osThreadGetTrapHandler(tid, ExceptionOnExpire) == (trap_handler)default_ee_handler);
+    FLEXPRET_ASSERT(osThreadGetTrapHandler(tid, ExternalInterrupt) == (trap_handler)default_int_handler);
 
-    FLEXPRET_ASSERT(osKernelGetTrapHandler(tid, Exception) == (trap_handler)fault_handler);
+    FLEXPRET_ASSERT(osThreadGetTrapHandler(tid, Exception) == (trap_handler)fault_handler);
 
     osThreadJoin(tid);
     

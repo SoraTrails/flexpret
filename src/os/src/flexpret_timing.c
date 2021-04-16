@@ -85,9 +85,9 @@ osStatus_t osTimerStart (osTimerId_t timer_id, uint32_t ticks) {
     volatile hwtimer_state * timer = (hwtimer_state *)timer_id;
 
     if (timer->type == osTimerOnce) {
-        osKernelSetTrapHandler(osThreadGetId(), (trap_handler)timer_handler, InterruptOnExpire);
+        osThreadSetTrapHandler(osThreadGetId(), (trap_handler)timer_handler, InterruptOnExpire);
     } else if (timer->type == osTimerPeriodic) {
-        osKernelSetTrapHandler(osThreadGetId(), (trap_handler)timer_periodic_handler, InterruptOnExpire);
+        osThreadSetTrapHandler(osThreadGetId(), (trap_handler)timer_periodic_handler, InterruptOnExpire);
     } else {
         flexpret_error("Bad timer type.\n");
         return osError;
@@ -111,7 +111,7 @@ osStatus_t osTimerStop (osTimerId_t timer_id) {
     volatile hwtimer_state * timer = (hwtimer_state *)timer_id;
     timer->ticks = 0;
     set_compare(0);
-    osKernelSetTrapHandler(osThreadGetId(), (trap_handler)default_ie_handler, InterruptOnExpire);
+    osThreadSetTrapHandler(osThreadGetId(), (trap_handler)default_ie_handler, InterruptOnExpire);
     return osOK;
 }
  
@@ -154,4 +154,23 @@ osTimerId_t osThreadGetTimer (osThreadId_t thread_id) {
         return NULL;
     }
     return (osTimerId_t)&(startup_timer_state[tid]);
+}
+
+osStatus_t osTimerSetFunc (osTimerId_t timer, osTimerFunc_t timer_func, void* argument) {
+    uint32_t tid = get_timer_tid(timer);
+    // A timer is active <=> `flexpret_timer_attr_entry[tid] != NULL`
+    if (flexpret_timer_attr_entry[tid] == NULL) {
+        flexpret_error("Timer is not active.\n");
+        return osError;
+    }
+    uint32_t ctid = read_csr(hartid);
+    if (tid != ctid) {
+        flexpret_error("Timer does not belong to current thread.\n");
+        return osError;
+    }
+    set_compare(0);
+    startup_timer_state[tid].func = timer_func;
+    startup_timer_state[tid].arg = argument;
+    startup_timer_state[tid].ticks = 0;
+    return osOK;
 }

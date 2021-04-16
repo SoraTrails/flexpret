@@ -65,4 +65,12 @@ typedef struct hwtimer_state {
 /// \return timer ID for reference by other functions or NULL in case of error.
 osTimerId_t osThreadGetTimer (osThreadId_t thread_id);
 
+/// Modify timer func and arg of a timer, callign this function will stop running timer automatically.
+/// \param[in]     timer_id      timer ID obtained by \ref osTimerNew.
+/// \param[in]     func          function pointer to callback function.
+/// \param[in]     argument      argument to the timer callback function.
+/// \return status code that indicates the execution status of the function.
+osStatus_t osTimerSetFunc (osTimerId_t timer, osTimerFunc_t timer_func, void* argument);
+
+
 #endif

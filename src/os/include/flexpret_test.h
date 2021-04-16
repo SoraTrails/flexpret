@@ -52,6 +52,7 @@ int test_trap();
 
 // Test timer
 int test_timer();
+int test_timer_suspend();
 int test_mtfd();
 
 // Test mutex

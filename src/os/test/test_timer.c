@@ -18,7 +18,7 @@ static void timer_func(void * arg) {
 static void osTestTimer1(void * arg) {
     int t = 11;
     osTimerId_t timer1 = osTimerNew(timer_func, osTimerPeriodic, &t, NULL);
-    FLEXPRET_THREAD_ASSERT(osTimerStart(timer1, 4000) == osOK);
+    FLEXPRET_THREAD_ASSERT(osTimerStart(timer1, 10000) == osOK);
     flexpret_info(osTimerGetName(timer1));
     flexpret_info("\n");
 
@@ -36,7 +36,7 @@ static void osTestTimer1(void * arg) {
 static void osTestTimer2(void * arg) {
     int t = 7;
     osTimerId_t timer2 = osTimerNew(timer_func, osTimerPeriodic, &t, NULL);
-    FLEXPRET_THREAD_ASSERT(osTimerStart(timer2, 4000) == osOK);
+    FLEXPRET_THREAD_ASSERT(osTimerStart(timer2, 10000) == osOK);
     flexpret_info(osTimerGetName(timer2));
     flexpret_info("\n");
 
@@ -64,7 +64,7 @@ int test_timer() {
 
     int t = 13;
     osTimerId_t timer = osTimerNew(timer_func, osTimerPeriodic, &t, NULL);
-    FLEXPRET_ASSERT(osTimerStart(timer, 4000) == osOK);
+    FLEXPRET_ASSERT(osTimerStart(timer, 10000) == osOK);
 
     osThreadId_t tid1 = osThreadNew((osThreadFunc_t)osTestTimer1, NULL, &thread1);
     osThreadId_t tid2 = osThreadNew((osThreadFunc_t)osTestTimer2, NULL, &thread2);
@@ -78,6 +78,32 @@ int test_timer() {
     osThreadJoin(tid2);
     FLEXPRET_ASSERT(osTimerDelete(timer) == osOK);
     
+    return PASSED;
+}
+
+void osTestTimerSuspend(void *arg) {
+    int t = 15;
+    osTimerId_t timer = osTimerNew(timer_func, osTimerPeriodic, &t, NULL);
+    osTimerStart(timer, 10000);
+    register int i;
+    for (i = 0; i < 200; i++) {}
+}
+
+int test_timer_suspend() {
+    osThreadAttr_t thread1;
+    thread1.priority = osPriorityRealtime;
+    thread1.attr_bits = osThreadJoinable;
+    osKernelInitialize();
+    osThreadId_t tid1 = osThreadNew((osThreadFunc_t)osTestTimerSuspend, NULL, &thread1);
+    FLEXPRET_ASSERT(tid1 != NULL);
+    osKernelStart();
+
+    register int i;
+    for (i = 0; i < 200; i++) {}
+
+    osThreadSuspend(tid1);
+    osThreadJoin(tid1);
+
     return PASSED;
 }
 

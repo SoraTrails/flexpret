@@ -40,7 +40,7 @@ void default_fault_handler() {
 }
 
 
-osStatus_t osKernelSetTrapHandler(osThreadId_t thread_id, void (*handler)(), osTrapType_t t) {
+osStatus_t osThreadSetTrapHandler(osThreadId_t thread_id, void (*handler)(), osTrapType_t t) {
     if (handler == NULL) {
         flexpret_error("Bad trap handler\n");
         return osError;
@@ -54,7 +54,7 @@ osStatus_t osKernelSetTrapHandler(osThreadId_t thread_id, void (*handler)(), osT
     return osOK;
 }
 
-trap_handler osKernelGetTrapHandler(osThreadId_t thread_id, osTrapType_t t) {
+trap_handler osThreadGetTrapHandler(osThreadId_t thread_id, osTrapType_t t) {
     if (t < 0 || t >= TRAP_NUM_MAX) {
         flexpret_error("Bad trap type\n");
         return NULL;

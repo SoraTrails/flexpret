@@ -28,13 +28,13 @@ void default_fault_handler();
 /// \param[in]     handler     trap handler function pointer.
 /// \param[in]     type        trap type.
 /// \return status code that indicates the execution status of the function.
-osStatus_t osKernelSetTrapHandler(osThreadId_t thread_id, trap_handler h, osTrapType_t t);
+osStatus_t osThreadSetTrapHandler(osThreadId_t thread_id, trap_handler h, osTrapType_t t);
 
 /// Get trap handler of the current thread.
 /// \param[in]     thread_id   thread ID obtained by \ref osThreadNew or \ref osThreadGetId;
 ///                            if thread_id is NULL, current thread's handler will be set.
 /// \param[in]     type        trap type.
 /// \return trap handler function pointer.
-trap_handler osKernelGetTrapHandler(osThreadId_t thread_id, osTrapType_t t);
+trap_handler osThreadGetTrapHandler(osThreadId_t thread_id, osTrapType_t t);
 
 #endif

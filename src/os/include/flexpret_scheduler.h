@@ -8,8 +8,14 @@
 #define SOFT_SLOT_COUNT(res) ((res >> 4) & 0xF)
 #define ALL_SLOT_COUNT(res)  ((res >> 0) & 0xF)
 
-// static uint32_t slots;
-// static uint16_t tmodes;
+#define osSchedulerGetThreadFreq(thread_id) \
+    THREAD_FREQ(osSchedulerGetFreq(thread_id));
+
+#define osSchedulerGetSoftSlotCount(thread_id) \
+    SOFT_SLOT_COUNT(osSchedulerGetFreq(thread_id));
+
+#define osSchedulerGetAllSlotCount(thread_id) \
+    ALL_SLOT_COUNT(osSchedulerGetFreq(thread_id));
 
 /// Get Schedule Info, including schedule Frequency of a thread, soft slot count and all slot count
 /// \param[in]     thread_id     thread ID obtained by \ref osThreadNew or \ref osThreadGetId.

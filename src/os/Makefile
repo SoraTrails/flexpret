@@ -4,9 +4,16 @@
 # RISCV_OBJCOPY=/data/xpack-riscv-none-embed-gcc-8.3.0-2.3/bin/riscv-none-embed-objcopy
 # FLEXPRET_CFLAGS=-march=rv32i -mabi=ilp32 -mcmodel=medany -msmall-data-limit=8 -L. -nostartfiles -lc -O0
 
-RISCV_CC=riscv64-unknown-elf-gcc
-RISCV_OBJDUMP=riscv64-unknown-elf-objdump
-RISCV_OBJCOPY=riscv64-unknown-elf-objcopy
+# before modify
+# RISCV_CC=riscv64-unknown-elf-gcc
+# RISCV_OBJDUMP=riscv64-unknown-elf-objdump
+# RISCV_OBJCOPY=riscv64-unknown-elf-objcopy
+# FLEXPRET_CFLAGS=-m32 -msoft-float
+
+# after modify
+RISCV_CC=/data/riscv/bin/riscv64-unknown-elf-gcc
+RISCV_OBJDUMP=/data/riscv/bin/riscv64-unknown-elf-objdump
+RISCV_OBJCOPY=/data/riscv/bin/riscv64-unknown-elf-objcopy
 FLEXPRET_CFLAGS=-m32 -msoft-float
 
 FLEXPRET_OS_SRC := $(wildcard src/*.c)

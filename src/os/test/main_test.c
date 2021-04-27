@@ -14,8 +14,8 @@ int main() {
     // res &= test_osThread_control();
     // res &= test_trap();
     // res &= test_timer();
-    res &= test_timer_suspend();
-    // res &= test_mtfd();
+    // res &= test_timer_suspend();
+    res &= test_mtfd();
     // res &= test_mutex(); 
     return !res;
 }

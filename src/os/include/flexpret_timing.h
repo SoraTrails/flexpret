@@ -28,9 +28,9 @@ static inline void interrupt_expire() { asm volatile ("custom2 zero, zero, zero,
 // TI_IE
 static inline void exception_expire() { asm volatile ("custom2 zero, zero, zero, 0"); };
 
-#define mt_reg(reg) asm volatile ("custom3 0, %0, 0, 0" :: "r"(reg))
+#define mt(reg) asm volatile ("custom3 0, %0, 0, 0" :: "r"(reg))
 
-#define mt_imm(imm) asm volatile ("lui zero, " #imm )
+#define mti(imm) asm volatile ("lui zero, " #imm )
 
 #define fd() asm volatile ("custom3 zero, zero, zero, 0")
 

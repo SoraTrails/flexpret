@@ -4,6 +4,8 @@
 #include "flexpret_utils.h"
 #include "flexpret_io.h"
 #include "flexpret_timing.h"
+#include "flexpret_scheduler.h"
+#include "flexpret_threads.h"
 
 static void timer_func(void * arg) {
     static int i = 0;
@@ -108,15 +110,17 @@ int test_timer_suspend() {
 }
 
 static void osTestMtfdImm() {
-    mt_imm(1000);
+    mti(1000);
     register int i;
     for (i = 0; i < 100; i++) {}
     fd();
+    // asm volatile ("div x0,x0,x0");
 }
 
 static void osTestMtfdReg() {
     register int a = 100000;
-    mt_reg(a);
+    mt(a);
+    // mti(100000);
     register int i;
     for (i = 0; i < 100; i++) {}
     fd();

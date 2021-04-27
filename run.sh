@@ -57,6 +57,9 @@ syncFile() {
                 echo "done."
             fi
         done
+        echo -n "cp ${FILE_DIR}/*.raw_log to ${MAP_DIR}/../wcet_log ..."
+        cp ${FILE_DIR}/*.raw_log ${MAP_DIR}/../wcet_log
+        echo "done."
     else
         echo "bad args for sync file"
     fi
@@ -80,13 +83,38 @@ compileFile() {
         grep -E '[0-9a-f]+:' ${RES_DIR}/asm.tmp | grep -v 'elf' | awk '{$1=substr($1,0,length($1)-1);$2="";print $0}' > ${RES_DIR}/asm
         grep -E '^[0-9a-f]+ <[0-9a-zA-Z_]+>:' ${RES_DIR}/asm.tmp | awk '{$2=substr($2,2,length($2)-3); print $0}' > ${RES_DIR}/asm_func
         rm -f ${RES_DIR}/asm.tmp
+    elif [ "$1"z == "wcetz" ]; then
+        cd ${WORK_DIR} && make wcet
     fi
 }
 
+runWCETTestbench() {
+    WORK_DIR=${ROOT_DIR}/src/os
+    TESTBENCH_FILE=${ROOT_DIR}/emulator/testbench/Core-tb-os.cpp
+    GEN_TESTBENCH_FILE=${ROOT_DIR}/emulator/testbench/Core-tb-os-gen.cpp
+    cp ${TESTBENCH_FILE} ${GEN_TESTBENCH_FILE}
+    sed -i "s/FORMAT_TO_BE_MODIFIED/\"\"/" ${GEN_TESTBENCH_FILE}
+    sed -i "s/VAR_TO_BE_MODIFIED/\"\"/" ${GEN_TESTBENCH_FILE}
+    echo "compiling testbench Core ... (complie log location: ${RES_DIR}/cmp_log)"
+    rm -f ${WORK_DIR}/Core-os.o
+    cd ${WORK_DIR} && make Core > ${RES_DIR}/cmp_log 2>&1
+
+    for i in `ls ${WORK_DIR}/test/malardalen_wcet/*.c`; do
+        name=`basename ${i}`
+        name=${name%.*}
+        echo "running testbench Core (target: wcet, case: ${name})... (log location: ${RES_DIR}/${name}_wcet.raw_log)"
+        ${WORK_DIR}/Core --maxcycles=1000000 --ispm=${WORK_DIR}/test/malardalen_wcet/${name}_wcet.inst.mem --dspm=${WORK_DIR}/test/malardalen_wcet/${name}_wcet.data.mem 2> ${RES_DIR}/${name}_wcet.raw_log > /dev/null
+    done
+    rm -f ${WORK_DIR}/Core-os.o
+}
+
 runTestbench() {
-    if [ "$1"z == "sbothz" ];then 
+    if [ "$1"z == "sbothz" ]; then 
         WORK_DIR=${ROOT_DIR}/tests/examples
         target=sboth
+    elif [ "$1"z == "wcetz" ]; then 
+        runWCETTestbench ;
+        exit 0
     else
         WORK_DIR=${ROOT_DIR}/src/os
         target=os

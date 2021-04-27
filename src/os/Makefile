@@ -89,10 +89,37 @@ test.data.mem: flexpret_test_os
 	$(RISCV_OBJCOPY) --only-section .data --only-section .bss -O binary flexpret_test_os test.data
 	hexdump -v -e '1/4 "%08X" "\n"' test.data > test.data.mem
 
+FLEXPRET_WCET_SRC := $(wildcard test/malardalen_wcet/*.c)
+FLEXPRET_WCET_COBJ := $(patsubst %.c,%.o,$(FLEXPRET_WCET_SRC))
+FLEXPRET_WCET_ELF := $(patsubst %.c,%_wcet.out,$(FLEXPRET_WCET_SRC))
+FLEXPRET_WCET_INST := $(patsubst %.c,%_wcet.inst.mem,$(FLEXPRET_WCET_SRC))
+FLEXPRET_WCET_DATA := $(patsubst %.c,%_wcet.data.mem,$(FLEXPRET_WCET_SRC))
+
+wcet: $(FLEXPRET_WCET_INST) $(FLEXPRET_WCET_DATA)
+
+$(FLEXPRET_WCET_COBJ): %.o: %.c $(FLEXPRET_OS_INCLUDE)
+	$(RISCV_CC) $(FLEXPRET_CFLAGS) -I$(INCLUDE) -o $@ -c $<
+
+$(FLEXPRET_WCET_ELF): %_wcet.out: layout.ld %.o $(FLEXPRET_OS_COBJ) $(FLEXPRET_OS_SOBJ)
+	$(RISCV_CC) $(FLEXPRET_CFLAGS) -I$(INCLUDE) -nostdlib -Xlinker -defsym -Xlinker TEXT_START_ADDR=0x00000000 -Xlinker -defsym -Xlinker DATA_START_ADDR=0x20000000 -T $^ -o $@
+
+$(FLEXPRET_WCET_INST): %_wcet.inst.mem: %_wcet.out
+	$(RISCV_OBJCOPY) --only-section .text -O binary $< $(patsubst %_wcet.inst.mem,%.inst.tmp,$@)
+	hexdump -v -e '1/4 "%08X" "\n"' $(patsubst %_wcet.inst.mem,%.inst.tmp,$@) > $@
+	rm $(patsubst %_wcet.inst.mem,%.inst.tmp,$@)
+
+$(FLEXPRET_WCET_DATA): %_wcet.data.mem: %_wcet.out
+	$(RISCV_OBJCOPY) --only-section .data --only-section .bss -O binary $< $(patsubst %_wcet.data.mem,%.data.tmp,$@)
+	hexdump -v -e '1/4 "%08X" "\n"' $(patsubst %_wcet.data.mem,%.data.tmp,$@) > $@
+	rm $(patsubst %_wcet.data.mem,%.data.tmp,$@)
+
 clean:
 	rm -f app/*.o asm/*.o src/*.o os.inst.mem.ins os.inst.mem os.data.mem os.data os.inst flexpret_os
 
 cleantest:
 	rm -f test/*.o asm/*.o src/*.o test.inst.mem.ins test.inst.mem test.data.mem test.data test.inst flexpret_test_os
 
-cleanall: clean cleantest
+cleanwcet:
+	rm -f test/malardalen_wcet/*.o test/malardalen_wcet/*.out test/malardalen_wcet/*.mem
+
+cleanall: clean cleantest cleanwcet

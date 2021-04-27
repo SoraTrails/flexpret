@@ -197,6 +197,8 @@ int main (int argc, char* argv[])
             char io_buf[THREADS][4096];
             int io_buf_len[THREADS] = {0};
 
+            uint64_t valid_inst = 0;
+
             while(!done && (max_cycles == 0 || cycle < max_cycles)) {
 
                 // Setup inputs.
@@ -294,6 +296,10 @@ int main (int argc, char* argv[])
                     c->dump(vcd_file, cycle);
                 }
 
+                if (c->Core_control__exe_valid.lo_word()) {
+                    valid_inst++;
+                }
+
                 printf(
                     FORMAT_TO_BE_MODIFIED,
                     VAR_TO_BE_MODIFIED
@@ -336,6 +342,9 @@ int main (int argc, char* argv[])
                     fputc(io_buf[t][j], stderr);
                 }
             }
+            fprintf(stderr, "[emulator]total cycle: %lld\n", cycle);
+            fprintf(stderr, "          total instruction: %lld\n", valid_inst);
+            fprintf(stderr, "          CPI: %lf\n", (double)cycle / valid_inst);
         }
     }
 

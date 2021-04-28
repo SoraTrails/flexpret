@@ -34,7 +34,7 @@ static const osThreadAttr_t flexpret_thread_init_attr = {
 	.cb_size = sizeof(hwthread_state),
 	.stack_mem = NULL,
 	.stack_size = 0,
-	.priority = osPriorityRealtime,
+	.priority = osPriorityNormal,
 	.tz_module = 0,
 	.reserved = 0,
 };

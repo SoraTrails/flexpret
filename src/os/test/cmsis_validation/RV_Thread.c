@@ -317,13 +317,13 @@ void TC_ThreadGetId (void) {
   ASSERT_TRUE (id_main != NULL);
   
   if (id_main != NULL) {
-    ASSERT_TRUE (osThreadSetPriority (id_main, osPriorityLow) == osOK);
+    ASSERT_TRUE (osThreadSetPriority (id_main, osPriorityNormal) == osOK);
     /* - Check if each thread returned correct ID */
     for (i = 0; i < 7; i++) {
       ASSERT_TRUE (id[0][i] == id[1][i]);
     }
     /* Restore priority of the main thread back to normal */
-    ASSERT_TRUE (osThreadSetPriority (id_main, osPriorityNormal) == osOK);
+    ASSERT_TRUE (osThreadSetPriority (id_main, osPriorityRealtime) == osOK);
   }
 }
 

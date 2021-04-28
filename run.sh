@@ -47,6 +47,7 @@ syncFile() {
             tests/examples/sboth.inst.mem.ins
             src/os/os.dump
             src/os/test.dump
+            src/os/cmsis.dump
         )
         for i in ${list[*]}; do 
             echo -n "cp ${ROOT_DIR}/$i ${MAP_DIR}/$i ... "
@@ -77,9 +78,9 @@ compileFile() {
         grep -E '[0-9a-f]+:' ${RES_DIR}/asm.tmp | grep -v 'elf' | awk '{$1=substr($1,0,length($1)-1);$2="";print $0}' > ${RES_DIR}/asm
         grep -E '^[0-9a-f]+ <[0-9a-zA-Z_]+>:' ${RES_DIR}/asm.tmp | awk '{$2=substr($2,2,length($2)-3); print $0}' > ${RES_DIR}/asm_func
         rm -f ${RES_DIR}/asm.tmp 
-    elif [ "$1"z == "testz" ]; then
-        cd ${WORK_DIR} && make test
-        cp ${WORK_DIR}/test.inst.mem.ins ${RES_DIR}/asm.tmp
+    elif [ "$1"z == "testz" -o "$1"z == "cmsisz" ]; then
+        cd ${WORK_DIR} && make $1
+        cp ${WORK_DIR}/$1.inst.mem.ins ${RES_DIR}/asm.tmp
         grep -E '[0-9a-f]+:' ${RES_DIR}/asm.tmp | grep -v 'elf' | awk '{$1=substr($1,0,length($1)-1);$2="";print $0}' > ${RES_DIR}/asm
         grep -E '^[0-9a-f]+ <[0-9a-zA-Z_]+>:' ${RES_DIR}/asm.tmp | awk '{$2=substr($2,2,length($2)-3); print $0}' > ${RES_DIR}/asm_func
         rm -f ${RES_DIR}/asm.tmp

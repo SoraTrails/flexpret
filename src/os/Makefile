@@ -113,6 +113,30 @@ $(FLEXPRET_WCET_DATA): %_wcet.data.mem: %_wcet.out
 	hexdump -v -e '1/4 "%08X" "\n"' $(patsubst %_wcet.data.mem,%.data.tmp,$@) > $@
 	rm $(patsubst %_wcet.data.mem,%.data.tmp,$@)
 
+FLEXPRET_CMSIS_INCLUDE := test/cmsis_validation/include
+FLEXPRET_CMSIS_SRC := $(wildcard test/cmsis_validation/*.c)
+FLEXPRET_CMSIS_COBJ := $(patsubst %.c,%.o,$(FLEXPRET_CMSIS_SRC))
+
+$(FLEXPRET_CMSIS_COBJ): %.o: %.c $(FLEXPRET_OS_INCLUDE)
+	$(RISCV_CC) $(FLEXPRET_CFLAGS) -I$(INCLUDE) -I$(FLEXPRET_CMSIS_INCLUDE) -o $@ -c $<
+
+cmsis.out: layout.ld $(FLEXPRET_CMSIS_COBJ) $(FLEXPRET_OS_COBJ) $(FLEXPRET_OS_SOBJ)
+	$(RISCV_CC) $(FLEXPRET_CFLAGS) -I$(INCLUDE) -I$(FLEXPRET_CMSIS_INCLUDE) -nostdlib -Xlinker -defsym -Xlinker TEXT_START_ADDR=0x00000000 -Xlinker -defsym -Xlinker DATA_START_ADDR=0x20000000 -T $^ -o $@
+
+cmsis.inst.mem.ins: cmsis.out
+	$(RISCV_OBJDUMP) -d --section=.text cmsis.out > cmsis.inst.mem.ins
+	$(RISCV_OBJDUMP) --disassemble-all --section=.text --section=.data --section=.bss cmsis.out > cmsis.dump
+
+cmsis.inst.mem: cmsis.out
+	$(RISCV_OBJCOPY) --only-section .text -O binary cmsis.out cmsis.inst
+	hexdump -v -e '1/4 "%08X" "\n"' cmsis.inst > cmsis.inst.mem
+
+cmsis.data.mem: cmsis.out
+	$(RISCV_OBJCOPY) --only-section .data --only-section .bss -O binary cmsis.out cmsis.data
+	hexdump -v -e '1/4 "%08X" "\n"' cmsis.data > cmsis.data.mem
+
+cmsis: cmsis.inst.mem.ins cmsis.inst.mem cmsis.data.mem
+
 clean:
 	rm -f app/*.o asm/*.o src/*.o os.inst.mem.ins os.inst.mem os.data.mem os.data os.inst flexpret_os
 
@@ -122,4 +146,7 @@ cleantest:
 cleanwcet:
 	rm -f test/malardalen_wcet/*.o test/malardalen_wcet/*.out test/malardalen_wcet/*.mem
 
-cleanall: clean cleantest cleanwcet
+cleancmsis:
+	rm -f test/cmsis_validation/*.o cmsis.inst.mem.ins cmsis.inst.mem cmsis.data.mem cmsis.data cmsis.inst cmsis.out
+
+cleanall: clean cleantest cleanwcet cleancmsis

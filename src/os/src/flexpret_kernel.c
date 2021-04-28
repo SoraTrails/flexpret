@@ -14,7 +14,6 @@ extern osThreadAttr_t flexpret_thread_attr[FLEXPRET_HW_THREADS_NUMS];
 extern osTimerAttr_t *flexpret_timer_attr_entry[FLEXPRET_HW_THREADS_NUMS];
 extern volatile mutex_state startup_mutex_state[FLEXPRET_HW_THREADS_NUMS];
 // extern osTimerAttr_t flexpret_timer_attr[FLEXPRET_HW_THREADS_NUMS];
-extern const osThreadAttr_t flexpret_thread_init_attr;
 extern volatile hwthread_state startup_state[FLEXPRET_HW_THREADS_NUMS];
 extern const uint32_t flexpret_thread_init_stack_addr[FLEXPRET_HW_THREADS_NUMS];
 // Only used to record the soft_slot_id at initialization time
@@ -73,7 +72,13 @@ osStatus_t osKernelInitialize (void) {
     osMutexSetSpin(slot_mutex, 1);
 
     // Init thread 0
-    memcpy(flexpret_thread_attr_entry[0], &flexpret_thread_init_attr, sizeof(osThreadAttr_t));
+    flexpret_thread_attr_entry[0]->name = "FlexPRET Thread 0";
+    flexpret_thread_attr_entry[0]->priority = osPriorityRealtime;
+    flexpret_thread_attr_entry[0]->attr_bits = osThreadDetached;
+    flexpret_thread_attr_entry[0]->cb_mem = NULL;
+    flexpret_thread_attr_entry[0]->cb_size = sizeof(hwthread_state);
+    flexpret_thread_attr_entry[0]->tz_module = 0;
+    flexpret_thread_attr_entry[0]->reserved = 0;
     flexpret_thread_attr_entry[0]->stack_mem = (void*)flexpret_thread_init_stack_addr[0];
     flexpret_thread_attr_entry[0]->stack_size = flexpret_thread_init_stack_addr[0] - (uint32_t)&bss_end;
 
@@ -232,7 +237,7 @@ osStatus_t osKernelReset() {
     register int i;
     for (i = 1; i < FLEXPRET_HW_THREADS_NUMS; i++) {
         startup_state[i].func = NULL;
-        startup_state[i].stack_address = NULL;
+        startup_state[i].stack_address = (void *)flexpret_thread_init_stack_addr[i];
         startup_state[i].arg = NULL;
         startup_state[i].state = FLEXPRET_INACTIVE;
     }

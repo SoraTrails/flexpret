@@ -27,14 +27,14 @@ int default_soft_slot_id = -1;
  * }
  */
 
-const osThreadAttr_t flexpret_thread_init_attr = {
+static const osThreadAttr_t flexpret_thread_init_attr = {
     .name = "FlexpretThread",
 	.attr_bits = osThreadDetached,
 	.cb_mem = NULL,
 	.cb_size = sizeof(hwthread_state),
 	.stack_mem = NULL,
 	.stack_size = 0,
-	.priority = osPriorityNormal,
+	.priority = osPriorityRealtime,
 	.tz_module = 0,
 	.reserved = 0,
 };
@@ -70,7 +70,12 @@ const uint32_t flexpret_thread_init_stack_addr[FLEXPRET_HW_THREADS_NUMS] = {
 };
 #endif
 
-static void thread_clean(osThreadId_t thread_id) {
+static uint32_t thread_clean(osThreadId_t thread_id) {
+    uint32_t tid = get_tid(thread_id);
+    startup_state[tid].arg = NULL;
+    startup_state[tid].state = FLEXPRET_TERMINATED;
+    startup_state[tid].stack_address = (void *)flexpret_thread_init_stack_addr[tid];
+
     // Delete timer before thread is terminated.
     osTimerId_t timer = osThreadGetTimer(thread_id);
     if (timer != NULL) {
@@ -87,23 +92,24 @@ static void thread_clean(osThreadId_t thread_id) {
             write_mutex_csr(mu.csr_addr, FLEXPRET_MUTEX_ACTIVE);
         }
     }
+    startup_state[tid].func = NULL;
+    return tid;
 }
 
-// Thread cannot call thread_terminate to terminate itself, unless jump to reset after call thread_terminate
-static void thread_terminate(osThreadId_t thread_id) {
-    uint32_t tid = get_tid(thread_id);
-    startup_state[tid].func = NULL;
-    startup_state[tid].arg = NULL;
-    startup_state[tid].state = FLEXPRET_TERMINATED;
-    startup_state[tid].stack_address = (void *)flexpret_thread_init_stack_addr[tid];
 
-    thread_clean(thread_id);
+// Thread cannot call thread_terminate to terminate itself
+static void thread_terminate(osThreadId_t thread_id, int clean) {
+    uint32_t tid;
+    if (clean) {
+        tid = thread_clean(thread_id);
+    } else {
+        tid = get_tid(thread_id);
+    }
 
     osPriority_t prior = flexpret_thread_attr_entry[tid]->priority;
     do {
         if (prior == osPriorityNormal) {
             srtt_terminate(tid);
-            osSchedulerSetTmodes(thread_id, TMODE_ZOMBIE);
             // osSchedulerSetSlotNum(thread_id, 0);
             // uint32_t ss_num = osSchedulerGetSRTTNum();
             // if (ss_num == 0) {
@@ -111,7 +117,6 @@ static void thread_terminate(osThreadId_t thread_id) {
             // }
             break;
         } else if (prior == osPriorityRealtime) {
-            osSchedulerSetTmodes(thread_id, TMODE_ZOMBIE);
             osSchedulerSetSlotNum(thread_id, 0);
             break;
         } else {
@@ -127,11 +132,23 @@ static void thread_terminate(osThreadId_t thread_id) {
             }
         }
     } while (prior == osPriorityNormal || prior == osPriorityRealtime);
+
+    osSchedulerSetTmodes(thread_id, TMODE_ZOMBIE);
 }
 
 __NO_RETURN void thread_after_return_handler() {
-    // thread_terminate
-    thread_terminate(osThreadGetId());
+    osThreadId_t thread_id = osThreadGetId();
+
+    thread_clean(thread_id);
+
+    // sleep to wait
+    while(1) {
+        uint32_t tid = read_csr(hartid);
+        if (startup_state[tid].func != NULL) {
+            break;
+        }
+        osDelay(FLEXPRET_WAIT_PERIOD);
+    }
 
     // jump to reset
     asm volatile ("jr x0");
@@ -139,7 +156,6 @@ __NO_RETURN void thread_after_return_handler() {
     // code will not reach here
     for (;;) {}
 }
-
 
 //  ==== Thread Management Functions ====
 osThreadId_t osThreadNew (osThreadFunc_t func, void *argument, const osThreadAttr_t *attr) {
@@ -368,7 +384,7 @@ osStatus_t osThreadJoin (osThreadId_t thread_id) {
     }
 
     // // eventually terminate sub thread.
-    // thread_terminate(thread_id, 0);
+    thread_terminate(thread_id, 0);
     return osOK;
 }
  
@@ -384,7 +400,11 @@ osStatus_t osThreadTerminate (osThreadId_t thread_id) {
         flexpret_error("Bad thread_id.\n");
         return osErrorParameter;
     }
-    thread_terminate(thread_id);
+    if (thread_id == osThreadGetId()) {
+        osThreadExit();
+    } else {
+        thread_terminate(thread_id, 1);
+    }
     return osOK;
 }
  

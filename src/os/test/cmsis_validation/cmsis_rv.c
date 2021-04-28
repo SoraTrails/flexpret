@@ -62,9 +62,8 @@ static TEST_CASE TC_LIST[] = {
 #ifdef RTE_RV_THREAD 
   TCD ( TC_ThreadCreate,                         1      ),
   TCD ( TC_ThreadMultiInstance,                  1      ),
-  // TCD ( TC_ThreadTerminate,                      1      ),
-  // TCD ( TC_ThreadRestart,                        1      ),
-  // TCD ( TC_ThreadGetId,                          1      ),
+  // TCD ( TC_ThreadRestart,                        0      ),
+  TCD ( TC_ThreadGetId,                          1      ),
   // TCD ( TC_ThreadPriority,                       1      ),
   // TCD ( TC_ThreadPriorityExec,                   1      ),
   // TCD ( TC_ThreadChainedCreate,                  1      ),
@@ -113,6 +112,7 @@ static TEST_CASE TC_LIST[] = {
   // TCD ( TC_MutexOwnership,                       1      ),
   // TCD ( TC_MutexParam,                           1      ),
   // TCD ( TC_MutexInterrupts,                      0      ),                                           
+  TCD ( TC_ThreadTerminate,                      1      ),
 #endif  
 #ifdef RTE_RV_MEMORYPOOL
   TCD ( TC_MemPoolAllocAndFree,                  1      ),   

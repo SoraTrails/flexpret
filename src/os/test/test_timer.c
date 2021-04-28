@@ -119,8 +119,8 @@ static void osTestMtfdImm() {
 
 static void osTestMtfdReg() {
     register int a = 100000;
-    mt(a);
-    // mti(100000);
+    // mt(a);
+    mti(100000);
     register int i;
     for (i = 0; i < 100; i++) {}
     fd();

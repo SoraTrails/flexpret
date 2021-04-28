@@ -4,7 +4,7 @@
 #include "flexpret_kernel.h"
 #include "flexpret_utils.h"
 
-int main() { 
+int main() {
     int res = 1;
     // res &= test_osKernelGetInfo();
     // res &= test_osKernelGetTickCount();

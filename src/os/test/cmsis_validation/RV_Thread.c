@@ -286,44 +286,6 @@ void TC_ThreadTerminate (void) {
 
 /*=======0=========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1====*/
 /**
-\brief Test case: TC_ThreadRestart
-\details
-- Create a counting thread and verify that it runs
-- Terminate counting thread
-- Recreate a counting thread and verify that is runs again
-*/
-void TC_ThreadRestart (void) {
-  osThreadId_t id;
-  uint32_t   cnt, iter;
-  
-  /* Initalize global counter variable to zero */
-  Var_Counter = 0;
-  
-  cnt  = 0;
-  iter = 0;
-  while (iter++ < 2) {
-    /* - Create a counting thread and verify that it runs */
-    id = osThreadNew ( (Th_CountingThread), NULL, NULL);
-    ASSERT_TRUE (id != NULL);
-  
-    if (id != NULL) {
-      /* Allow counting thread to run */
-      ASSERT_TRUE (osDelay(5) == osOK);
-      ASSERT_TRUE (osThreadTerminate (id) == osOK);
-
-      if (iter == 1) {
-        ASSERT_TRUE (Var_Counter != 0);
-        cnt = Var_Counter;
-      }
-      else {
-        ASSERT_TRUE (Var_Counter > cnt);
-      }
-    }
-  }
-}
-
-/*=======0=========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1====*/
-/**
 \brief Test case: TC_ThreadGetId
 \details
 - Create multiple threads
@@ -383,24 +345,9 @@ void TC_ThreadPriority (void) {
   if (t_idc) {
     /* - Change priority of the main thread in steps from Idle to Realtime  */
     /* - At each step check if priority was changed                         */
-    ASSERT_TRUE (osThreadSetPriority (t_idc, osPriorityIdle        ) == osOK);
-    ASSERT_TRUE (osThreadGetPriority (t_idc) == osPriorityIdle);
-    
-    ASSERT_TRUE (osThreadSetPriority (t_idc, osPriorityLow         ) == osOK);
-    ASSERT_TRUE (osThreadGetPriority (t_idc) == osPriorityLow);
-    
-    ASSERT_TRUE (osThreadSetPriority (t_idc, osPriorityBelowNormal ) == osOK);
-    ASSERT_TRUE (osThreadGetPriority (t_idc) == osPriorityBelowNormal);
-    
     ASSERT_TRUE (osThreadSetPriority (t_idc, osPriorityNormal      ) == osOK);
     ASSERT_TRUE (osThreadGetPriority (t_idc) == osPriorityNormal);
-    
-    ASSERT_TRUE (osThreadSetPriority (t_idc, osPriorityAboveNormal ) == osOK);
-    ASSERT_TRUE (osThreadGetPriority (t_idc) == osPriorityAboveNormal);
-    
-    ASSERT_TRUE (osThreadSetPriority (t_idc, osPriorityHigh        ) == osOK);
-    ASSERT_TRUE (osThreadGetPriority (t_idc) == osPriorityHigh);
-    
+
     ASSERT_TRUE (osThreadSetPriority (t_idc, osPriorityRealtime    ) == osOK);
     ASSERT_TRUE (osThreadGetPriority (t_idc) == osPriorityRealtime);
     

@@ -198,6 +198,12 @@ int main (int argc, char* argv[])
             int io_buf_len[THREADS] = {0};
 
             uint64_t valid_inst = 0;
+            FILE * tmp_file[THREADS];
+            char tmp_file_name[THREADS][256];
+            for (int i = 0; i < THREADS; i++) {
+                sprintf(tmp_file_name[i], "/tmp/flexpret_thread_%d.log", i);
+                tmp_file[i] = fopen(tmp_file_name[i], "w");
+            }
 
             while(!done && (max_cycles == 0 || cycle < max_cycles)) {
 
@@ -230,6 +236,7 @@ int main (int argc, char* argv[])
                     // fprintf(stderr, "%d", c->Core__io_bus_addr.lo_word());
                     // fprintf(stderr, "%c %d\n", c->Core__io_bus_data_in.lo_word(),c->Core__io_bus_addr.lo_word());
                     sprintf(io_buf[thread_index] + io_buf_len[thread_index], "%c", c->Core__io_bus_data_in.lo_word());
+                    fprintf(tmp_file[thread_index], "%c", c->Core__io_bus_data_in.lo_word());
                     io_buf_len[thread_index]++;
                 }
 
@@ -345,6 +352,10 @@ int main (int argc, char* argv[])
             fprintf(stderr, "[emulator]total cycle: %lld\n", cycle);
             fprintf(stderr, "          total instruction: %lld\n", valid_inst);
             fprintf(stderr, "          CPI: %lf\n", (double)cycle / valid_inst);
+            for (int i = 0; i < THREADS; i++) {
+                fclose(tmp_file[i]);
+            }
+
         }
     }
 

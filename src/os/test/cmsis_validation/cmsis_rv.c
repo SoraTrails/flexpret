@@ -61,7 +61,7 @@ static void TS_Init (void) {
 static TEST_CASE TC_LIST[] = {
 #ifdef RTE_RV_THREAD 
   TCD ( TC_ThreadCreate,                         1      ),
-  // TCD ( TC_ThreadMultiInstance,                  1      ),
+  TCD ( TC_ThreadMultiInstance,                  1      ),
   // TCD ( TC_ThreadTerminate,                      1      ),
   // TCD ( TC_ThreadRestart,                        1      ),
   // TCD ( TC_ThreadGetId,                          1      ),

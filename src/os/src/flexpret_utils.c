@@ -94,7 +94,7 @@ uint32_t get_tid(osThreadId_t thread_id) {
         return 7;
     } else {
         flexpret_error("bad offset calling get_tid\n");
-        return 0;
+        return -1;
     }
 }
 

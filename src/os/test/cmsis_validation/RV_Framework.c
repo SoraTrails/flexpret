@@ -59,7 +59,6 @@ int main (void) {
   }
   
   osKernelInitialize (); 
-  osKernelStart (); 
 
   ritf.Init ();                           /* Init test report                 */
   ritf.Open (ts.ReportTitle,              /* Write test report title          */
@@ -73,6 +72,7 @@ int main (void) {
     fn = ts.TC[tc].TFName;                /* Test function name string        */
     ritf.Open_TC (no, fn);                /* Open test case #(Base + TC)      */
     if (ts.TC[tc].en) {
+      osKernelStart (); 
       ts.TC[tc].TestFunc();               /* Execute test case if enabled     */
       osKernelReset();
     }

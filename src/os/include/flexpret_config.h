@@ -24,7 +24,7 @@
 #endif
 
 #ifndef FLEXPRET_WAIT_PERIOD
-#define FLEXPRET_WAIT_PERIOD 10000 // 10000 cycle
+#define FLEXPRET_WAIT_PERIOD 10000 // 10000 ns
 #endif
 
 #endif

@@ -89,31 +89,13 @@ static void thread_clean(osThreadId_t thread_id) {
     }
 }
 
-__NO_RETURN void thread_after_return_handler() {
-    uint32_t tid = read_csr(hartid);
+// Thread cannot call thread_terminate to terminate itself, unless jump to reset after call thread_terminate
+static void thread_terminate(osThreadId_t thread_id) {
+    uint32_t tid = get_tid(thread_id);
     startup_state[tid].func = NULL;
     startup_state[tid].arg = NULL;
     startup_state[tid].state = FLEXPRET_TERMINATED;
     startup_state[tid].stack_address = (void *)flexpret_thread_init_stack_addr[tid];
-
-    thread_clean(osThreadGetId());
-
-    // loop to sleep
-    while (1) {
-        uint32_t time = get_time();
-        delay_until_periodic(&time, FLEXPRET_WAIT_PERIOD);
-    }
-}
-
-// Thread cannot call thread_terminate to terminate itself
-static void thread_terminate(osThreadId_t thread_id, int state_clear) {
-    uint32_t tid = get_tid(thread_id);
-    if (state_clear) {
-        startup_state[tid].func = NULL;
-        startup_state[tid].arg = NULL;
-        startup_state[tid].state = FLEXPRET_TERMINATED;
-        startup_state[tid].stack_address = (void *)flexpret_thread_init_stack_addr[tid];
-    }
 
     thread_clean(thread_id);
 
@@ -121,6 +103,7 @@ static void thread_terminate(osThreadId_t thread_id, int state_clear) {
     do {
         if (prior == osPriorityNormal) {
             srtt_terminate(tid);
+            osSchedulerSetTmodes(thread_id, TMODE_ZOMBIE);
             // osSchedulerSetSlotNum(thread_id, 0);
             // uint32_t ss_num = osSchedulerGetSRTTNum();
             // if (ss_num == 0) {
@@ -128,6 +111,7 @@ static void thread_terminate(osThreadId_t thread_id, int state_clear) {
             // }
             break;
         } else if (prior == osPriorityRealtime) {
+            osSchedulerSetTmodes(thread_id, TMODE_ZOMBIE);
             osSchedulerSetSlotNum(thread_id, 0);
             break;
         } else {
@@ -143,9 +127,19 @@ static void thread_terminate(osThreadId_t thread_id, int state_clear) {
             }
         }
     } while (prior == osPriorityNormal || prior == osPriorityRealtime);
-
-    osSchedulerSetTmodes(thread_id, TMODE_ZOMBIE);
 }
+
+__NO_RETURN void thread_after_return_handler() {
+    // thread_terminate
+    thread_terminate(osThreadGetId());
+
+    // jump to reset
+    asm volatile ("jr x0");
+
+    // code will not reach here
+    for (;;) {}
+}
+
 
 //  ==== Thread Management Functions ====
 osThreadId_t osThreadNew (osThreadFunc_t func, void *argument, const osThreadAttr_t *attr) {
@@ -365,16 +359,16 @@ osStatus_t osThreadJoin (osThreadId_t thread_id) {
         return osError;
     }
     // TODO: using event/thread flag mechanism
-    osPriority_t p = osThreadGetPriority(osThreadGetId());
+    // osPriority_t p = osThreadGetPriority(osThreadGetId());
     while (((volatile hwthread_state*)thread_id)->func != NULL) {
-        if (p == osPriorityNormal) {
+        // if (p == osPriorityNormal) {
             uint32_t time = get_time();
             delay_until_periodic(&time, FLEXPRET_WAIT_PERIOD);
-        }
+        // }
     }
 
-    // eventually terminate sub thread.
-    thread_terminate(thread_id, 0);
+    // // eventually terminate sub thread.
+    // thread_terminate(thread_id, 0);
     return osOK;
 }
  
@@ -386,12 +380,11 @@ __NO_RETURN void osThreadExit (void) {
  
 osStatus_t osThreadTerminate (osThreadId_t thread_id) {
     uint32_t tid = get_tid(thread_id);
-    uint32_t current_tid = read_csr(hartid);
-    if (tid == current_tid) {
-        flexpret_error("Thread cannot terminate itself, use osThreadExit instead.\n");
-        return osError;
+    if (thread_id == NULL || tid == -1) {
+        flexpret_error("Bad thread_id.\n");
+        return osErrorParameter;
     }
-    thread_terminate(thread_id, 1);
+    thread_terminate(thread_id);
     return osOK;
 }
  
@@ -421,11 +414,11 @@ uint32_t osThreadEnumerate (osThreadId_t *thread_array, uint32_t array_items) {
 //  ==== Generic Wait Functions ====
  
 osStatus_t osDelay (uint32_t ticks) {
-    osTimerId_t timer = osThreadGetTimer(osThreadGetId());
-    if (osTimerIsRunning(timer)) {
-        flexpret_error("A thread CANNOT call osDelay when it has a running timer because of Flexpret's timing mechanism.\n");
-        return osError;
-    }
+    // osTimerId_t timer = osThreadGetTimer(osThreadGetId());
+    // if (osTimerIsRunning(timer)) {
+    //     flexpret_error("A thread CANNOT call osDelay when it has a running timer because of Flexpret's timing mechanism.\n");
+    //     return osError;
+    // }
     uint32_t time = get_time();
     delay_until_periodic(&time, ticks);
     return osOK;

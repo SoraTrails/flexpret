@@ -210,10 +210,10 @@ void srtt_terminate(uint32_t tid) {
             }
         }
     }
+    set_slot_num(tid, 0);
     if (res == 0) {
         set_slot_num(SLOT_S, 0);
     }
-    set_slot_num(tid, 0);
 
     release_slot_mutex();
 }

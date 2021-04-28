@@ -238,7 +238,7 @@ void TC_ThreadMultiInstance (void) {
   }
 
   /* - Wait until all instances executed */
-  osDelay (100);
+  osDelay (1000);
   
   /* - Verify execution variable */
   for (i = 0; i < 5; i++) {

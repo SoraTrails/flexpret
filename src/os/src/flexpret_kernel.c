@@ -70,6 +70,7 @@ osStatus_t osKernelInitialize (void) {
 
     slot_mutex = osMutexNew(&slotMutexAttr);
     // tmode_mutex = osMutexNew(&tmodeMutexAttr);
+    osMutexSetSpin(slot_mutex, 1);
 
     // Init thread 0
     memcpy(flexpret_thread_attr_entry[0], &flexpret_thread_init_attr, sizeof(osThreadAttr_t));

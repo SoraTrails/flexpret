@@ -56,6 +56,7 @@ osMutexId_t osMutexNew (const osMutexAttr_t *attr) {
     mutex->csr_addr = mid;
     mutex->ifRecursive = attr->attr_bits & osMutexRecursive;
     mutex->ifRobust = attr->attr_bits & osMutexRobust;
+    mutex->ifSpin = 0;
     mutex->owner = NULL;
     mutex->name = attr->name;
     mutex->active = 1;
@@ -102,31 +103,45 @@ osStatus_t osMutexAcquire (osMutexId_t mutex_id, uint32_t timeout) {
             if (timeout == 0) {
                 return osErrorResource;
             }
-            // TODO: add spin lock wait mechanism
             if (timeout == osWaitForever) {
                 while (1) {
                     if (swap_mutex_csr(mutex->csr_addr, FLEXPRET_MUTEX_INACTIVE) == FLEXPRET_MUTEX_ACTIVE) {
                         break;
                     }
-                    osDelay(FLEXPRET_WAIT_PERIOD);
+                    if (!mutex->ifSpin) {
+                        osDelay(FLEXPRET_WAIT_PERIOD);
+                    }
                 }
                 mutex->owner = osThreadGetId();
                 mutex->count = 1;
                 return osOK;
             } else {
-                register uint32_t time_period = timeout > FLEXPRET_WAIT_PERIOD ? FLEXPRET_WAIT_PERIOD : timeout;
-                register uint32_t all_time = 0;
-                do {
-                    osDelay(time_period);
-                    if (swap_mutex_csr(mutex->csr_addr, FLEXPRET_MUTEX_INACTIVE) == FLEXPRET_MUTEX_ACTIVE) {
-                        mutex->owner = osThreadGetId();
-                        mutex->count = 1;
-                        return osOK;
-                    }
-                    all_time += time_period;
-                } while (all_time < timeout);
+                if (mutex->ifSpin) {
+                    register uint32_t ctime = get_time();
+                    do {
+                        if (swap_mutex_csr(mutex->csr_addr, FLEXPRET_MUTEX_INACTIVE) == FLEXPRET_MUTEX_ACTIVE) {
+                            mutex->owner = osThreadGetId();
+                            mutex->count = 1;
+                            return osOK;
+                        }
+                    } while (get_time() < timeout + ctime);
 
-                return osErrorTimeout;
+                    return osErrorTimeout;
+                } else {
+                    register uint32_t time_period = timeout > FLEXPRET_WAIT_PERIOD ? FLEXPRET_WAIT_PERIOD : timeout;
+                    register uint32_t all_time = 0;
+                    do {
+                        osDelay(time_period);
+                        if (swap_mutex_csr(mutex->csr_addr, FLEXPRET_MUTEX_INACTIVE) == FLEXPRET_MUTEX_ACTIVE) {
+                            mutex->owner = osThreadGetId();
+                            mutex->count = 1;
+                            return osOK;
+                        }
+                        all_time += time_period;
+                    } while (all_time < timeout);
+
+                    return osErrorTimeout;
+                }
             }
         }
     }
@@ -179,4 +194,27 @@ osStatus_t osMutexDelete (osMutexId_t mutex_id) {
     return osOK;
 }
 
- 
+osStatus_t osMutexSetSpin(osMutexId_t mutex_id, int ifSpin) {
+    if (mutex_id == NULL) {
+        return osErrorParameter;
+    }
+    mutex_state* mutex = (mutex_state*) mutex_id;
+    if (mutex->active == 0) {
+        // mutex has been deleted
+        return osErrorParameter;
+    }
+    mutex->ifSpin = !!ifSpin;
+    return osOK;
+}
+
+unsigned char osMutexGetSpin(osMutexId_t mutex_id) {
+    if (mutex_id == NULL) {
+        return 0;
+    }
+    mutex_state* mutex = (mutex_state*) mutex_id;
+    if (mutex->active == 0) {
+        // mutex has been deleted
+        return 0;
+    }
+    return mutex->ifSpin;
+}

@@ -12,6 +12,7 @@ typedef struct mutex_state {
     unsigned char ifRecursive;
     unsigned char ifRobust;
     unsigned char active;
+    unsigned char ifSpin;
 } mutex_state;
 
 #define FLEXPRET_MUTEX_INACTIVE 1
@@ -19,5 +20,8 @@ typedef struct mutex_state {
 
 void write_mutex_csr(int i, int val);
 int swap_mutex_csr(int i, int val);
+
+osStatus_t osMutexSetSpin(osMutexId_t mutex_id, int ifSpin);
+unsigned char osMutexGetSpin(osMutexId_t mutex_id);
 
 #endif

@@ -153,6 +153,10 @@ osThreadId_t osThreadNew (osThreadFunc_t func, void *argument, const osThreadAtt
         flexpret_error("Max thread num exceed\n");
         return NULL;
     }
+    if (attr && (attr->priority != osPriorityRealtime && attr->priority != osPriorityNormal)) {
+        // flexpret_error("bad priority\n");
+        return NULL;
+    }
     // TODO: thread num inc should be an atomic operation.
     int tid = flexpret_thread_num++;
     if (attr == NULL) {
@@ -345,6 +349,9 @@ osStatus_t osThreadDetach (osThreadId_t thread_id) {
 }
  
 osStatus_t osThreadJoin (osThreadId_t thread_id) {
+    if (thread_id == NULL) {
+        return osError;
+    }
     uint32_t tid = get_tid(thread_id);
     if (flexpret_thread_attr_entry[tid]->attr_bits != osThreadJoinable) {
         flexpret_error("Thread ");
@@ -358,9 +365,12 @@ osStatus_t osThreadJoin (osThreadId_t thread_id) {
         return osError;
     }
     // TODO: using event/thread flag mechanism
+    osPriority_t p = osThreadGetPriority(osThreadGetId());
     while (((volatile hwthread_state*)thread_id)->func != NULL) {
-        uint32_t time = get_time();
-        delay_until_periodic(&time, FLEXPRET_WAIT_PERIOD);
+        if (p == osPriorityNormal) {
+            uint32_t time = get_time();
+            delay_until_periodic(&time, FLEXPRET_WAIT_PERIOD);
+        }
     }
 
     // eventually terminate sub thread.

@@ -14,7 +14,7 @@
 RISCV_CC=/data/riscv/bin/riscv64-unknown-elf-gcc
 RISCV_OBJDUMP=/data/riscv/bin/riscv64-unknown-elf-objdump
 RISCV_OBJCOPY=/data/riscv/bin/riscv64-unknown-elf-objcopy
-FLEXPRET_CFLAGS=-m32 -msoft-float
+FLEXPRET_CFLAGS=-m32 -O2
 
 FLEXPRET_OS_SRC := $(wildcard src/*.c)
 FLEXPRET_OS_APP_SRC := $(wildcard app/*.c)

@@ -64,11 +64,11 @@ static TEST_CASE TC_LIST[] = {
   TCD ( TC_ThreadMultiInstance,                  1      ),
   // TCD ( TC_ThreadRestart,                        0      ),
   TCD ( TC_ThreadGetId,                          1      ),
-  // TCD ( TC_ThreadPriority,                       1      ),
-  // TCD ( TC_ThreadPriorityExec,                   1      ),
-  // TCD ( TC_ThreadChainedCreate,                  1      ),
+  TCD ( TC_ThreadPriority,                       1      ),
+  // TCD ( TC_ThreadPriorityExec,                   0      ),
+  TCD ( TC_ThreadChainedCreate,                  1      ),
   // TCD ( TC_ThreadYield,                          0      ),
-  // TCD ( TC_ThreadParam,                          1      ),
+  TCD ( TC_ThreadParam,                          1      ),
   // TCD ( TC_ThreadInterrupts,                     0      ),
 #endif                                        
 #ifdef RTE_RV_GENWAIT                         

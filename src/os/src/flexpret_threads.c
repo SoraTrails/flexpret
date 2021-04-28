@@ -159,6 +159,9 @@ __NO_RETURN void thread_after_return_handler() {
 
 //  ==== Thread Management Functions ====
 osThreadId_t osThreadNew (osThreadFunc_t func, void *argument, const osThreadAttr_t *attr) {
+    if (func == NULL) {
+        return NULL;
+    }
     if (flexpret_thread_num == FLEXPRET_HW_THREADS_NUMS) {
         flexpret_error("Max thread num exceed\n");
         return NULL;
@@ -268,13 +271,16 @@ uint32_t osThreadGetStackSpace (osThreadId_t thread_id) {
 }
  
 osStatus_t osThreadSetPriority (osThreadId_t thread_id, osPriority_t priority) {
+    if (thread_id == NULL) {
+        return osErrorParameter;
+    }
     uint32_t tid = get_tid(thread_id);
     osPriority_t current_priority = flexpret_thread_attr_entry[tid]->priority;
     if (current_priority == priority) {
         return osOK;
     }
 
-    if (current_priority == osPriorityNormal) {
+    if (priority == osPriorityRealtime) {
         change_srtt_to_hrtt(tid);
         // // change SRTT to HRTT (thread unsafe implement)
         // int32_t res = osSchedulerGetFreq(thread_id);
@@ -295,7 +301,7 @@ osStatus_t osThreadSetPriority (osThreadId_t thread_id, osPriority_t priority) {
         // }
         flexpret_thread_attr_entry[tid]->priority = osPriorityRealtime;
 
-    } else if (current_priority == osPriorityRealtime) {
+    } else if (priority == osPriorityNormal) {
         change_hrtt_to_srtt(tid);
         // // change HRTT to SRTT (thread unsafe implement)
         // int32_t res = osSchedulerGetFreq(thread_id);
@@ -323,6 +329,9 @@ osStatus_t osThreadSetPriority (osThreadId_t thread_id, osPriority_t priority) {
 }
  
 osPriority_t osThreadGetPriority (osThreadId_t thread_id) {
+    if (thread_id == NULL) {
+        return osPriorityError;
+    }
     uint32_t tid = get_tid(thread_id);
     return flexpret_thread_attr_entry[tid]->priority;
 }

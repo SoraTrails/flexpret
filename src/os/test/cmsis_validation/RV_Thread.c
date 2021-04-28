@@ -45,7 +45,14 @@ void Th_Thr7 (void const *arg) { Var_ThreadExec += (arg == NULL) ? (1) : (2); }
 
 void Th_Run  (void const *arg);
 
-void Th_Run  (void const *arg) { while(1) { osDelay(100);    if(arg!=NULL) return; } }
+void Th_Run  (void const *arg) { 
+  register int i;
+  for (i = 0; i < 32; i++) {
+    osDelay(100);
+    if(arg!=NULL) return;
+  }
+  // while(1) { osDelay(100);    if(arg!=NULL) return; } 
+}
 
 /* Definitions for TC_ThreadMultiInstance */
 void Th_MultiInst (void const *arg);
@@ -121,17 +128,26 @@ void Th_PrioExec (void const *arg) {
 void Th_Child_0 (void const *arg) {
   uint32_t *arr = (uint32_t *)arg;
   arr[0] = 1;
-  ASSERT_TRUE (osThreadNew ( (Th_Child_1), &arr[1], NULL) != NULL);
+	osThreadAttr_t attr = { "Th_Child_1", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityNormal, 0, 0};
+  osThreadId_t tid = osThreadNew ( (Th_Child_1), &arr[1], &attr);
+  ASSERT_TRUE (tid != NULL);
+  ASSERT_TRUE (osThreadJoin(tid) == osOK);
 }
 void Th_Child_1 (void const *arg) {
   uint32_t *arr = (uint32_t *)arg;
   arr[0] = 2;
-  ASSERT_TRUE (osThreadNew ( (Th_Child_2), &arr[1], NULL) != NULL);
+	osThreadAttr_t attr = { "Th_Child_2", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityNormal, 0, 0};
+  osThreadId_t tid = osThreadNew ( (Th_Child_2), &arr[1], &attr);
+  ASSERT_TRUE (tid != NULL);
+  ASSERT_TRUE (osThreadJoin(tid) == osOK);
 }
 void Th_Child_2 (void const *arg) {
   uint32_t *arr = (uint32_t *)arg;
   arr[0] = 3;
-  ASSERT_TRUE (osThreadNew ( (Th_Child_3), &arr[1], NULL) != NULL);
+	osThreadAttr_t attr = { "Th_Child_3", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityNormal, 0, 0};
+  osThreadId_t tid = osThreadNew ( (Th_Child_3), &arr[1], &attr);
+  ASSERT_TRUE (tid != NULL);
+  ASSERT_TRUE (osThreadJoin(tid) == osOK);
 }
 void Th_Child_3 (void const *arg) {
   uint32_t *arr = (uint32_t *)arg;
@@ -357,112 +373,40 @@ void TC_ThreadPriority (void) {
 
 
   /* Create a child thread */
-  t_idr = osThreadNew ( (Th_Run), NULL, NULL);
+	osThreadAttr_t attr = { "Th_Run", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityNormal, 0, 0};
+  t_idr = osThreadNew ( (Th_Run), NULL, &attr);
   ASSERT_TRUE (t_idr != NULL);
   
   if (t_idr) {
     /* - Change priority of the child thread in steps from Idle to Realtime  */
     /* - At each step check if priority was changed                          */
-    ASSERT_TRUE (osThreadGetPriority (t_idr) == osPriorityIdle);
-    
-    ASSERT_TRUE (osThreadSetPriority (t_idr, osPriorityLow         ) == osOK);
-    ASSERT_TRUE (osThreadGetPriority (t_idr) == osPriorityLow);
-    
-    ASSERT_TRUE (osThreadSetPriority (t_idr, osPriorityBelowNormal ) == osOK);
-    ASSERT_TRUE (osThreadGetPriority (t_idr) == osPriorityBelowNormal);
-    
-    ASSERT_TRUE (osThreadSetPriority (t_idr, osPriorityNormal      ) == osOK);
     ASSERT_TRUE (osThreadGetPriority (t_idr) == osPriorityNormal);
     
-    ASSERT_TRUE (osThreadSetPriority (t_idr, osPriorityAboveNormal ) == osOK);
-    ASSERT_TRUE (osThreadGetPriority (t_idr) == osPriorityAboveNormal);
-    
-    ASSERT_TRUE (osThreadSetPriority (t_idr, osPriorityHigh        ) == osOK);
-    ASSERT_TRUE (osThreadGetPriority (t_idr) == osPriorityHigh);
-    
-    ASSERT_TRUE (osThreadSetPriority (t_idr, osPriorityRealtime    ) == osOK);
+    ASSERT_TRUE (osThreadSetPriority (t_idr, osPriorityRealtime         ) == osOK);
     ASSERT_TRUE (osThreadGetPriority (t_idr) == osPriorityRealtime);
-
+    
+    ASSERT_TRUE (osThreadSetPriority (t_idr, osPriorityNormal ) == osOK);
+    ASSERT_TRUE (osThreadGetPriority (t_idr) == osPriorityNormal);
+    
+    ASSERT_TRUE (osThreadSetPriority (t_idr, osPriorityRealtime      ) == osOK);
+    ASSERT_TRUE (osThreadGetPriority (t_idr) == osPriorityRealtime);
+    
+    ASSERT_TRUE (osThreadSetPriority (t_idr, osPriorityNormal ) == osOK);
+    ASSERT_TRUE (osThreadGetPriority (t_idr) == osPriorityNormal);
+    
+    ASSERT_TRUE (osThreadSetPriority (t_idr, osPriorityRealtime        ) == osOK);
+    ASSERT_TRUE (osThreadGetPriority (t_idr) == osPriorityRealtime);
+    
     /* Setting invalid priority value should fail */
     ASSERT_TRUE (osThreadSetPriority (t_idr, osPriorityError) != osOK);
     
     /* Terminate the thread */
-    ASSERT_TRUE (osThreadTerminate (t_idr) == osOK);
+    ASSERT_TRUE (osThreadJoin (t_idr) == osOK);
+    // ASSERT_TRUE (osThreadTerminate (t_idr) == osOK);
   }
 
   /* Restore priority of the main thread back to normal */
-  ASSERT_TRUE (osThreadSetPriority (t_idc, osPriorityNormal) == osOK);
-}
-
-/*=======0=========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1====*/
-/**
-\brief Test case: TC_ThreadPriorityExec
-\details
-- Raise main thread priority to osPriorityRealtime
-- Create multiple instances of the test thread
-- Set instance priorities from low to realtime
-- Lower main thread priority to allow execution of test threads
-- Check if threads were executed according to their priorities
-*/
-void TC_ThreadPriorityExec (void) {
-  uint32_t i,j;
-  osThreadId_t main_id, inst[7];
-  
-  main_id = osThreadGetId();
-  ASSERT_TRUE (main_id != NULL);
-
-  if (main_id != NULL) {
-    /* - Raise main thread priority to osPriorityRealtime */
-    ASSERT_TRUE (osThreadSetPriority (main_id, osPriorityRealtime) == osOK);
-
-    /* - Create multiple instances of the test thread */
-    inst[0] = osThreadNew ( (Th_PrioExec), (void *)&inst[0], NULL);
-    inst[1] = osThreadNew ( (Th_PrioExec), (void *)&inst[1], NULL);
-    inst[2] = osThreadNew ( (Th_PrioExec), (void *)&inst[2], NULL);
-    inst[3] = osThreadNew ( (Th_PrioExec), (void *)&inst[3], NULL);
-    inst[4] = osThreadNew ( (Th_PrioExec), (void *)&inst[4], NULL);
-    inst[5] = osThreadNew ( (Th_PrioExec), (void *)&inst[5], NULL);
-    inst[6] = osThreadNew ( (Th_PrioExec), (void *)&inst[6], NULL);
-
-    for (i = 0; i < 7; i++) {
-      ASSERT_TRUE (inst[i] != NULL);
-      if (inst[i] == NULL) {
-        /* Abort test if thread instance not created */
-        return;
-      }
-      /* Check if the instances are different */
-      for (j = 0; j < 7; j++) {
-        if (i != j) {
-            ASSERT_TRUE (inst[i] != inst[j]);
-        }
-      }
-    }  
-    
-    /* Clear execution array */
-    for (i = 0; i < 7; i++) {
-      ExecArr[i] = 0;
-    }
-
-    /* - Set instance priorities from low to realtime */
-    ASSERT_TRUE (osThreadSetPriority (inst[0], osPriorityIdle)        == osOK);
-    ASSERT_TRUE (osThreadSetPriority (inst[1], osPriorityLow)         == osOK);
-    ASSERT_TRUE (osThreadSetPriority (inst[2], osPriorityBelowNormal) == osOK);
-    ASSERT_TRUE (osThreadSetPriority (inst[3], osPriorityNormal)      == osOK);
-    ASSERT_TRUE (osThreadSetPriority (inst[4], osPriorityAboveNormal) == osOK);
-    ASSERT_TRUE (osThreadSetPriority (inst[5], osPriorityHigh)        == osOK);
-    ASSERT_TRUE (osThreadSetPriority (inst[6], osPriorityRealtime)    == osOK);
-    
-    /* - Lower main thread priority to allow execution of test threads */
-    ASSERT_TRUE (osThreadSetPriority (main_id, osPriorityIdle)        == osOK);
-    ASSERT_TRUE (osThreadYield () == osOK);
-    
-    /* - Check if threads were executed according to their priorities */
-    for (i = 0; i < 7; i++) {
-      ASSERT_TRUE (ExecArr[i] == inst[7 - 1 - i]);
-    }
-  }
-  /* - Restore main thread priority to osPriorityNormal */
-  ASSERT_TRUE (osThreadSetPriority (main_id, osPriorityNormal) == osOK);
+  // ASSERT_TRUE (osThreadSetPriority (t_idc, osPriorityNormal) == osOK);
 }
 
 /*=======0=========1=========2=========3=========4=========5=========6=========7=========8=========9=========0=========1====*/
@@ -481,13 +425,16 @@ void TC_ThreadChainedCreate (void) {
   for (i = 0; i < 4; i++) {
     arr[i] = 0;
   }
+
+	osThreadAttr_t attr = { "Th_Child_0", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityNormal, 0, 0};
   
   /* - Create a first thread in a chain */
-  id = osThreadNew (  (Th_Child_0), arr, NULL);
+  id = osThreadNew (  (Th_Child_0), arr, &attr);
   ASSERT_TRUE (id != NULL);
   
   /* - Wait until child threads are created */
-  osDelay(50);
+  // osDelay(50);
+  osThreadJoin(id);
   
   /* - Verify that all child threads were created */
   for (i = 0; i < 4; i++) {

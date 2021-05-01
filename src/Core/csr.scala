@@ -196,6 +196,8 @@ class CSR(implicit conf: FlexpretConfiguration) extends Module
         reg_msip(io.rw.thread) := data_in(3).toBool
       }
     }
+    when(compare_addr(CSRs.epc))   { reg_epcs(io.rw.thread) := data_in }
+
     when(compare_addr(CSRs.uarch8)) { reg_mutex(0) := data_in(3, 0) }
     when(compare_addr(CSRs.uarch9)) { reg_mutex(1) := data_in(3, 0) }
     when(compare_addr(CSRs.uarch10)) { reg_mutex(2) := data_in(3, 0) }

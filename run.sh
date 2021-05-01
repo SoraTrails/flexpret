@@ -37,6 +37,7 @@ syncFile() {
             echo "done."
         done
     elif [ "$1"z == "afterz" ]; then
+        gzip -c ${RES_DIR}/log > ${RES_DIR}/log.tar.gz
         list=(
             ${FILE_DIR}/asm
             ${FILE_DIR}/asm_func
@@ -48,6 +49,7 @@ syncFile() {
             src/os/os.dump
             src/os/test.dump
             src/os/cmsis.dump
+            src/os/rtthread.dump
         )
         for i in ${list[*]}; do 
             echo -n "cp ${ROOT_DIR}/$i ${MAP_DIR}/$i ... "
@@ -86,6 +88,17 @@ compileFile() {
         rm -f ${RES_DIR}/asm.tmp
     elif [ "$1"z == "wcetz" ]; then
         cd ${WORK_DIR} && make wcet
+    elif [ "$1"z == "rtthreadz" ]; then
+        RTTHREAD_DIR=/data/rtthread/rt-thread-3.1.3
+        cd ${RTTHREAD_DIR} && make
+        cp ${RTTHREAD_DIR}/rtthread.dump ${WORK_DIR}/
+        cp ${RTTHREAD_DIR}/rtthread.inst.mem.ins ${WORK_DIR}/
+        cp ${RTTHREAD_DIR}/rtthread.inst.mem ${WORK_DIR}/
+        cp ${RTTHREAD_DIR}/rtthread.data.mem ${WORK_DIR}/
+        cp ${WORK_DIR}/rtthread.inst.mem.ins ${RES_DIR}/asm.tmp
+        grep -E '[0-9a-f]+:' ${RES_DIR}/asm.tmp | grep -v 'elf' | awk '{$1=substr($1,0,length($1)-1);$2="";print $0}' > ${RES_DIR}/asm
+        grep -E '^[0-9a-f]+ <[0-9a-zA-Z_]+>:' ${RES_DIR}/asm.tmp | awk '{$2=substr($2,2,length($2)-3); print $0}' > ${RES_DIR}/asm_func
+        rm -f ${RES_DIR}/asm.tmp 
     fi
 }
 
@@ -120,7 +133,7 @@ runTestbench() {
         WORK_DIR=${ROOT_DIR}/src/os
         target=os
     fi
-    RES_DIR=${ROOT_DIR}/emulator/generated-src/8tf-64i-64d-ti
+    # RES_DIR=${ROOT_DIR}/emulator/generated-src/8tf-64i-64d-ti
     # RES_DIR=${ROOT_DIR}/emulator/generated-src/4tf-16i-16d-ti
     TESTBENCH_FILE=${ROOT_DIR}/emulator/testbench/Core-tb-os.cpp
     GEN_TESTBENCH_FILE=${ROOT_DIR}/emulator/testbench/Core-tb-os-gen.cpp
@@ -157,7 +170,7 @@ runTestbench() {
     ${WORK_DIR}/Core --maxcycles=100000 --ispm=${WORK_DIR}/${1}.inst.mem --dspm=${WORK_DIR}/${1}.data.mem 2> ${RES_DIR}/raw_log > ${RES_DIR}/log
     echo "Core return $?."
     grep "\*\*\*" /opt/flexpret/emulator/generated-src/8tf-64i-64d-ti/raw_log
-    gzip -c ${RES_DIR}/log > ${RES_DIR}/log.tar.gz
+    # gzip -c ${RES_DIR}/log > ${RES_DIR}/log.tar.gz
 }
 
 TEMP=`getopt -o hs:c::r::C --long help,sync:,compile::,run::,clean \

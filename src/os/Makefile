@@ -14,7 +14,7 @@
 RISCV_CC=/data/riscv/bin/riscv64-unknown-elf-gcc
 RISCV_OBJDUMP=/data/riscv/bin/riscv64-unknown-elf-objdump
 RISCV_OBJCOPY=/data/riscv/bin/riscv64-unknown-elf-objcopy
-FLEXPRET_CFLAGS=-m32 -O2
+FLEXPRET_CFLAGS=-m32 -O1
 
 FLEXPRET_OS_SRC := $(wildcard src/*.c)
 FLEXPRET_OS_APP_SRC := $(wildcard app/*.c)
@@ -92,10 +92,11 @@ test.data.mem: flexpret_test_os
 FLEXPRET_WCET_SRC := $(wildcard test/malardalen_wcet/*.c)
 FLEXPRET_WCET_COBJ := $(patsubst %.c,%.o,$(FLEXPRET_WCET_SRC))
 FLEXPRET_WCET_ELF := $(patsubst %.c,%_wcet.out,$(FLEXPRET_WCET_SRC))
+FLEXPRET_WCET_DUMP := $(patsubst %.c,%_wcet.dump,$(FLEXPRET_WCET_SRC))
 FLEXPRET_WCET_INST := $(patsubst %.c,%_wcet.inst.mem,$(FLEXPRET_WCET_SRC))
 FLEXPRET_WCET_DATA := $(patsubst %.c,%_wcet.data.mem,$(FLEXPRET_WCET_SRC))
 
-wcet: $(FLEXPRET_WCET_INST) $(FLEXPRET_WCET_DATA)
+wcet: $(FLEXPRET_WCET_INST) $(FLEXPRET_WCET_DATA) $(FLEXPRET_WCET_DUMP)
 
 $(FLEXPRET_WCET_COBJ): %.o: %.c $(FLEXPRET_OS_INCLUDE)
 	$(RISCV_CC) $(FLEXPRET_CFLAGS) -I$(INCLUDE) -o $@ -c $<
@@ -112,6 +113,10 @@ $(FLEXPRET_WCET_DATA): %_wcet.data.mem: %_wcet.out
 	$(RISCV_OBJCOPY) --only-section .data --only-section .bss -O binary $< $(patsubst %_wcet.data.mem,%.data.tmp,$@)
 	hexdump -v -e '1/4 "%08X" "\n"' $(patsubst %_wcet.data.mem,%.data.tmp,$@) > $@
 	rm $(patsubst %_wcet.data.mem,%.data.tmp,$@)
+
+$(FLEXPRET_WCET_DUMP): %_wcet.dump: %_wcet.out
+	$(RISCV_OBJDUMP) --disassemble-all --section=.text --section=.data --section=.bss $< > $@
+	cp $@ /data/wcet_log/dump/
 
 FLEXPRET_CMSIS_INCLUDE := test/cmsis_validation/include
 FLEXPRET_CMSIS_SRC := $(wildcard test/cmsis_validation/*.c)

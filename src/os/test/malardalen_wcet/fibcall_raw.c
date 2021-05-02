@@ -1,4 +1,4 @@
-/* MDH WCET BENCHMARK SUITE. File version $Id: bs.c,v 1.4 2005/12/14 14:44:47 jgn Exp $ */
+/* MDH WCET BENCHMARK SUITE. File version $Id: fibcall.c,v 1.3 2005/11/11 10:30:19 ael01 Exp $ */
 
 /*************************************************************************/
 /*                                                                       */
@@ -28,12 +28,12 @@
 /*                                                                       */
 /*************************************************************************/
 /*                                                                       */
-/*  FILE: bs.c                                                           */
+/*  FILE: fibcall.c                                                      */
 /*  SOURCE : Public Domain Code                                          */
 /*                                                                       */
 /*  DESCRIPTION :                                                        */
 /*                                                                       */
-/*     Binary search for the array of 15 integer elements.               */
+/*     Summing the Fibonacci series.                                     */
 /*                                                                       */
 /*  REMARK :                                                             */
 /*                                                                       */
@@ -41,97 +41,71 @@
 /*                                                                       */
 /*                                                                       */
 /*************************************************************************/
-/* Changes:
- * JG 2005/12/12: Prototypes added, printf removed, and changed exit to return in main.
- */
-/*
-#include<stdio.h>
-*/
 
-#ifdef PRET_FUNC_TEST
-#include "ptio.h"
-#endif
+ /*
+  * Changes: JG 2005/12/21: Inserted prototypes.
+  *                         Indented program.
+  */
 
-//#define DEBUG
-
-struct DATA {
-	int             key;
-	int             value;
-};
-
-#ifdef DEBUG
-int             cnt1;
-#define printf(str) debug_string(str)
-#endif
-
-struct DATA     data[15] = {{1, 100},
-{5, 200},
-{6, 300},
-{7, 700},
-{8, 900},
-{9, 250},
-{10, 400},
-{11, 600},
-{12, 800},
-{13, 1500},
-{14, 1200},
-{15, 110},
-{16, 140},
-{17, 133},
-{18, 10}};
-
-int             binary_search(int x);
+int             fib(int n);
 
 int 
-main(void)
+fib(int n)
 {
-	int res = binary_search(8);
-  return res;
-//    if(res == 900) {
-//        return 1;
-//    } else {
-//        return 0;
-//    }
+	int             i, Fnew, Fold, temp, ans;
+
+	Fnew = 1;
+	Fold = 0;
+	for (i = 2;
+	     i <= 30 && i <= n;	/* apsim_loop 1 0 */
+	     i++) {
+		temp = Fnew;
+		Fnew = Fnew + Fold;
+		Fold = temp;
+	}
+	ans = Fnew;
+	return ans;
 }
 
 int 
-binary_search(int x)
+fibcall_main()
 {
-	int             fvalue, mid, up, low;
+	int             a;
 
-	low = 0;
-	up = 14;
-	fvalue = -1 /* all data are positive */ ;
-	while (low <= up) {
-		mid = (low + up) >> 1;
-		if (data[mid].key == x) {	/* found  */
-			up = low - 1;
-			fvalue = data[mid].value;
-#ifdef DEBUG
-	printf("FOUND!!\n"); 
-#endif
-		} else
-		 /* not found */ if (data[mid].key > x) {
-			up = mid - 1;
-#ifdef DEBUG
-	printf("MID-1\n"); 
-#endif
-		} else {
-			low = mid + 1;
-#ifdef DEBUG
-	printf("MID+1\n"); 
-#endif
-		}
-#ifdef DEBUG
-		cnt1++;
-#endif
-#ifdef PRET_FUNC_TEST
-        debug_string(itoa(data[mid].key));
-        debug_string("\n");
-#endif
-	}
-#ifdef DEBUG
-/*	printf("Loop Count : %d\n", cnt1); */
-#endif
-	return fvalue;
+	a = 30;
+	fib(a);
+	return a;
+}
+
+#include "flexpret_threads.h"
+#define THREADS 8
+extern volatile hwthread_state startup_state[THREADS];
+
+void hwthread_start(uint32_t tid, void (*func)(), uint32_t stack_address) {
+    startup_state[tid].func = func;
+    if(stack_address != NULL) {
+        startup_state[tid].stack_address = stack_address;
+    }
+}
+
+uint32_t hwthread_done(uint32_t tid) {
+    return (startup_state[tid].func == NULL);
+}
+
+int main() {
+	hwthread_start(1, fibcall_main, NULL);
+	hwthread_start(2, fibcall_main, NULL);
+	hwthread_start(3, fibcall_main, NULL);
+	hwthread_start(4, fibcall_main, NULL);
+	hwthread_start(5, fibcall_main, NULL);
+	hwthread_start(6, fibcall_main, NULL);
+    hwthread_start(7, fibcall_main, NULL);
+	uint32_t slots[8] = { SLOT_T0, SLOT_T1, SLOT_T2, SLOT_T3, SLOT_T4, SLOT_T5, SLOT_T6,SLOT_T7 };
+	uint32_t tmodes[8] = { TMODE_HA, TMODE_HA, TMODE_HA, TMODE_HA, TMODE_HA, TMODE_HA, TMODE_HA,TMODE_HA };
+    set_slots(slots); // tid 0, 1, 2 round robin
+    set_tmodes(tmodes); // all hard+active
+    while((hwthread_done(1) & hwthread_done(2) & hwthread_done(3) & hwthread_done(4) &
+	       hwthread_done(5) & hwthread_done(6) & hwthread_done(7)) == 0);
+    return 0;
+
 }

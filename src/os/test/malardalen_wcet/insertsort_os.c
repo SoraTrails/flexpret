@@ -54,7 +54,7 @@ int             cnt1, cnt2;
 unsigned int    a[11];
 
 int 
-main()
+insertsort_main()
 {
 	int             i, j, temp;
 
@@ -96,4 +96,31 @@ main()
 	printf("Outer Loop : %d ,  Inner Loop : %d\n", cnt1, cnt2);
 #endif
 	return 1;
+}
+
+
+#include "cmsis_os2.h"
+#include "flexpret_os.h"
+int main() {
+	const osThreadAttr_t attr[7] = {
+		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
+		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
+		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
+		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
+		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
+		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
+		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
+	};
+
+	osKernelInitialize();
+	osThreadId_t th[7];
+	register int i;
+	for (i = 0; i < 7; i++) {
+		th[i] = osThreadNew(insertsort_main, NULL, &attr[i]);
+	}
+	osKernelStart();
+	for (i = 0; i < 7; i++) {
+		osThreadJoin(th[i]);
+	}
+	return 0;
 }

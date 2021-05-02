@@ -521,12 +521,39 @@ foo(int x)
 
 
 int 
-main(void)
+ns_main(void)
 {
 #ifdef TEST
-	printf("result=%d\n", foo(400));
+	// printf("result=%d\n", foo(400));
 #else
-	foo(400);
+	// foo(400);
 #endif
+	return foo(400);
+}
+
+
+#include "cmsis_os2.h"
+#include "flexpret_os.h"
+int main() {
+	const osThreadAttr_t attr[6] = {
+		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
+		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
+		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
+		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
+		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
+		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
+		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
+	};
+
+	osKernelInitialize();
+	osThreadId_t th[8];
+	register int i;
+	for (i = 0; i < 7; i++) {
+		th[i] = osThreadNew(ns_main, NULL, &attr[i]);
+	}
+	osKernelStart();
+	for (i = 0; i < 7; i++) {
+		osThreadJoin(th[i]);
+	}
 	return 0;
 }

@@ -58,4 +58,6 @@ int test_mtfd();
 // Test mutex
 int test_mutex();
 
+int test_api_cycle();
+
 #endif

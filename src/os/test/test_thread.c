@@ -22,7 +22,7 @@ static void osTestThread1 (void* arg) {
     t->output = tmp;
 }
 
-int test_osThreadNew_osThreadJoin() {
+int test_osThreadNew_osThreadJoin() { // TC_ThreadJoin
     osThreadAttr_t thread1;
     osThreadAttr_t thread2;
     thread1.priority = osPriorityRealtime;
@@ -121,7 +121,7 @@ static void osTestThread4 (void* arg) {
     for (;;) {}
 }
 
-int test_osThread_control() {
+int test_osThread_control() { // TC_ThreadControl
     osThreadAttr_t thread1;
     thread1.name = "test control thread1";
     thread1.priority = osPriorityRealtime;

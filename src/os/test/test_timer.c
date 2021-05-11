@@ -6,6 +6,7 @@
 #include "flexpret_timing.h"
 #include "flexpret_scheduler.h"
 #include "flexpret_threads.h"
+#include "flexpret_trap.h"
 
 static void timer_func(void * arg) {
     static int i = 0;
@@ -109,12 +110,30 @@ int test_timer_suspend() {
     return PASSED;
 }
 
-static void osTestMtfdImm() {
+// static void osTestMtfdImm() {
+//     mti(1000);
+//     register int i;
+//     for (i = 0; i < 100; i++) {}
+//     fd();
+//     // asm volatile ("div x0,x0,x0");
+// }
+
+static int osTestMtfdImm(void * arg) {
+    uint32_t time = get_time();
     mti(1000);
     register int i;
     for (i = 0; i < 100; i++) {}
+    set_compare(time + 500);
+    delay_until();
     fd();
-    // asm volatile ("div x0,x0,x0");
+    return 1;
+}
+
+static void mtfd_trap_handler() {
+    osThreadId_t tid = osThreadGetId();
+    flexpret_info("Thread ");
+    flexpret_info(itoa_hex(tid));
+    flexpret_info(" missed the deadline.\n");
 }
 
 static void osTestMtfdReg() {
@@ -138,7 +157,7 @@ int test_mtfd() {
     osThreadId_t tid2 = osThreadNew((osThreadFunc_t)osTestMtfdReg, NULL, &thread2);
 
     FLEXPRET_ASSERT(tid1 != NULL && tid2 != NULL);
-
+    osThreadSetTrapHandler(tid1, (trap_handler)mtfd_trap_handler, ExceptionOnExpire);
     osKernelStart();
 
     osThreadJoin(tid1);

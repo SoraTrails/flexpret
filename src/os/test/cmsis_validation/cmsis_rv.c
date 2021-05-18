@@ -76,9 +76,9 @@ static TEST_CASE TC_LIST[] = {
   TCD ( TC_GenWaitInterrupts,                    1      ),
 #endif                                        
 #ifdef RTE_RV_TIMER                           
-  // TCD ( TC_TimerOneShot,                         1      ),
-  // TCD ( TC_TimerPeriodic,                        1      ),
-  // TCD ( TC_TimerParam,                           1      ),
+  TCD ( TC_TimerOneShot,                         1      ),
+  TCD ( TC_TimerPeriodic,                        1      ),
+  TCD ( TC_TimerParam,                           1      ),
   // TCD ( TC_TimerInterrupts,                      0      ),
 #endif                                        
 #ifdef RTE_RV_SIGNAL                          

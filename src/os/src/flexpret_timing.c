@@ -45,6 +45,9 @@ osTimerId_t osTimerNew (osTimerFunc_t func, osTimerType_t type, void *argument, 
         flexpret_error("A thread can ONLY create one active timer because of Flexpret's timing mechanism.\n");
         return NULL;
     }
+    if (func == NULL) {
+        return NULL;
+    }
     if (attr == NULL) {
         flexpret_timer_attr_entry[tid] = flexpret_timer_attr + tid;
         osTimerAttr_t * attr_ptr = flexpret_timer_attr_entry[tid];
@@ -73,6 +76,9 @@ const char *osTimerGetName (osTimerId_t timer_id) {
 }
  
 osStatus_t osTimerStart (osTimerId_t timer_id, uint32_t ticks) {
+    if (timer_id == NULL) {
+        return osErrorParameter;
+    }
     uint32_t tid = get_timer_tid(timer_id);
     if (flexpret_timer_attr_entry[tid] == NULL) {
         flexpret_error("Timer is not active.\n");
@@ -103,12 +109,18 @@ osStatus_t osTimerStart (osTimerId_t timer_id, uint32_t ticks) {
 }
 
 osStatus_t osTimerStop (osTimerId_t timer_id) {
+    if (timer_id == NULL) {
+        return osErrorParameter;
+    }
     uint32_t tid = get_timer_tid(timer_id);
     if (flexpret_timer_attr_entry[tid] == NULL) {
         flexpret_error("Timer is not active.\n");
         return osError;
     }
     volatile hwtimer_state * timer = (hwtimer_state *)timer_id;
+    if (timer->ticks == 0) {
+        return osErrorResource;
+    }
     timer->ticks = 0;
     set_compare(0);
     osThreadSetTrapHandler(osThreadGetId(), (trap_handler)default_ie_handler, InterruptOnExpire);
@@ -131,6 +143,9 @@ uint32_t osTimerIsRunning (osTimerId_t timer_id) {
 }
  
 osStatus_t osTimerDelete (osTimerId_t timer_id) {
+    if (timer_id == NULL) {
+        return osErrorParameter;
+    }
     uint32_t tid = get_timer_tid(timer_id);
     volatile hwtimer_state * timer = (hwtimer_state *)timer_id;
     // stop running timer before deleting it

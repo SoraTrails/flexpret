@@ -1,4 +1,4 @@
-/* MDH WCET BENCHMARK SUITE. File version $Id: insertsort.c,v 1.3 2005/11/11 10:30:41 ael01 Exp $ */
+/* MDH WCET BENCHMARK SUITE. File version $Id: fibcall.c,v 1.3 2005/11/11 10:30:19 ael01 Exp $ */
 
 /*************************************************************************/
 /*                                                                       */
@@ -28,13 +28,12 @@
 /*                                                                       */
 /*************************************************************************/
 /*                                                                       */
-/*  FILE: insertsort.c                                                   */
+/*  FILE: fibcall.c                                                      */
 /*  SOURCE : Public Domain Code                                          */
 /*                                                                       */
 /*  DESCRIPTION :                                                        */
 /*                                                                       */
-/*     Insertion sort for 10 integer numbers.                            */
-/*     The integer array a[] is initialized in main function.            */
+/*     Summing the Fibonacci series.                                     */
 /*                                                                       */
 /*  REMARK :                                                             */
 /*                                                                       */
@@ -43,85 +42,36 @@
 /*                                                                       */
 /*************************************************************************/
 
-/* Changes:
- * JG 2005/12/12: Indented program.
- */
+ /*
+  * Changes: JG 2005/12/21: Inserted prototypes.
+  *                         Indented program.
+  */
 
-#ifdef DEBUG
-int             cnt1, cnt2;
-#endif
-
-unsigned int    a[11];
+int             fib(int n);
 
 int 
-insertsort_main()
+fib(int n)
 {
-	int             i, j, temp;
+	int             i, Fnew, Fold, temp, ans;
 
-	a[0] = 0;		/* assume all data is positive */
-	a[1] = 11;
-	a[2] = 10;
-	a[3] = 9;
-	a[4] = 8;
-	a[5] = 7;
-	a[6] = 6;
-	a[7] = 5;
-	a[8] = 4;
-	a[9] = 3;
-	a[10] = 2;
-	i = 2;
-	while (i <= 10) {
-#ifdef DEBUG
-		cnt1++;
-#endif
-		j = i;
-#ifdef DEBUG
-		cnt2 = 0;
-#endif
-		while (a[j] < a[j - 1]) {
-#ifdef DEBUG
-			cnt2++;
-#endif
-			temp = a[j];
-			a[j] = a[j - 1];
-			a[j - 1] = temp;
-			j--;
-		}
-#ifdef DEBUG
-		printf("Inner Loop Counts: %d\n", cnt2);
-#endif
-		i++;
+	Fnew = 1;
+	Fold = 0;
+	for (i = 2;
+	     i <= 30 && i <= n;	/* apsim_loop 1 0 */
+	     i++) {
+		temp = Fnew;
+		Fnew = Fnew + Fold;
+		Fold = temp;
 	}
-#ifdef DEBUG
-	printf("Outer Loop : %d ,  Inner Loop : %d\n", cnt1, cnt2);
-#endif
-	return 1;
+	ans = Fnew;
+	return ans;
 }
 
+int 
+fibcall_main()
+{
+	int             a;
 
-#include "cmsis_os2.h"
-#include "flexpret_os.h"
-int main() {
-	const osThreadAttr_t attr[7] = {
-		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
-		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
-		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
-		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
-		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
-		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
-		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
-	};
-
-	osKernelInitialize();
-	osThreadId_t th[7];
-	register int i;
-	for (i = 0; i < 7; i++) {
-		th[i] = osThreadNew(insertsort_main, NULL, &attr[i]);
-	}
-	osKernelStart();
-	// for (i = 0; i < 7; i++) {
-	// 	osThreadJoin(th[i]);
-	// }
-	osThreadJoinAll(th, 7);
-	return 0;
+	a = 30;
+	return fib(a);
 }

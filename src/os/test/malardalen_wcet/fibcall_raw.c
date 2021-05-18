@@ -73,8 +73,8 @@ fibcall_main()
 	int             a;
 
 	a = 30;
-	fib(a);
-	return a;
+	
+	return fib(a);
 }
 
 #include "flexpret_threads.h"

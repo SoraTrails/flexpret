@@ -15,8 +15,8 @@ int main() {
     // res &= test_trap();
     // res &= test_timer();
     // res &= test_timer_suspend();
-    res &= test_mtfd(); 
+    // res &= test_mtfd(); 
     // res &= test_mutex();
-    // res &= test_api_cycle(); 
+    res &= test_api_cycle(); 
     return !res;
 }

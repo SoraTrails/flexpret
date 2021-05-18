@@ -48,6 +48,8 @@ int osSchedulerGetTmodes(osThreadId_t tid);
 /// \return SRTT Num.
 int32_t osSchedulerGetSRTTNum();
 
+osStatus_t osThreadJoinAll (osThreadId_t* thread_ids, uint32_t len);
+
 /// Terminaing srtt, user should not call this func.
 void srtt_terminate(uint32_t tid);
 

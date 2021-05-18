@@ -107,32 +107,3 @@ duff_main(void)
  *
  *
  *------------------------------------------------------------*/
-
-
-#include "cmsis_os2.h"
-#include "flexpret_os.h"
-int main() {
-	const osThreadAttr_t attr[7] = {
-		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
-		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
-		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
-		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
-		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
-		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
-		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
-	};
-
-	osKernelInitialize();
-	osThreadId_t th[7];
-	register int i;
-	for (i = 0; i < 7; i++) {
-		th[i] = osThreadNew(duff_main, NULL, &attr[i]);
-	}
-	osKernelStart();
-	// for (i = 0; i < 7; i++) {
-	// 	osThreadJoin(th[i]);
-	// }
-	osThreadJoinAll(th, 7);
-
-	return 0;
-}

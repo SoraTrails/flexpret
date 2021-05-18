@@ -387,6 +387,7 @@ osStatus_t osThreadJoin (osThreadId_t thread_id) {
     // osPriority_t p = osThreadGetPriority(osThreadGetId());
     while (((volatile hwthread_state*)thread_id)->func != NULL) {
         // if (p == osPriorityNormal) {
+        // if (read_csr(hartid) != 0) {
             uint32_t time = get_time();
             delay_until_periodic(&time, FLEXPRET_WAIT_PERIOD);
         // }
@@ -394,6 +395,27 @@ osStatus_t osThreadJoin (osThreadId_t thread_id) {
 
     // // eventually terminate sub thread.
     thread_terminate(thread_id, 0);
+    return osOK;
+}
+
+osStatus_t osThreadJoinAll (osThreadId_t* thread_ids, uint32_t len) {
+    uint32_t flag = 0;
+    uint32_t tids[FLEXPRET_MAX_HW_THREADS_NUMS] = {0};
+    register int i;
+    for (i = 0; i < len; i++) {
+        tids[i] = get_tid(thread_ids[i]);
+        flag |= (1 << tids[i]);
+    }
+    while (1) {
+        if (!flag) break;
+        for (i = 0; i < len; i++) {
+            if (((volatile hwthread_state*)thread_ids[i])->func == NULL) {
+                thread_terminate(thread_ids[i], 0);
+                flag &= ~(1 << tids[i]);
+            }
+        }
+    }
+
     return osOK;
 }
  

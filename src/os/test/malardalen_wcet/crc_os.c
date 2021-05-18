@@ -153,8 +153,10 @@ int main() {
 		th[i] = osThreadNew(crc_main, NULL, &attr[i]);
 	}
 	osKernelStart();
-	for (i = 0; i < 7; i++) {
-		osThreadJoin(th[i]);
-	}
+	// for (i = 0; i < 7; i++) {
+	// 	osThreadJoin(th[i]);
+	// }
+	osThreadJoinAll(th, 7);
+
 	return 0;
 }

@@ -1,4 +1,4 @@
-/* MDH WCET BENCHMARK SUITE. File version $Id: insertsort.c,v 1.3 2005/11/11 10:30:41 ael01 Exp $ */
+/* MDH WCET BENCHMARK SUITE. File version $Id: bs.c,v 1.4 2005/12/14 14:44:47 jgn Exp $ */
 
 /*************************************************************************/
 /*                                                                       */
@@ -28,13 +28,12 @@
 /*                                                                       */
 /*************************************************************************/
 /*                                                                       */
-/*  FILE: insertsort.c                                                   */
+/*  FILE: bs.c                                                           */
 /*  SOURCE : Public Domain Code                                          */
 /*                                                                       */
 /*  DESCRIPTION :                                                        */
 /*                                                                       */
-/*     Insertion sort for 10 integer numbers.                            */
-/*     The integer array a[] is initialized in main function.            */
+/*     Binary search for the array of 15 integer elements.               */
 /*                                                                       */
 /*  REMARK :                                                             */
 /*                                                                       */
@@ -42,86 +41,97 @@
 /*                                                                       */
 /*                                                                       */
 /*************************************************************************/
-
 /* Changes:
- * JG 2005/12/12: Indented program.
+ * JG 2005/12/12: Prototypes added, printf removed, and changed exit to return in main.
  */
+/*
+#include<stdio.h>
+*/
 
-#ifdef DEBUG
-int             cnt1, cnt2;
+#ifdef PRET_FUNC_TEST
+#include "ptio.h"
 #endif
 
-unsigned int    a[11];
+//#define DEBUG
+
+struct DATA {
+	int             key;
+	int             value;
+};
+
+#ifdef DEBUG
+int             cnt1;
+#define printf(str) debug_string(str)
+#endif
+
+struct DATA     data[15] = {{1, 100},
+{5, 200},
+{6, 300},
+{7, 700},
+{8, 900},
+{9, 250},
+{10, 400},
+{11, 600},
+{12, 800},
+{13, 1500},
+{14, 1200},
+{15, 110},
+{16, 140},
+{17, 133},
+{18, 10}};
+
+int             binary_search(int x);
 
 int 
-insertsort_main()
+bs_main(void)
 {
-	int             i, j, temp;
+	int res = binary_search(8);
+  return res;
+//    if(res == 900) {
+//        return 1;
+//    } else {
+//        return 0;
+//    }
+}
 
-	a[0] = 0;		/* assume all data is positive */
-	a[1] = 11;
-	a[2] = 10;
-	a[3] = 9;
-	a[4] = 8;
-	a[5] = 7;
-	a[6] = 6;
-	a[7] = 5;
-	a[8] = 4;
-	a[9] = 3;
-	a[10] = 2;
-	i = 2;
-	while (i <= 10) {
+int 
+binary_search(int x)
+{
+	int             fvalue, mid, up, low;
+
+	low = 0;
+	up = 14;
+	fvalue = -1 /* all data are positive */ ;
+	while (low <= up) {
+		mid = (low + up) >> 1;
+		if (data[mid].key == x) {	/* found  */
+			up = low - 1;
+			fvalue = data[mid].value;
+#ifdef DEBUG
+	printf("FOUND!!\n"); 
+#endif
+		} else
+		 /* not found */ if (data[mid].key > x) {
+			up = mid - 1;
+#ifdef DEBUG
+	printf("MID-1\n"); 
+#endif
+		} else {
+			low = mid + 1;
+#ifdef DEBUG
+	printf("MID+1\n"); 
+#endif
+		}
 #ifdef DEBUG
 		cnt1++;
 #endif
-		j = i;
-#ifdef DEBUG
-		cnt2 = 0;
+#ifdef PRET_FUNC_TEST
+        debug_string(itoa(data[mid].key));
+        debug_string("\n");
 #endif
-		while (a[j] < a[j - 1]) {
-#ifdef DEBUG
-			cnt2++;
-#endif
-			temp = a[j];
-			a[j] = a[j - 1];
-			a[j - 1] = temp;
-			j--;
-		}
-#ifdef DEBUG
-		printf("Inner Loop Counts: %d\n", cnt2);
-#endif
-		i++;
 	}
 #ifdef DEBUG
-	printf("Outer Loop : %d ,  Inner Loop : %d\n", cnt1, cnt2);
+/*	printf("Loop Count : %d\n", cnt1); */
 #endif
-	return 1;
-}
-
-
-#include "cmsis_os2.h"
-#include "flexpret_os.h"
-int main() {
-	const osThreadAttr_t attr[7] = {
-		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
-		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
-		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
-		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
-		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
-		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
-		{ "FlexpretThread", osThreadJoinable, NULL, sizeof(hwthread_state), NULL, 0, osPriorityRealtime, 0, 0},
-	};
-
-	osKernelInitialize();
-	osThreadId_t th[7];
-	register int i;
-	for (i = 0; i < 7; i++) {
-		th[i] = osThreadNew(insertsort_main, NULL, &attr[i]);
-	}
-	osKernelStart();
-	// for (i = 0; i < 7; i++) {
-	// 	osThreadJoin(th[i]);
-	// }
-	osThreadJoinAll(th, 7);
-	return 0;
+	return fvalue;
 }

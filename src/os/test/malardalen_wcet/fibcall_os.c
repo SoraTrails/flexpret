@@ -73,8 +73,8 @@ fibcall_main()
 	int             a;
 
 	a = 30;
-	fib(a);
-	return a;
+	
+	return fib(a);
 }
 
 
@@ -98,8 +98,9 @@ int main() {
 		th[i] = osThreadNew(fibcall_main, NULL, &attr[i]);
 	}
 	osKernelStart();
-	for (i = 0; i < 7; i++) {
-		osThreadJoin(th[i]);
-	}
+	// for (i = 0; i < 7; i++) {
+	// 	osThreadJoin(th[i]);
+	// }
+	osThreadJoinAll(th, 7);
 	return 0;
 }

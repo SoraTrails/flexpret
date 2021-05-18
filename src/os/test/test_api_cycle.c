@@ -18,25 +18,6 @@ int test_api_cycle() {
     osThreadId_t t1 = osThreadNew(test_func, NULL, NULL);
     osThreadId_t t2 = osThreadNew(test_func, NULL, &thread);
 
-    // osKernelStart
-    osKernelStart();
-
-    // osThreadGetState
-    osThreadGetState(t1);
-
-    // osThreadSetPriority
-    osThreadSetPriority(t1, osPriorityRealtime);
-    osThreadSetPriority(t2, osPriorityNormal);
-
-    // osThreadGetPriority
-    osThreadGetPriority(t1);
-    
-    // osThreadSuspend
-    osThreadSuspend(t2);
-
-    // osThreadResume
-    osThreadResume(t2);
-
     // osTimerNew
     osTimerId_t timer = osTimerNew(test_func, osTimerPeriodic, NULL, NULL);
 
@@ -59,6 +40,25 @@ int test_api_cycle() {
 
     // osMutexRelease
     osMutexRelease(mutex);
+    // osKernelStart
+    osKernelStart();
+
+    // osThreadGetState
+    osThreadGetState(t1);
+
+    // osThreadSetPriority
+    osThreadSetPriority(t1, osPriorityRealtime);
+    osThreadSetPriority(t2, osPriorityNormal);
+
+    // osThreadGetPriority
+    osThreadGetPriority(t1);
+    
+    // osThreadSuspend
+    osThreadSuspend(t2);
+
+    // osThreadResume
+    osThreadResume(t2);
+
 
     return PASSED;
 }

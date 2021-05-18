@@ -3,6 +3,7 @@
 #include "flexpret_utils.h"
 #include "flexpret_threads.h"
 #include "flexpret_timing.h"
+#include "flexpret_io.h"
 
 int flexpret_mutex_num = 0;
 volatile mutex_state startup_mutex_state[FLEXPRET_MUTEX_MAX_NUM];
@@ -54,8 +55,8 @@ osMutexId_t osMutexNew (const osMutexAttr_t *attr) {
     volatile mutex_state* mutex = &startup_mutex_state[mid];
 
     mutex->csr_addr = mid;
-    mutex->ifRecursive = attr->attr_bits & osMutexRecursive;
-    mutex->ifRobust = attr->attr_bits & osMutexRobust;
+    mutex->ifRecursive = !!(attr->attr_bits & osMutexRecursive);
+    mutex->ifRobust = !!(attr->attr_bits & osMutexRobust);
     mutex->ifSpin = 0;
     mutex->owner = NULL;
     mutex->name = attr->name;

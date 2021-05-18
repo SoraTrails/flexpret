@@ -42,14 +42,14 @@ flexpret_os: layout.ld $(FLEXPRET_OS_APP_COBJ) $(FLEXPRET_OS_COBJ) $(FLEXPRET_OS
 
 os.inst.mem.ins: flexpret_os
 	$(RISCV_OBJDUMP) -d --section=.text flexpret_os > os.inst.mem.ins
-	$(RISCV_OBJDUMP) --disassemble-all --section=.text --section=.data --section=.bss flexpret_os > os.dump
+	$(RISCV_OBJDUMP) --disassemble-all --section=.text --section=.data --section=.bss --section=.sbss flexpret_os > os.dump
 
 os.inst.mem: flexpret_os
 	$(RISCV_OBJCOPY) --only-section .text -O binary flexpret_os os.inst
 	hexdump -v -e '1/4 "%08X" "\n"' os.inst > os.inst.mem
 
 os.data.mem: flexpret_os
-	$(RISCV_OBJCOPY) --only-section .data --only-section .bss -O binary flexpret_os os.data
+	$(RISCV_OBJCOPY) --only-section .data --only-section .bss --only-section .sbss -O binary flexpret_os os.data
 	hexdump -v -e '1/4 "%08X" "\n"' os.data > os.data.mem
 
 os_all: os.inst.mem os.data.mem os.inst.mem.ins
@@ -79,14 +79,14 @@ flexpret_test_os: layout.ld $(FLEXPRET_OS_COBJ) $(FLEXPRET_OS_SOBJ) $(FLEXPRET_O
 
 test.inst.mem.ins: flexpret_test_os
 	$(RISCV_OBJDUMP) -d --section=.text flexpret_test_os > test.inst.mem.ins
-	$(RISCV_OBJDUMP) --disassemble-all --section=.text --section=.data --section=.bss flexpret_test_os > test.dump
+	$(RISCV_OBJDUMP) --disassemble-all --section=.text --section=.data --section=.bss --section=.sbss  flexpret_test_os > test.dump
 
 test.inst.mem: flexpret_test_os
 	$(RISCV_OBJCOPY) --only-section .text -O binary flexpret_test_os test.inst
 	hexdump -v -e '1/4 "%08X" "\n"' test.inst > test.inst.mem
 
 test.data.mem: flexpret_test_os
-	$(RISCV_OBJCOPY) --only-section .data --only-section .bss -O binary flexpret_test_os test.data
+	$(RISCV_OBJCOPY) --only-section .data --only-section .bss --only-section .sbss -O binary flexpret_test_os test.data
 	hexdump -v -e '1/4 "%08X" "\n"' test.data > test.data.mem
 
 FLEXPRET_WCET_SRC := $(wildcard test/malardalen_wcet/*.c)
@@ -110,12 +110,12 @@ $(FLEXPRET_WCET_INST): %_wcet.inst.mem: %_wcet.out
 	rm $(patsubst %_wcet.inst.mem,%.inst.tmp,$@)
 
 $(FLEXPRET_WCET_DATA): %_wcet.data.mem: %_wcet.out
-	$(RISCV_OBJCOPY) --only-section .data --only-section .bss -O binary $< $(patsubst %_wcet.data.mem,%.data.tmp,$@)
+	$(RISCV_OBJCOPY) --only-section .data --only-section .bss --only-section .sbss -O binary $< $(patsubst %_wcet.data.mem,%.data.tmp,$@)
 	hexdump -v -e '1/4 "%08X" "\n"' $(patsubst %_wcet.data.mem,%.data.tmp,$@) > $@
 	rm $(patsubst %_wcet.data.mem,%.data.tmp,$@)
 
 $(FLEXPRET_WCET_DUMP): %_wcet.dump: %_wcet.out
-	$(RISCV_OBJDUMP) --disassemble-all --section=.text --section=.data --section=.bss $< > $@
+	$(RISCV_OBJDUMP) --disassemble-all --section=.text --section=.data --section=.bss --section=.sbss $< > $@
 	cp $@ /data/wcet_log/dump/
 
 FLEXPRET_CMSIS_INCLUDE := test/cmsis_validation/include
@@ -130,14 +130,14 @@ cmsis.out: layout.ld $(FLEXPRET_CMSIS_COBJ) $(FLEXPRET_OS_COBJ) $(FLEXPRET_OS_SO
 
 cmsis.inst.mem.ins: cmsis.out
 	$(RISCV_OBJDUMP) -d --section=.text cmsis.out > cmsis.inst.mem.ins
-	$(RISCV_OBJDUMP) --disassemble-all --section=.text --section=.data --section=.bss cmsis.out > cmsis.dump
+	$(RISCV_OBJDUMP) --disassemble-all --section=.text --section=.data --section=.bss --section=.sbss cmsis.out > cmsis.dump
 
 cmsis.inst.mem: cmsis.out
 	$(RISCV_OBJCOPY) --only-section .text -O binary cmsis.out cmsis.inst
 	hexdump -v -e '1/4 "%08X" "\n"' cmsis.inst > cmsis.inst.mem
 
 cmsis.data.mem: cmsis.out
-	$(RISCV_OBJCOPY) --only-section .data --only-section .bss -O binary cmsis.out cmsis.data
+	$(RISCV_OBJCOPY) --only-section .data --only-section .bss --only-section .sbss -O binary cmsis.out cmsis.data
 	hexdump -v -e '1/4 "%08X" "\n"' cmsis.data > cmsis.data.mem
 
 cmsis: cmsis.inst.mem.ins cmsis.inst.mem cmsis.data.mem

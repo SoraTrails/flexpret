@@ -287,13 +287,13 @@ void TC_ThreadTerminate (void) {
 
     if (id != NULL) {
       /* Allow counting thread to run */
-      ASSERT_TRUE (osDelay(5) == osOK);
+      ASSERT_TRUE (osDelay(5000) == osOK);
       /* - Terminate test thread and remember counter value */
       ASSERT_TRUE (osThreadTerminate (id) == osOK);
       ASSERT_TRUE (Var_Counter != 0);
       cnt = Var_Counter;
 
-      ASSERT_TRUE (osDelay(5) == osOK);
+      ASSERT_TRUE (osDelay(5000) == osOK);
       /* - Wait and verify that thread is terminated by checking global counter */
       ASSERT_TRUE (cnt == Var_Counter);
     }

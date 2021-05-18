@@ -104,15 +104,14 @@ static TEST_CASE TC_LIST[] = {
   TCD ( TC_SemInterrupts,                        1      ),   
 #endif  
 #ifdef RTE_RV_MUTEX                                                                       
-  // TCD ( TC_MutexBasic,                           1      ),
+  TCD ( TC_MutexBasic,                           1      ),
   // TCD ( TC_MutexTimeout,                         0      ),
-  // TCD ( TC_MutexCheckTimeout,                    1      ),
-  // TCD ( TC_MutexNestedAcquire,                   1      ),
+  TCD ( TC_MutexCheckTimeout,                    1      ),
+  TCD ( TC_MutexNestedAcquire,                   1      ),
   // TCD ( TC_MutexPriorityInversion,               0      ),
-  // TCD ( TC_MutexOwnership,                       1      ),
-  // TCD ( TC_MutexParam,                           1      ),
+  // TCD ( TC_MutexOwnership,                       0      ),
+  TCD ( TC_MutexParam,                           1      ),
   // TCD ( TC_MutexInterrupts,                      0      ),                                           
-  TCD ( TC_ThreadTerminate,                      1      ),
 #endif  
 #ifdef RTE_RV_MEMORYPOOL
   TCD ( TC_MemPoolAllocAndFree,                  1      ),   
@@ -151,6 +150,9 @@ static TEST_CASE TC_LIST[] = {
   TCD ( TC_MeasureOsMessageWaitTicks,            1      ),
   TCD ( TC_MeasureOsMailWaitTicks,               1      ),
 #endif 
+#ifdef RTE_RV_THREAD 
+  TCD ( TC_ThreadTerminate,                      1      ),
+#endif
 };                                                              
 
 #if defined(__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050)

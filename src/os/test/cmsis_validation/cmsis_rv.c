@@ -150,6 +150,15 @@ static TEST_CASE TC_LIST[] = {
   TCD ( TC_MeasureOsMessageWaitTicks,            1      ),
   TCD ( TC_MeasureOsMailWaitTicks,               1      ),
 #endif 
+#ifdef RTE_RV_EXTEND
+  TCD ( TC_ThreadJoin,                           1      ),
+  TCD ( TC_ThreadControl,                        1      ),
+  TCD ( TC_SchedulerSlot,                        1      ),
+  TCD ( TC_SchedulerTmode,                       1      ),
+  TCD ( TC_ThreadTrap,                           1      ),
+  TCD ( TC_MutexSpin,                            1      ),
+#endif
+
 #ifdef RTE_RV_THREAD 
   TCD ( TC_ThreadTerminate,                      1      ),
 #endif

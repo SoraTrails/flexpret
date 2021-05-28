@@ -25,5 +25,5 @@
 #define RTE_RV_THREAD
 #define RTE_RV_TIMER
 #define RTE_RV_MUTEX
-  
-#endif /* __RV_CONFIG_H */
+#define RTE_RV_EXTEND
+#endif /* __RV_CONFIG_H */ 

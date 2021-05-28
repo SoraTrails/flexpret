@@ -83,3 +83,19 @@ int test_mutex() {
     
     return PASSED;
 }
+
+int test_mutex_spin() { // TC_MutexSpin
+    osMutexId_t m;
+    const osMutexAttr_t mAttr = {
+        "myThreadMutex",     // human readable mutex name
+        osMutexRecursive | osMutexRobust,    // attr_bits
+        NULL,                // memory for control block   
+        0U                   // size for control block
+    };
+
+    m = osMutexNew(&mAttr);
+    FLEXPRET_ASSERT(m != NULL);
+    FLEXPRET_ASSERT(osMutexSetSpin(m, 1) == osOK);
+    FLEXPRET_ASSERT(osMutexGetSpin(m) == 1);
+    return PASSED;
+}

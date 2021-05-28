@@ -115,4 +115,11 @@ extern void TC_MeasureOsSemaphoreWaitTicks (void);
 extern void TC_MeasureOsMessageWaitTicks (void);
 extern void TC_MeasureOsMailWaitTicks (void);
 
+extern void TC_ThreadJoin (void);
+extern void TC_ThreadControl (void);
+extern void TC_SchedulerSlot (void);
+extern void TC_SchedulerTmode (void);
+extern void TC_ThreadTrap (void);
+extern void TC_MutexSpin (void);
+
 #endif /* __CMSIS_RV_H */

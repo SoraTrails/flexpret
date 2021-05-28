@@ -5,6 +5,8 @@
 #include "flexpret_io.h"
 #include "flexpret_trap.h"
 
+static int fault_flag = 0;
+
 static void osTestFault(void * arg) {
     int arr[10] = {2, 1, 5, 7, 9, 10, 6, 2, 8, 5};
     register int i, j;
@@ -27,9 +29,10 @@ static void osTestFault(void * arg) {
 
 static void fault_handler() {
     flexpret_info("fault!\n");
+    fault_flag = 0xdead;
 }
 
-int test_trap() {
+int test_trap() { // TC_ThreadTrap
     osThreadAttr_t thread;
     thread.priority = osPriorityNormal;
     thread.attr_bits = osThreadJoinable;
@@ -47,6 +50,8 @@ int test_trap() {
     FLEXPRET_ASSERT(osThreadGetTrapHandler(tid, Exception) == (trap_handler)fault_handler);
 
     osThreadJoin(tid);
+
+    FLEXPRET_ASSERT(fault_flag == 0xdead);
     
     return PASSED;
 }

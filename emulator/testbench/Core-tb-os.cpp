@@ -204,6 +204,7 @@ int main (int argc, char* argv[])
                 sprintf(tmp_file_name[i], "/tmp/flexpret_thread_%d.log", i);
                 tmp_file[i] = fopen(tmp_file_name[i], "w");
             }
+            FILE* stat = fopen("/tmp/flexpret_stat.log", "w");
 
             while(!done && (max_cycles == 0 || cycle < max_cycles)) {
 
@@ -321,6 +322,7 @@ int main (int argc, char* argv[])
                     //    fprintf(stderr, "0x%016x\n",c->Core_datapath__exe_reg_pc.lo_word());
                     //}
                 }
+                fprintf(stat, "cycle=%d, tid=%d, valid=%d, pc=%08x, inst=%08x\n", cycle, c->Core_datapath__exe_reg_tid.lo_word(), c->Core_control__exe_valid.lo_word(), c->Core_datapath__exe_reg_pc.lo_word(), c->Core_datapath__exe_reg_inst.lo_word());
 
                 // Next cycle
                 c->clock_hi(LIT<1>(0));
@@ -355,6 +357,7 @@ int main (int argc, char* argv[])
             for (int i = 0; i < THREADS; i++) {
                 fclose(tmp_file[i]);
             }
+            fclose(stat);
 
         }
     }

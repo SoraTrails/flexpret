@@ -136,6 +136,11 @@ static void thread_terminate(osThreadId_t thread_id, int clean) {
     osSchedulerSetTmodes(thread_id, TMODE_ZOMBIE);
 }
 
+void raw_thread_after_return_handler() {
+    uint32_t tid = read_csr(hartid);
+    startup_state[tid].func = NULL;
+}
+
 __NO_RETURN void thread_after_return_handler() {
     osThreadId_t thread_id = osThreadGetId();
 

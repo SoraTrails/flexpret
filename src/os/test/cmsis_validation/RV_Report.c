@@ -268,11 +268,11 @@ BOOL tc_Init (void) {
  * Evaluate test report results
  *----------------------------------------------------------------------------*/
 uint8_t *tr_Eval (void) {
-    gpo_set_3(0x3);
+    gpo_set_0(0x3);
   if (test_report.failed > 0) {
     /* Test fails if any test case failed */
     // For FPGA Validation
-    gpo_set_1(0x3);
+    gpo_set_2(0x3);
     return (Failed);
   }
   else if (test_report.warnings > 0) {
@@ -282,7 +282,7 @@ uint8_t *tr_Eval (void) {
   else if (test_report.passed > 0) {
     /* Test passes if at least one test case passed */
     // For FPGA Validation
-    gpo_set_0(0x3);
+    gpo_set_1(0x3);
     return (Passed);
   }
   else {

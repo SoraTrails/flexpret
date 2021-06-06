@@ -110,29 +110,50 @@ int test_timer_suspend() {
     return PASSED;
 }
 
-// static void osTestMtfdImm() {
+static void osTestMtfdImm() {
+    mti(300);
+    register int i;
+    for (i = 0; i < 20; i++) {}
+    fd();
+    // asm volatile ("div x0,x0,x0");
+}
+
+static void osTestMtfdImm2() {
+    mti(3000);
+    register int i;
+    for (i = 0; i < 20; i++) {}
+    fd();
+    // asm volatile ("div x0,x0,x0");
+}
+
+// static int osTestMtfdImm(void * arg) {
+//     uint32_t time = get_time();
 //     mti(1000);
 //     register int i;
 //     for (i = 0; i < 100; i++) {}
+//     set_compare(time + 500);
+//     delay_until();
 //     fd();
-//     // asm volatile ("div x0,x0,x0");
+//     return 1;
 // }
 
-static int osTestMtfdImm(void * arg) {
-    uint32_t time = get_time();
-    mti(1000);
-    register int i;
-    for (i = 0; i < 100; i++) {}
-    set_compare(time + 500);
-    delay_until();
-    fd();
-    return 1;
+static void mtfd_trap_handler() {
+    // osThreadId_t tid = osThreadGetId();
+    uint32_t tid = read_csr(hartid);
+    gpo_set_1(0x3);
+    
+    flexpret_info("Thread ");
+    flexpret_info(itoa_hex_removing_ldz(tid));
+    flexpret_info(" missed the deadline.\n");
 }
 
-static void mtfd_trap_handler() {
-    osThreadId_t tid = osThreadGetId();
+static void mtfd_trap_handler2() {
+    // osThreadId_t tid = osThreadGetId();
+    uint32_t tid = read_csr(hartid);
+    gpo_set_2(0x3);
+    
     flexpret_info("Thread ");
-    flexpret_info(itoa_hex(tid));
+    flexpret_info(itoa_hex_removing_ldz(tid));
     flexpret_info(" missed the deadline.\n");
 }
 
@@ -154,14 +175,16 @@ int test_mtfd() {
     thread2.priority = osPriorityRealtime;
     thread2.attr_bits = osThreadJoinable;
     osThreadId_t tid1 = osThreadNew((osThreadFunc_t)osTestMtfdImm, NULL, &thread1);
-    osThreadId_t tid2 = osThreadNew((osThreadFunc_t)osTestMtfdReg, NULL, &thread2);
+    osThreadId_t tid2 = osThreadNew((osThreadFunc_t)osTestMtfdImm2, NULL, &thread2);
 
-    FLEXPRET_ASSERT(tid1 != NULL && tid2 != NULL);
+    // FLEXPRET_ASSERT(tid1 != NULL && tid2 != NULL);
     osThreadSetTrapHandler(tid1, (trap_handler)mtfd_trap_handler, ExceptionOnExpire);
+    osThreadSetTrapHandler(tid2, (trap_handler)mtfd_trap_handler2, ExceptionOnExpire);
     osKernelStart();
 
     osThreadJoin(tid1);
     osThreadJoin(tid2);
+    gpo_set_0(0x3);
 
     return PASSED;
 }

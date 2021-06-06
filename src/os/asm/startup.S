@@ -88,6 +88,7 @@ beqz a1, done
 #### sw zero, 0(a2)
 #### sw zero, 4(a2)
 la a0, thread_after_return_handler
+# la a0, raw_thread_after_return_handler
 jalr ra, a0, 0
 
 #TODO: thread sleep

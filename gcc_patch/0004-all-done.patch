@@ -1,0 +1,155 @@
+From b45003688f297965b8986ef82030b50562197ee9 Mon Sep 17 00:00:00 2001
+From: SoraTrails <me876657621@126.com>
+Date: Sun, 11 Apr 2021 23:27:48 +0800
+Subject: [PATCH 4/7] all done
+
+---
+ gcc/mtfd.c | 56 +++++++++++++++++++++++++++++++++-----------------------
+ gcc/mtfd.h |  2 --
+ 2 files changed, 33 insertions(+), 25 deletions(-)
+
+diff --git a/gcc/mtfd.c b/gcc/mtfd.c
+index d6ec289..ce4a7c1 100644
+--- a/gcc/mtfd.c
++++ b/gcc/mtfd.c
+@@ -10,9 +10,11 @@ static bool bb_visit[BB_MAX_NUM];
+ static int bb_cycle[BB_MAX_NUM][5];
+ static bool bb_has_call[BB_MAX_NUM];
+ static struct simple_stack<basic_block> bb_stack;
++static struct simple_stack<basic_block> path_vector;
+ static struct mtfd_pair mtfd_insn[MTFD_MAX_NUM];
+ static int mt_insn_len = 0;
+ static int fd_insn_len = 0;
++static int cfun_bb_num = 0;
+ 
+ static hash_table <rv32i_insn_hasher> insn_table;
+ static alloc_pool rv32i_insn_pool;
+@@ -22,10 +24,10 @@ extern hash_table <rv32i_tmpl_hasher> tmpl_table;
+ extern alloc_pool rv32i_tmpl_pool;
+ 
+ static const char rv32i_insn[][32] = {
+-  "la","lla","move","mv","nop","li","not","neg","seqz","snez","sltz","sgtz","beqz","bnez","blez","bgez","bltz","bgtz","bgt","ble","bgtu","bleu","lui","auipc", "addi","slti","sltiu","xori","ori","andi","slli","srli","srai","add","sub","sll","slt","sltu","xor","srl","sra","or","and","jal","jalr","beq","bne","blt","bge","bltu","bgeu","j","jr","call","b","sb","sh","sw","lb","lh","lw","lbu","lhu","csrrw","csrrs","csrrc","csrrwi","csrrsi","csrrci","syscall","fence.i","fence","csrr","csrw","rdtime","rdcycle","rdinstret","custom0","custom1","custom2","custom3"
++  "la","lla","move","mv","nop","li","not","neg","seqz","snez","sltz","sgtz","beqz","bnez","blez","bgez","bltz","bgtz","bgt","ble","bgtu","bleu","lui","auipc", "addi","slti","sltiu","xori","ori","andi","slli","srli","srai","add","sub","sll","slt","sltu","xor","srl","sra","or","and","jal","jalr","beq","bne","blt","bge","bltu","bgeu","j","jr","call","b","sb","sh","sw","lb","lh","lw","lbu","lhu","csrrw","csrrs","csrrc","csrrwi","csrrsi","csrrci","syscall","fence.i","fence","csrr","csrw","rdtime","rdcycle","rdinstret","custom0","custom1","custom2","custom3", "ret"
+ };
+ static const int rv32i_insn_cycles[][5] = {
+-  {3, 2, 2, 2, 2}, {2, 2, 2, 2, 2}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 4, 4, 4, 4}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 2, 2, 1, 1}, {4, 2, 2, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {5, 3, 2, 2, 1}, {5, 3, 2, 2, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1} 
++  {3, 2, 2, 2, 2}, {2, 2, 2, 2, 2}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 4, 4, 4, 4}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 2, 2, 1, 1}, {4, 2, 2, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {5, 3, 2, 2, 1}, {5, 3, 2, 2, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {3, 2, 1, 1, 1}
+ };
+ static const int TABLE_LEN = sizeof(rv32i_insn) / (sizeof(char) * 32);
+ 
+@@ -201,40 +203,36 @@ static bool timing_between_insn(const_rtx start, const_rtx end, int * cycle, int
+   return true;
+ }
+ 
+-// calculate timing info between two basic block
+-static bool timing_between_bb(basic_block start, basic_block end, int* max_cycle, int j) {
+-  // TODO
+-  if (start == end) {
+-    // max_cycle[j] = max_cycle[j] > bb_cycle[start->index][j] ? max_cycle[j] : bb_cycle[start->index][j];
+-    return true;
++// calculate timing info between two basic block, set depth to exit to avoid stack overflow
++static bool timing_between_bb_dfs(basic_block start, basic_block end, int depth, int* max_cycle, int j) {
++  if (depth > cfun_bb_num + 32) {
++    return false;
+   }
+-	bb_visit[start->index] = 1;
+ 	bb_stack.push(start);
+   vec<edge, va_gc>* succ = start->succs;
+-  for (size_t i = 0; i < succ->length(); i++) {
++  for (size_t i = 0; succ && i < succ->length(); i++) {
+     basic_block bb_s = (*succ)[i]->dest;
+     if (bb_s == end) {
+-      // bb_stack.push(end);
+       int sum_cycle = 0;
+-      for (int k = 0; k < bb_stack.top + 1; k++) {
++	    bb_stack.push(bb_s);
++      for (int k = 0; k < bb_stack.top; k++) {
+         sum_cycle += bb_cycle[bb_stack.stack[k]->index][j];
+       }
+-      sum_cycle += bb_cycle[bb_s->index][j];
+-      max_cycle[j] = max_cycle[j] > sum_cycle ? max_cycle[j] : sum_cycle;
++      if (sum_cycle > max_cycle[j]) {
++        // record path in path_vector
++        path_vector.clear();
++        for (int k = 0; k < bb_stack.top; k++) {
++          path_vector.push(bb_stack.stack[k]);
++        }
++        max_cycle[j] = sum_cycle;
++      }
+       bb_stack.pop();
+-      bb_visit[start->index] = 0;
+-      return true;
+     }
+-		if (!bb_visit[bb_s->index]) {
+-			if (!timing_between_bb(bb_s, end, max_cycle, j)) {
+-        return false;
+-      }
+-		} else {
++    if (!timing_between_bb_dfs(bb_s, end, depth + 1, max_cycle, j)) {
+       return false;
+     }
+   }
+   bb_stack.pop();
+-  bb_visit[start->index] = 0;
+   return true;
+ }
+ 
+@@ -250,7 +248,9 @@ static bool scan_bb_timing() {
+   mt_insn_len = 0;
+   fd_insn_len = 0;
+ 
++  cfun_bb_num = 0;
+   FOR_EACH_BB_FN (bb, cfun) {
++    cfun_bb_num++;
+     if (!timing_between_insn(BB_HEAD(bb), NEXT_INSN (BB_END (bb)), bb_cycle[bb->index], 1, bb)) {
+       return false;
+     }
+@@ -283,7 +283,8 @@ static bool timing_between_mt_fd() {
+ 
+       bool flag = true;
+       for (int j = 0; j < 5; j++) {
+-        if (!timing_between_bb(mtfd_insn[i].mt_bb, mtfd_insn[i].fd_bb, max_cycle, j)) {
++        // if (!timing_between_bb(mtfd_insn[i].mt_bb, mtfd_insn[i].fd_bb, max_cycle, j)) {
++        if (!timing_between_bb_dfs(mtfd_insn[i].mt_bb, mtfd_insn[i].fd_bb, 0, max_cycle, j)) {
+           flag = false;
+           break;
+         }
+@@ -292,6 +293,15 @@ static bool timing_between_mt_fd() {
+         warning_at(INSN_LOCATION(mtfd_insn[i].mt), 0, "cycle found between mt and fd, "
+                   "timing info cannot be calculated precisely !");
+         continue;
++      } else {
++        // go through path_vector to mark bb with `call` instruction
++        for (int k = 0; k < path_vector.top; k++) {
++          if (bb_has_call[path_vector.stack[k]->index]) {
++            warning_at(INSN_LOCATION(mtfd_insn[i].mt), 0, "Funcion call detected between mt and fd, "
++                   "Its execution time is NOT accumulated into WCET !!!\n");
++            break;
++          }
++        }
+       }
+ 
+       // subtract timing path before mt in mt_bb and after fd in fd_bb
+diff --git a/gcc/mtfd.h b/gcc/mtfd.h
+index da89991..418c822 100644
+--- a/gcc/mtfd.h
++++ b/gcc/mtfd.h
+@@ -136,7 +136,6 @@ struct simple_stack {
+             top = top - 1;   
+             return data;
+         } else {
+-            printf("Could not retrieve data, Stack is empty.\n");
+             return NULL;
+         }
+     }
+@@ -145,7 +144,6 @@ struct simple_stack {
+             top = top + 1;   
+             stack[top] = data;
+         } else {
+-            printf("Could not insert data, Stack is full.\n");
+             return 0;
+         }
+         return 1;
+-- 
+2.7.4
+

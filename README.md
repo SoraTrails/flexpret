@@ -1,139 +1,110 @@
-Under Development
+FlexPRET OS
 ================================================================================
-This branch is under development for the latest versions of Chisel and RISC-V and will not always be stable with up-to-date documentation.
+FlexPRET OS is a lightweight rtos implementation based on [FlexPRET](https://github.com/pretis/flexpret) processor, which implements system initailization, thread management, timer management, mutex management, trap management and some self-defined APIs.
 
-For previous versions, see the [riscv-2.0](https://github.com/pretis/flexpret/tree/riscv-2.0) and [RTAS14](https://github.com/pretis/flexpret/tree/RTAS14) branches 
+Before getting started, you may refer to the depository of [FlexPRET](https://github.com/pretis/flexpret) to know what FlexPRET is.
 
-FlexPRET
-================================================================================
-__FlexPRET__ is a 5-stage, fine-grained multithreaded [RISC-V*](http://riscv.org) processor designed specifically for _mixed-criticality (real-time embedded) systems_ and written in [Chisel**](https://chisel.eecs.berkeley.edu/). A hardware thread scheduler decides which hardware thread to start executing each cycle, regulated by configuration and status registers. Each hardware thread is either classified as a _hard real-time thread (HRTT)_ or _soft real-time thread (SRTT)_: HRTTs are only scheduled at a constant rate for _hardware-based isolation and predictability_ (enabling independent formal verification), and SRTTs share remaining cycles (including when a HRTT doesn't need prescribed cycles) for _efficient processor utilization_. For comparison purposes, both single-threaded and round-robin multithreaded 5-stage RISC-V processors can also be generated. FlexPRET is developed at UC Berkeley as part of the [PRET](http://chess.eecs.berkeley.edu/pret/) project.
+FlexPRET OS is based on [this commit](https://github.com/pretis/flexpret/commit/446635af19f2ba54444da54afa49cba1a1c6d28d) of FlexPRET, which is a chisel2 version.
 
-For more information on the processor architecture:  
-- Michael Zimmer, "[Predictable Processors for Mixed-Criticality Systems and Precision-Timed I/O](http://www2.eecs.berkeley.edu/Pubs/TechRpts/2015/EECS-2015-181.pdf)," Ph.D. Dissertation, EECS Department, University of California, Berkeley, UCB/EECS-2015-181, 2015.
-- Michael Zimmer, David Broman, Chris Shaver, Edward A. Lee. "[FlexPRET: A Processor Platform for Mixed-Criticality Systems](http://chess.eecs.berkeley.edu/pubs/1048.html,). Proceedings of the 20th IEEE Real-Time and Embedded Technology and Application Symposium (RTAS), April, 2014.
+The most API of FlexPRET OS refers to [CMSIS RTOS v2](https://www.keil.com/pack/doc/cmsis/RTOS2/html/index.html).
 
-*[RISC-V](http://riscv.org) is an ISA developed at UC Berkeley for computer architecture research and education.
-**[Chisel](https://chisel.eecs.berkeley.edu/) is an open-source hardware construction language developed at UC Berkeley that generates both Verilog and a C++ emulator.
 
-__Contributors:__  
-Michael Zimmer (mzimmer@eecs.berkeley.edu)  
-Chris Shaver (shaver@eecs.berkeley.edu)  
-Hokeun Kim (hokeunkim@eecs.berkeley.edu)  
-David Broman (broman@eecs.berkeley.edu)  
-
-Table of Contents:  
-[Quickstart](#quickstart)  
-[Directory Structure](#directory-structure)  
-[Makefile Configuration](#makefile-configuration)  
-[Tests](#tests)  
-[RISC-V Compiler](#risc-v-compiler)  
-[Program Compilation](#program-compilation)  
-[Chisel](#chisel)  
-[C++ Emulator](#c-emulator)  
-[FPGA](#fpga)  
-
-Quickstart
+Software Implementation
 --------------------------------------------------------------------------------
-We've tried to make it quick and easy to both simulate program execution on the FlexPRET processor and generate Verilog code for FPGA! 
+### Kernel Information and Control
+| API |
+| --  |
+| osKernelInitialize |
+| osKernelGetInfo |
+| osKernelGetState |
+| osKernelStart |
+| osKernelGetTickCount |
+| osKernelGetTickFreq |
 
-If you would like to execute your own programs you will still need to [install the RISC-V compiler](#risc-v-compiler) and have `java` and `g++` installed.
+### Thread Management
+| API |
+| --  |
+|osThreadNew|
+|osThreadGetName|
+|osThreadGetId|
+|osThreadGetState|
+|osThreadGetStackSize|
+|osThreadGetStackSpace|
+|osThreadSetPriority|
+|osThreadGetPriority|
+|osThreadSuspend|
+|osThreadResume|
+|osThreadDetach|
+|osThreadJoin|
+|osThreadExit|
+|osThreadTerminate|
+|osThreadGetCount|
+|osThreadEnumerate|
+|osDelay|
+|osDelayUntil|
 
-To simulate an assembly code test suite (first run may take a few minutes to download dependencies):
-```
-make run
-```
+### Timer Management
+| API |
+| --  |
+|osTimerNew|
+|osTimerGetName|
+|osTimerStart|
+|osTimerStop|
+|osTimerIsRunning|
+|osTimerDelete|
 
-This will simulate the execution of the program directory `tests/isa` on FlexPRET configured with 4 hardware threads. The default configuration is set in `config.mk` and can be [changed](#flexpret-configuration). The makefile will (if needed) install [SBT](http://www.scala-sbt.org/), download Chisel, generate a C++ emulator for the FlexPRET processor, compile the C++ emulator, excute the C++ emulator on each program in the test suite, and finally display the results.
+### Mutex Management
+| API |
+| --  |
+|osMutexNew|
+|osMutexGetName|
+|osMutexAcquire|
+|osMutexRelease|
+|osMutexGetOwner|
+|osMutexDelete|
+### Trap Management
 
-See the [tests](#tests) section for information about running other programs.
+### Self-defined APIs
+| API |
+| --  |
+|osSchedulerGetFreq|
+|osSchedulerSetSlotNum|
+|osSchedulerSetSoftSlotNum|
+|osSchedulerGetSRTTNum|
+|osSchedulerGetTmodes|
+|osSchedulerSetTmodes|
+|osThreadSetTrapHandler|
+|osThreadGetTrapHandler|
+|osThreadJoinAll|
+|osThreadGetTimer|
+|osTimerSetFunc|
+|osMutexSetSpin|
+|osMuteGetSpin|
 
-`make clean` will remove files associated with current configuration and `make cleanll` will remove files associated with all configurations.
 
-Directory Structure
+Timing Instruction Extension
 --------------------------------------------------------------------------------
-- `emulator/` C++ emulator and testbench for generated processors
-- `fpga/` Generated Verilog code and scripts for FPGA deployment
-- `sbt/` [SBT](http://www.scala-sbt.org/) for compiling and running Chisel
-- `scripts/` Various scripts
-- `src/` Chisel and Verilog source files
-  - `common/` Shared interfaces in Chisel
-  - `Core/` FlexPRET processor (and baseline processors) in Chisel
-  - `uart/` Verilog code for UART
-- `tests/` C and assembly programs and test suites
-  - `include/` Libraries and macros
+FlexPRET OS extends FlexPRET's timing instruction:
+| Pseudo-instruction	| Implementation	| Semantics |
+| ---	| --- | --- |
+| mt |	custom3 0, r1, 0, 0 | Mark the beginning of the code block, and give the execution deadline (stored in register) of the code block |
+| mti |	lui zero, imm	| Mark the beginning of the code block, and give the execution deadline (stored in 24bit immediate) of the code block |
+| fd	| custom3 zero, zero, zero, 0	| Mark the end of the code block. When the execution time of the code block exceeds the agreed time of the mt/mti instruction, mtfd exception will be raised |
 
+The mtfd instruction is mentioned in the paper:
+- D. Broman, M. Zimmer, Y. Kim, H. Kim, J. Cai, A. Shrivastava, S. A. Edwards, and E. A. Lee, [Precision timed infrastructure: Design challenges](http://ieeexplore.ieee.org/abstract/document/6573221/) in Proceedings of the Electronic System Level Synthesis Conference (ESLsyn), May 2013, pp. 1–6.
 
-Makefile Configuration
+The above timing instruction is implemented both in hardware and GCC. GCC implementation is based on GCC 4.9.2, which is the version of riscv-gun-toolchain that FlexPRET currently supports. Corresponding patch is in `gcc_patch` directory.
+
+Note that only branch structure is supported currently in GCC implementation. When there is a while/for between mt and fd, the static WCET calculation will be aborted.  When there is a function call between mt and fd, the excution time of the function will not be accumulated into the WCET result.
+
+When mtfd exception is followed by an interrupt or exception, mtfd exception will be ignored.
+
+Other
 --------------------------------------------------------------------------------
-Change configuration in `config.mk` or by providing argument to make:
 
-### FlexPRET Configuration
-- `THREADS=[1-8]` Specify number of hardware threads
-- `FLEXPRET=[true/false]` Use flexible thread scheduling
-- `ISPM_KBYTES=[]` Size of instruction scratchpad memory (32 bit words)
-- `DSPM_KBYTES=[]` Size of instruction scratchpad memory (32 bit words)
-- `SUFFIX=[min,ex,ti,all]`
-    - `min`: base RV32I
-    - `ex`: `min` + exceptions (necessary)
-    - `ti`: `ex` + timing instructions
-    - `all`: `ti` + all exception causes and stats
+Any issue about FlexPRET OS is welcome.
 
-Not all combinations are valid.
-
-### Target Configuration
-- `TARGET=[emulator/fpga]` Select default target
-- `DEBUG=[true/false]` Generate waveform dump.
-
-### Program Configuration
-- `PROG_DIR=[path]` Directory of programs in tests/ to compile and/or run. This is the test program that is executed when running command 'make run'. The default value 'isa' means that an assembler test suite is executed.
-- `PROG_CONFIG=[]` Program configuration, start with target name
-
-### Regression Test
-To run a regression test for many processor configurations
-```
-./run-tests.py
-```
-
-Tests
+Known Bugs & TODO
 --------------------------------------------------------------------------------
-`PROG_DIR` needs to be modified to execute different programs on the emulator (e.g. `PROG_DIR=simple-mc`)
-
-`tests/simple-mc`: A simple mixed-criticality example with 4 periodic tasks to demonstrate differences between hard real-time threads (HRTTs) and soft real-time threads (SRTTs) ([More info](tests/simple-mc/README.md))  
-`tests/complex-mc`: A complex mixed-criticality example with 21 periodic tasks on 8 hardware threads to demonstrate a methodology for task mapping and thread scheduling ([More info](tests/complex-mc/README.md))  
-`tests/dev/*`: Programs that are out-of-date, unsupported, or under development  
-
-RISC-V Compiler
---------------------------------------------------------------------------------
-We use the RISC-V GCC compiler, see [riscv.org](http://riscv.org/) for more information.
-
-RISC-V toolchain version this branch is developed against:
-https://github.com/riscv/riscv-gnu-toolchain/commit/9a8a0aa98571c97291702e2e283fc1056f3ce2e2
-
-A docker image with the compiler version installed can be created by using or modifying `docker/Dockerfile`.
-
-Program Compilation
---------------------------------------------------------------------------------
-To compile new programs, create a directory in `tests/` and a `test.mk` file within that directory. Within `test.mk`, define `PROG` with the names of the source C (also do `define C=1`) or assembly files, then add `$(DEFAULT_RULES)` at the botton. This will generate default compilation rules for the source files (located in `tests/tests.mk`).
-
-To use timing instructions or other FlexPRET-specific constructs, look at files
-within `tests/include`. Look at other files within `tests/` for reference.
-
-Chisel
---------------------------------------------------------------------------------
-We use the Chisel version 2.2.27 that's located as a JAR file online.
-
-To learn more about Chisel, visit their [website](https://chisel.eecs.berkeley.edu/) and particularly their [documentation section](https://chisel.eecs.berkeley.edu/documentation.html).
-
-C++ Emulator
---------------------------------------------------------------------------------
-Chisel will generate a C++ emulator for cycle-accurate behavior of the hardware design. A testbench is compiled with this emulator to simulate program execution. The testbench takes the following arguments:
-- `--maxcycles=X` number of clock cycles to simulate
-- `--ispm=X` location of initial instruction memory contents (each line 32-bit hex value)
-- `--dspm=X` location of initial data memory contents (each line 32-bit hex value)
-- `--vcd=X` (optional) location of vcd file to create
-- `--vcdstart=X` (optional) cycle to start vcd creation (default is 0)
-
-FPGA
---------------------------------------------------------------------------------
-FlexPRET has been evaluated on both a Xilinx Virtex-5 and Spartan-6 FPGA.
-
+TBD

@@ -1,0 +1,22 @@
+<style type="text/CSS">
+    .tt2
+    { 
+        font-family:"Courier New";
+        font-size: 16px;
+        font-style: normal;
+        line-height: 17px ;
+        height: 100%;
+    }
+</style>
+
+{% if detail_inst %}
+    <table class="tt2">
+        {% for conf, val in detail_inst.items %}
+            <tr>
+                <td style="color: green;">{{ conf }}</td>
+                <td style="color: red;">{{ val }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+{% endif %}
+

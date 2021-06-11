@@ -1,0 +1,89 @@
+<style type="text/CSS">
+
+    .tt2
+    { 
+        font-family:"Courier New";
+        font-size: 16px;
+        font-style: normal;
+        line-height: 17px ;
+        width: 50%;
+    }
+    .box {
+        height: 100%;
+        width: 100%;
+    }
+    .left, .right {
+        float: left;
+        width: 50%;
+        height: 1000px;
+        overflow-x: scroll;
+    }
+</style>
+<div class="box">
+
+<script>
+    function go() {
+        var page_num = document.getElementById("page_num").value
+        if (page_num == "") {
+            page_num = 1
+        }
+        window.location.href = "?page=" + page_num
+    }
+
+    function keyDown(e){
+        var keycode = event.keyCode; 
+        if (keycode == 13) { 
+            go();
+        } 
+    }
+</script>
+
+<div class="left">
+{% if instruction_list %}
+    <table class="tt2">
+        <tr>
+        {% for h in head %}
+            <td>{{ h }}</td>
+        {% endfor %}
+            <td><input type="button" value="prev" size="5px" onclick="location='?page={{ page_1 }}'"></input></td>
+            <td><input type="button" value="next" size="5px" onclick="location='?page={{ page_2 }}'"></input></td>
+            <td><input type="button" value="top" size="5px" onclick="location='?page=1'"></input></td>
+            <td><input type="button" value="down" size="5px" onclick="location='?page={{ page_max }}'"></input></td>
+        </tr>
+        <tr>
+            {% for h in head %}
+                <td></td>
+            {% endfor %}
+                <td><input type="text" id="page_num" onkeydown="keyDown(event)" size="5px"></input></td>
+                <td><input type="button" value="go" onclick="go()"></input></td>
+                <td><input type="button" value="refresh" onclick="location='?refresh=1'"></input></td>
+        </tr>
+        {% for inst in instruction_list %}
+        <tr>
+            {% for k, v in inst.items %}
+                {% if k == 'inst' %}
+                    <td><a href="/app/inst/{{ inst.cycle }}/" target="mainFrame1">{{ v }}</a></td>
+                {% else %}
+                    {% if inst.valid == 1 %}
+                        <td style="color: green;">{{ v }}</td>
+                    {% else %}
+                        <td style="color: red;">{{ v }}</td>
+                    {% endif %}
+                {% endif %}
+
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </table>
+    
+{% else %}
+    <p>No insts are available.</p>
+{% endif %}
+</div>
+
+<div class="right">
+    <iframe name="mainFrame1" style="width: 100%; height: 100%;"></iframe>
+
+</div>
+
+</div>

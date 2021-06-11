@@ -1,0 +1,452 @@
+From fa922a1968a1356acd8866a881e8fd043a586d88 Mon Sep 17 00:00:00 2001
+From: SoraTrails <me876657621@126.com>
+Date: Sat, 3 Apr 2021 22:28:26 +0800
+Subject: [PATCH 1/7] WIP add two passes
+
+---
+ gcc/Makefile.in |   2 +
+ gcc/mtfd-va.c   | 175 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ gcc/mtfd.c      | 163 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ gcc/passes.def  |   2 +
+ gcc/print-rtl.c |   8 ++-
+ gcc/tree-pass.h |   3 +
+ 6 files changed, 351 insertions(+), 2 deletions(-)
+ create mode 100644 gcc/mtfd-va.c
+ create mode 100644 gcc/mtfd.c
+
+diff --git a/gcc/Makefile.in b/gcc/Makefile.in
+index b47733c..2b143ff 100644
+--- a/gcc/Makefile.in
++++ b/gcc/Makefile.in
+@@ -1345,6 +1345,8 @@ OBJS = \
+ 	rtlanal.o \
+ 	rtlhooks.o \
+ 	sbitmap.o \
++	mtfd.o \
++	mtfd-va.o \
+ 	sched-deps.o \
+ 	sched-ebb.o \
+ 	sched-rgn.o \
+diff --git a/gcc/mtfd-va.c b/gcc/mtfd-va.c
+new file mode 100644
+index 0000000..75b5684
+--- /dev/null
++++ b/gcc/mtfd-va.c
+@@ -0,0 +1,175 @@
++/**
++ * implement of pass: pass_mtfd_va
++ */
++
++#include "config.h"
++#include "system.h"
++#include "coretypes.h"
++#include "tree.h"
++#include "hash-table.h"
++#include "basic-block.h"
++#include "tree-ssa-alias.h"
++#include "internal-fn.h"
++#include "gimple-expr.h"
++#include "is-a.h"
++#include "gimple.h"
++#include "gimplify.h"
++#include "gimple-iterator.h"
++#include "calls.h"
++#include "varasm.h"
++#include "stor-layout.h"
++#include "tree-iterator.h"
++#include "cgraph.h"
++#include "stringpool.h"
++#include "tree-ssanames.h"
++#include "tree-pass.h"
++#include "asan.h"
++#include "gimple-pretty-print.h"
++#include "target.h"
++#include "expr.h"
++#include "optabs.h"
++#include "output.h"
++#include "tm_p.h"
++#include "langhooks.h"
++#include "alloc-pool.h"
++#include "cfgloop.h"
++#include "gimple-builder.h"
++#include "ubsan.h"
++#include "predict.h"
++#include "params.h"
++#include "print-rtl.h"
++
++static bool visit[1000];
++
++static bool
++pass_mtfd_va_gate (void) {
++    // printf("[pass_mtfd_va] gated.\n");
++    return 1;
++}
++
++static void
++bb_traverse(basic_block bb) {
++    rtx tmp_rtx;
++    int seen = 0;
++    for (tmp_rtx = BB_HEAD(bb); BB_END(bb) != tmp_rtx; tmp_rtx = RTX_NEXT (tmp_rtx)) {
++      printf("[pass_mtfd_va] [rtl code %d]", tmp_rtx->code);
++      print_rtl_single(stdout, tmp_rtx);
++      // final_scan_insn(tmp_rtx, stdout, optimize, 0, &seen);
++    }
++    // for (tmp_rtx = BB_HEAD(bb); tmp_rtx;) {
++    //   printf("[pass_mtfd_va] [rtl code %d]", tmp_rtx->code);
++    //   tmp_rtx = final_scan_insn(tmp_rtx, stdout, optimize, 0, &seen);
++    // }
++}
++
++static void
++dfs(basic_block bb) {
++  if (visit[bb->index] == 1)
++    return;
++  visit[bb->index] = 1;
++  bb_traverse(bb);
++  edge e;
++  edge_iterator ei;
++
++  FOR_EACH_EDGE (e, ei, bb->succs) {
++    dfs(e->dest);
++  }
++}
++
++static unsigned int
++pass_mtfd_va_excute (void) {
++    basic_block bb;
++    // printf("[pass_mtfd_va] enter excuted.\n");
++    // flow_loops_dump(stdout, NULL, 0);
++
++    // gimple print
++    // FOR_EACH_BB_FN (bb, cfun)
++    //   {
++    //   gimple_stmt_iterator si;
++    //   for (si = gsi_start_phis (bb); !gsi_end_p (si); gsi_next (&si))
++    //     {
++    //       gimple phi = gsi_stmt (si);
++    //       printf("[pass_mtfd] gimple code %d, phi:", phi->code);
++    //       print_gimple_stmt (stdout, phi, 0, TDF_SLIM);
++    //     }
++    //   for (si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
++    //     {
++    //       gimple stmt = gsi_stmt (si);
++    //       printf("[pass_mtfd] gimple code %d, stmt:", stmt->code);
++    //       print_gimple_stmt (stdout, stmt, 0, TDF_SLIM);
++    //     }
++    //   }
++    
++    FOR_EACH_BB_FN (bb, cfun)
++      {
++      gimple_stmt_iterator si;
++      // for (si = gsi_start_phis (bb); !gsi_end_p (si); gsi_next (&si))
++      //   {
++      //     gimple phi = gsi_stmt (si);
++      //     printf("[pass_mtfd_va] gimple code %d, phi:", phi->code);
++      //     print_gimple_stmt (stdout, phi, 0, TDF_SLIM);
++      //   }
++      for (si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
++        {
++          gimple stmt = gsi_stmt (si);
++          gimple_statement_asm *asm_stmt = NULL;
++          // printf("[pass_mtfd_va] gimple code %d, stmt:", stmt->code);
++          switch (gimple_code(stmt)) {
++            case GIMPLE_ASM:
++	            asm_stmt = as_a <gimple_statement_asm> (stmt);
++              // printf("ni:%d, no:%d, nc:%d, nl:%d\n", asm_stmt->ni, asm_stmt->no, asm_stmt->nc, asm_stmt->nl);
++              // if (strstr(asm_stmt->string, "custom0") != NULL) {
++                // printf("stmt: %s\n", asm_stmt->string);
++                // print_gimple_stmt (stdout, stmt, 0, TDF_SLIM);
++                // get_gimple_rhs_class()
++              // }
++              break;
++            default:
++              // printf("op_num: %d, ", gimple_num_ops(stmt));
++              // print_gimple_stmt (stdout, stmt, 0, TDF_SLIM);
++              break;
++          }
++        }
++      }
++
++    // printf("[pass_mtfd_va] leave excuted.\n");
++    return 0;
++}
++
++namespace {
++
++const pass_data pass_data_mtfd_va =
++{
++  GIMPLE_PASS, /* type */
++  "mtfd-va", /* name */
++  OPTGROUP_NONE, /* optinfo_flags */
++  true, /* has_gate */
++  true, /* has_execute */
++  TV_NONE, /* tv_id */
++  0, /* properties_required */
++  0, /* properties_provided */
++  0, /* properties_destroyed */
++  0, /* todo_flags_start */
++  0, /* todo_flags_finish */
++};
++
++class pass_mtfd_va : public gimple_opt_pass
++{
++public:
++  pass_mtfd_va (gcc::context *ctxt)
++    : gimple_opt_pass (pass_data_mtfd_va, ctxt)
++  {}
++
++  /* opt_pass methods: */
++  bool gate () { return pass_mtfd_va_gate(); }
++  unsigned int execute () { return pass_mtfd_va_excute (); }
++
++}; // class pass_mtfd_va
++
++} // anon namespace
++
++gimple_opt_pass *
++make_pass_mtfd_va (gcc::context *ctxt)
++{
++  return new pass_mtfd_va (ctxt);
++}
+\ No newline at end of file
+diff --git a/gcc/mtfd.c b/gcc/mtfd.c
+new file mode 100644
+index 0000000..21c3163
+--- /dev/null
++++ b/gcc/mtfd.c
+@@ -0,0 +1,163 @@
++/**
++ * implement of pass: pass_mtfd
++ */
++
++#include "config.h"
++#include "system.h"
++#include "coretypes.h"
++#include "tree.h"
++#include "hash-table.h"
++#include "basic-block.h"
++#include "tree-ssa-alias.h"
++#include "internal-fn.h"
++#include "gimple-expr.h"
++#include "is-a.h"
++#include "gimple.h"
++#include "gimplify.h"
++#include "gimple-iterator.h"
++#include "calls.h"
++#include "varasm.h"
++#include "stor-layout.h"
++#include "tree-iterator.h"
++#include "cgraph.h"
++#include "stringpool.h"
++#include "tree-ssanames.h"
++#include "tree-pass.h"
++#include "asan.h"
++#include "gimple-pretty-print.h"
++#include "target.h"
++#include "expr.h"
++#include "optabs.h"
++#include "output.h"
++#include "langhooks.h"
++#include "alloc-pool.h"
++#include "cfgloop.h"
++#include "gimple-builder.h"
++#include "ubsan.h"
++#include "predict.h"
++#include "params.h"
++#include "print-rtl.h"
++static bool visit[1000];
++
++static bool
++pass_mtfd_gate (void) {
++    // printf("[pass_mtfd] gated.\n");
++    return 1;
++}
++
++static int calculate_rtl_timing(rtx insn) {
++  
++}
++
++static void
++bb_traverse(basic_block bb) {
++    rtx tmp_rtx;
++    int seen = 0;
++    for (tmp_rtx = BB_HEAD(bb); BB_END(bb) != tmp_rtx; tmp_rtx = RTX_NEXT (tmp_rtx)) {
++      int is_insn = INSN_P(tmp_rtx);
++      printf("[pass_mtfd] [rtl code %d, insn: %d]", tmp_rtx->code, is_insn);
++      if (is_insn) {
++        print_rtl_single(stdout, tmp_rtx);
++      } else {
++        printf("\n");
++      }
++      // print_rtl_single(stdout, tmp_rtx);
++
++      // final_scan_insn(tmp_rtx, stdout, optimize, 0, &seen);
++    }
++    // for (tmp_rtx = BB_HEAD(bb); tmp_rtx;) {
++    //   printf("[pass_mtfd] [rtl code %d]", tmp_rtx->code);
++    //   tmp_rtx = final_scan_insn(tmp_rtx, stdout, optimize, 0, &seen);
++    // }
++}
++
++static void
++dfs(basic_block bb) {
++  if (visit[bb->index] == 1)
++    return;
++  visit[bb->index] = 1;
++  bb_traverse(bb);
++  edge e;
++  edge_iterator ei;
++
++  FOR_EACH_EDGE (e, ei, bb->succs) {
++    dfs(e->dest);
++  }
++}
++
++static unsigned int
++pass_mtfd_excute (void) {
++    basic_block bb;
++    // printf("[pass_mtfd] enter excuted.\n");
++
++    // rtl print
++    const_rtx tmp_rtx;
++
++    // FOR_EACH_BB_FN (bb, cfun) {
++    //   printf("bb: %p\n", bb);
++    //   vec<edge, va_gc>* pred = bb->preds;
++    //   vec<edge, va_gc>* succ = bb->succs;
++    //   for (int i = 0; i < pred->length(); i++) {
++    //     basic_block bb_p = (*pred)[i]->src;
++    //     basic_block bb_s = (*pred)[i]->dest;
++    //     printf("\tbb_p: %p\n", bb_p);
++    //     printf("\tbb_s: %p\n", bb_s);
++    //     for (tmp_rtx = BB_HEAD(bb); BB_END(bb) != tmp_rtx; tmp_rtx = RTX_NEXT (tmp_rtx)) {
++    //       printf("[pass_mtfd] [rtl insn_code %d]", INSN_CODE(tmp_rtx));
++    //       print_rtl_single(stdout, tmp_rtx);
++    //     }
++    //   }
++
++    // loop l;
++    // FOR_EACH_LOOP(l, ) {
++
++    // }
++    // flow_loops_dump(stdout, NULL, 0);
++    // cfg traverse
++    // bb = BASIC_BLOCK_FOR_FN(cfun, 0);
++    bb = ENTRY_BLOCK_PTR_FOR_FN(cfun);
++    memset(visit, 0, sizeof(visit));
++    dfs(bb);
++    // printf("[pass_mtfd] leave excuted.\n");
++        // flow_loops_dump(stdout, NULL, 1);
++
++    return 0;
++}
++
++namespace {
++
++const pass_data pass_data_mtfd =
++{
++  RTL_PASS, /* type */
++  "mtfd", /* name */
++  OPTGROUP_NONE, /* optinfo_flags */
++  true, /* has_gate */
++  true, /* has_execute */
++  TV_NONE, /* tv_id */
++  0, /* properties_required */
++  0, /* properties_provided */
++  0, /* properties_destroyed */
++  0, /* todo_flags_start */
++  0, /* todo_flags_finish */
++};
++
++class pass_mtfd : public rtl_opt_pass
++{
++public:
++  pass_mtfd (gcc::context *ctxt)
++    : rtl_opt_pass (pass_data_mtfd, ctxt)
++  {}
++
++  /* opt_pass methods: */
++  bool gate () { return pass_mtfd_gate(); }
++  unsigned int execute () { return pass_mtfd_excute (); }
++
++}; // class pass_mtfd
++
++} // anon namespace
++
++rtl_opt_pass *
++make_pass_mtfd (gcc::context *ctxt)
++{
++  return new pass_mtfd (ctxt);
++}
+\ No newline at end of file
+diff --git a/gcc/passes.def b/gcc/passes.def
+index c98b048..718e230 100644
+--- a/gcc/passes.def
++++ b/gcc/passes.def
+@@ -314,6 +314,7 @@ along with GCC; see the file COPYING3.  If not see
+   NEXT_PASS (pass_nrv);
+   NEXT_PASS (pass_cleanup_cfg_post_optimizing);
+   NEXT_PASS (pass_warn_function_noreturn);
++   NEXT_PASS (pass_mtfd_va);
+ 
+   NEXT_PASS (pass_expand);
+ 
+@@ -409,6 +410,7 @@ along with GCC; see the file COPYING3.  If not see
+ 	  NEXT_PASS (pass_shorten_branches);
+ 	  NEXT_PASS (pass_set_nothrow_function_flags);
+ 	  NEXT_PASS (pass_dwarf2_frame);
++     NEXT_PASS (pass_mtfd);
+ 	  NEXT_PASS (pass_final);
+       POP_INSERT_PASSES ()
+       NEXT_PASS (pass_df_finish);
+diff --git a/gcc/print-rtl.c b/gcc/print-rtl.c
+index 09ac387..9234b63 100644
+--- a/gcc/print-rtl.c
++++ b/gcc/print-rtl.c
+@@ -89,6 +89,9 @@ print_mem_expr (FILE *outfile, const_tree expr)
+ 
+ /* Print IN_RTX onto OUTFILE.  This is the recursive part of printing.  */
+ 
++#define PRINT_NAME_VAL(val) \
++	printf(#val ": %d\n", val)
++
+ static void
+ print_rtx (const_rtx in_rtx)
+ {
+@@ -96,16 +99,17 @@ print_rtx (const_rtx in_rtx)
+   int j;
+   const char *format_ptr;
+   int is_insn;
+-
++// PRINT_NAME_VAL(sawclose);
+   if (sawclose)
+     {
++// PRINT_NAME_VAL(flag_simple);
+       if (flag_simple)
+ 	fputc (' ', outfile);
+       else
+ 	fprintf (outfile, "\n%s%*s", print_rtx_head, indent * 2, "");
+       sawclose = 0;
+     }
+-
++// PRINT_NAME_VAL(in_rtx);
+   if (in_rtx == 0)
+     {
+       fputs ("(nil)", outfile);
+diff --git a/gcc/tree-pass.h b/gcc/tree-pass.h
+index 3b86770..78d1480 100644
+--- a/gcc/tree-pass.h
++++ b/gcc/tree-pass.h
+@@ -586,6 +586,9 @@ extern gimple_opt_pass *make_pass_inline_parameters (gcc::context *ctxt);
+ extern gimple_opt_pass *make_pass_update_address_taken (gcc::context *ctxt);
+ extern gimple_opt_pass *make_pass_convert_switch (gcc::context *ctxt);
+ 
++extern rtl_opt_pass * make_pass_mtfd (gcc::context *ctxt);
++extern gimple_opt_pass * make_pass_mtfd_va (gcc::context *ctxt);
++
+ /* Current optimization pass.  */
+ extern opt_pass *current_pass;
+ 
+-- 
+2.7.4
+

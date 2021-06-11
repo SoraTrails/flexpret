@@ -1,0 +1,128 @@
+From 09b4a2178c1e7ce20286b88c25b7ebbbbca3a422 Mon Sep 17 00:00:00 2001
+From: SoraTrails <me876657621@126.com>
+Date: Wed, 5 May 2021 16:15:00 +0800
+Subject: [PATCH 7/7] release
+
+---
+ gcc/mtfd.c | 64 ++++++++++++++++++++++++++++++++++++++++++++++++++------------
+ 1 file changed, 52 insertions(+), 12 deletions(-)
+
+diff --git a/gcc/mtfd.c b/gcc/mtfd.c
+index 09ed289..37343e6 100644
+--- a/gcc/mtfd.c
++++ b/gcc/mtfd.c
+@@ -210,6 +210,7 @@ static bool timing_between_bb_dfs(basic_block start, basic_block end, int depth,
+     return false;
+   }
+ 	bb_stack.push(start);
++  bb_visit[start->index] = 1;
+   vec<edge, va_gc>* succ = start->succs;
+   for (size_t i = 0; succ && i < succ->length(); i++) {
+     basic_block bb_s = (*succ)[i]->dest;
+@@ -229,15 +230,54 @@ static bool timing_between_bb_dfs(basic_block start, basic_block end, int depth,
+       }
+       bb_stack.pop();
+     }
+-    if (!timing_between_bb_dfs(bb_s, end, depth + 1, max_cycle, j)) {
++    if (bb_visit[bb_s->index]) {
++      bb_stack.pop();
++      return false;
++    }
++    if (bb_s != end && !timing_between_bb_dfs(bb_s, end, depth + 1, max_cycle, j)) {
+       bb_stack.pop();
+       return false;
+     }
+   }
++  bb_visit[start->index] = 0;
+   bb_stack.pop();
+   return true;
+ }
+ 
++// calculate timing info between two basic block, set depth to exit to avoid stack overflow
++// static bool timing_between_bb_dfs(basic_block start, basic_block end, int depth, int* max_cycle, int j) {
++//   if (depth > cfun_bb_num + 32) {
++//     return false;
++//   }
++// 	bb_stack.push(start);
++//   vec<edge, va_gc>* succ = start->succs;
++//   for (size_t i = 0; succ && i < succ->length(); i++) {
++//     basic_block bb_s = (*succ)[i]->dest;
++//     if (bb_s == end) {
++//       int sum_cycle = 0;
++// 	    bb_stack.push(bb_s);
++//       for (int k = 0; k <= bb_stack.top; k++) {
++//         sum_cycle += bb_cycle[bb_stack.stack[k]->index][j];
++//       }
++//       if (sum_cycle > max_cycle[j]) {
++//         // record path in path_vector
++//         path_vector[j].clear();
++//         for (int k = 0; k <= bb_stack.top; k++) {
++//           path_vector[j].push(bb_stack.stack[k]);
++//         }
++//         max_cycle[j] = sum_cycle;
++//       }
++//       bb_stack.pop();
++//     }
++//     if (!timing_between_bb_dfs(bb_s, end, depth + 1, max_cycle, j)) {
++//       bb_stack.pop();
++//       return false;
++//     }
++//   }
++//   bb_stack.pop();
++//   return true;
++// }
++
+ // calculate all timing of a basic block, and record info about mt&fd&call instruction
+ static bool scan_bb_timing() {
+   basic_block bb;
+@@ -279,12 +319,12 @@ static bool timing_between_mt_fd() {
+         return false;
+       }
+     } else {
+-      memset(bb_visit, 0, sizeof(bool) * (n_basic_blocks_for_fn(cfun) + 10));
+       int cycle_before[5] = {0, 0, 0, 0, 0};
+       int cycle_after[5] = {0, 0, 0, 0, 0};
+ 
+       bool flag = true;
+       for (int j = 0; j < 5; j++) {
++        memset(bb_visit, 0, sizeof(bool) * (n_basic_blocks_for_fn(cfun) + 10));
+         bb_stack.clear();
+         // if (!timing_between_bb(mtfd_insn[i].mt_bb, mtfd_insn[i].fd_bb, max_cycle, j)) {
+         if (!timing_between_bb_dfs(mtfd_insn[i].mt_bb, mtfd_insn[i].fd_bb, 0, max_cycle, j)) {
+@@ -349,7 +389,7 @@ static bool timing_between_mt_fd() {
+         return false;
+       }
+       for (int j = 0; j < 5; j++) {
+-        fprintf(stderr, "%d: %d, %d\n", j, cycle_before[j],cycle_after[j]);
++      //   fprintf(stderr, "%d: %d, %d\n", j, cycle_before[j],cycle_after[j]);  // DEBUG
+         max_cycle[j] -= cycle_before[j] + cycle_after[j];
+       }
+     }
+@@ -369,15 +409,15 @@ static bool timing_between_mt_fd() {
+           actual_time[0], actual_time[1], actual_time[2], actual_time[3],
+           mtfd_insn[i].deadline);
+     // DEBUG
+-    fprintf(stderr,"[timing_between_mt_fd]For mt(%s:%d) between fd(%s:%d):\n "
+-           "\traw timing info(cycle): %3d   %3d   %3d   %3d \n"
+-           "\tactual timing info(ns): %3d   %3d   %3d   %3d\n"
+-           "\tdeadline: %d\n", 
+-          insn_file (mtfd_insn[i].mt), insn_line (mtfd_insn[i].mt),
+-          insn_file (mtfd_insn[i].fd), insn_line (mtfd_insn[i].fd),
+-          34, 25, 23, 23,
+-          34 * 10, 25 * 2 * 10, 23 * 3 * 10, 23 * 4 * 10,
+-          mtfd_insn[i].deadline);
++    // fprintf(stderr,"[timing_between_mt_fd]For mt(%s:%d) between fd(%s:%d):\n "
++    //        "\traw timing info(cycle): %3d   %3d   %3d   %3d \n"
++    //        "\tactual timing info(ns): %3d   %3d   %3d   %3d\n"
++    //        "\tdeadline: %d\n", 
++    //       insn_file (mtfd_insn[i].mt), insn_line (mtfd_insn[i].mt),
++    //       insn_file (mtfd_insn[i].fd), insn_line (mtfd_insn[i].fd),
++    //       34, 25, 23, 23,
++    //       34 * 10, 25 * 2 * 10, 23 * 3 * 10, 23 * 4 * 10,
++    //       mtfd_insn[i].deadline);
+     // Detect schedule frequency(1, 1/2, 1/3, 1/4) 
+     bool meet_ddl[4];
+     bool meet_all_ddl = true;
+-- 
+2.7.4
+

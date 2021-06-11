@@ -1,0 +1,161 @@
+From 6be50d4a12daeada72824d4bf21eb99d1db37f9c Mon Sep 17 00:00:00 2001
+From: SoraTrails <me876657621@126.com>
+Date: Sat, 17 Apr 2021 00:22:18 +0800
+Subject: [PATCH 5/7] print debug info to file instead of stdout
+
+---
+ gcc/mtfd.c | 55 +++++++++++++++++++++++++++++++++----------------------
+ 1 file changed, 33 insertions(+), 22 deletions(-)
+
+diff --git a/gcc/mtfd.c b/gcc/mtfd.c
+index ce4a7c1..2b7b6ef 100644
+--- a/gcc/mtfd.c
++++ b/gcc/mtfd.c
+@@ -22,6 +22,7 @@ static alloc_pool rv32i_insn_pool;
+ typedef hash_table <rv32i_tmpl_hasher> rv32i_tmpl_hasher_type;
+ extern hash_table <rv32i_tmpl_hasher> tmpl_table;
+ extern alloc_pool rv32i_tmpl_pool;
++static FILE *out_file;
+ 
+ static const char rv32i_insn[][32] = {
+   "la","lla","move","mv","nop","li","not","neg","seqz","snez","sltz","sgtz","beqz","bnez","blez","bgez","bltz","bgtz","bgt","ble","bgtu","bleu","lui","auipc", "addi","slti","sltiu","xori","ori","andi","slli","srli","srai","add","sub","sll","slt","sltu","xor","srl","sra","or","and","jal","jalr","beq","bne","blt","bge","bltu","bgeu","j","jr","call","b","sb","sh","sw","lb","lh","lw","lbu","lhu","csrrw","csrrs","csrrc","csrrwi","csrrsi","csrrci","syscall","fence.i","fence","csrr","csrw","rdtime","rdcycle","rdinstret","custom0","custom1","custom2","custom3", "ret"
+@@ -109,8 +110,8 @@ static bool timing_between_insn(const_rtx start, const_rtx end, int * cycle, int
+     int is_insn = INSN_P(in_rtx);
+     if (!is_insn) {
+       if (first) {
+-        printf("[scan_bb_timing]not an insn");
+-        print_rtl_single(stdout, in_rtx);
++        fprintf(out_file, "[scan_bb_timing]not an insn");
++        print_rtl_single(out_file, in_rtx);
+       }
+       continue;
+     }
+@@ -121,7 +122,7 @@ static bool timing_between_insn(const_rtx start, const_rtx end, int * cycle, int
+       if (sub_rtx != NULL && (GET_CODE(sub_rtx) == ASM_INPUT || GET_CODE(sub_rtx) == ASM_OPERANDS)) {
+         const char * sub_insn_name = XSTR(sub_rtx, 0);
+         if (first) {
+-          printf("[scan_bb_timing] asm_input/asm_operand insn: %s ", sub_insn_name);
++          fprintf(out_file, "[scan_bb_timing] asm_input/asm_operand insn: %s ", sub_insn_name);
+           // Judge if this asm insn is mt or fd
+           if (!find_mt_fd(sub_insn_name, in_rtx, bb)) {
+             return false;
+@@ -130,8 +131,8 @@ static bool timing_between_insn(const_rtx start, const_rtx end, int * cycle, int
+         insn_name = sub_insn_name;
+       } else {
+         if (first) {
+-          printf("[scan_bb_timing] unrecognized insn ---");
+-          print_rtl_single(stdout, in_rtx);
++          fprintf(out_file, "[scan_bb_timing] unrecognized insn ---");
++          print_rtl_single(out_file, in_rtx);
+         }
+         continue;
+       }
+@@ -145,15 +146,15 @@ static bool timing_between_insn(const_rtx start, const_rtx end, int * cycle, int
+       entry = tmpl_table.find(&key);
+       if (!entry) {
+         if (first) {
+-          printf("[scan_bb_timing]tmpl not found! --- ");
+-          print_rtl_single(stdout, in_rtx);
++          fprintf(out_file, "[scan_bb_timing]tmpl not found! --- ");
++          print_rtl_single(out_file, in_rtx);
+         }
+         continue;
+       }
+       if (entry->tmpl[0] == '#') {
+         if (first) {
+-          printf("[scan_bb_timing]bad tmpl! (%s) --- ", entry->tmpl);
+-          print_rtl_single(stdout, in_rtx);
++          fprintf(out_file, "[scan_bb_timing]bad tmpl! (%s) --- ", entry->tmpl);
++          print_rtl_single(out_file, in_rtx);
+         }
+         continue;
+       }
+@@ -173,15 +174,15 @@ static bool timing_between_insn(const_rtx start, const_rtx end, int * cycle, int
+     entry2 = insn_table.find(&key2);
+     if (!entry2) {
+       if (first) {
+-        printf("[scan_bb_timing]insn not found! key: %s--- ", key2.name);
+-        print_rtl_single(stdout, in_rtx);
++        fprintf(out_file, "[scan_bb_timing]insn not found! key: %s--- ", key2.name);
++        print_rtl_single(out_file, in_rtx);
+       }
+       continue;
+     }
+ 
+     // Accumulate timing
+     if (first) {
+-      printf("[scan_bb_timing]inst %s cycle: %d,%d,%d,%d,%d\n", key2.name,
++      fprintf(out_file, "[scan_bb_timing]inst %s cycle: %d,%d,%d,%d,%d\n", key2.name,
+             entry2->cycles[0], entry2->cycles[1], entry2->cycles[2],
+             entry2->cycles[3], entry2->cycles[4]);
+     }
+@@ -268,7 +269,7 @@ static bool timing_between_mt_fd() {
+   }
+   gcc_assert(mt_insn_len == fd_insn_len);
+   // for every mt fd instruction pair
+-  printf("[timing_between_mt_fd] mt&fd insn pair num:%d\n", mt_insn_len);
++  fprintf(out_file, "[timing_between_mt_fd] mt&fd insn pair num:%d\n", mt_insn_len);
+   for (int i = 0; i < mt_insn_len; i++) {
+     int max_cycle[5] = {0};
+     int actual_time[5] = {0};
+@@ -360,14 +361,21 @@ static bool timing_between_mt_fd() {
+ 
+ static unsigned int
+ pass_mtfd_excute (void) {
+-  // printf("[pass_mtfd] enter excuted.\n");
++  // fprintf(out_file, "[pass_mtfd] enter excuted.\n");
++#ifndef MTFD_DEBUG
++  char file_tmp[256];
++  sprintf(file_tmp, "/tmp/gcc_mtfd_%s.log", current_function_name());
++  out_file = fopen(file_tmp, "w");
++#else
++  out_file = stdout;
++#endif
+   basic_block bb;
+   init_hash_table();
+ 
+   for (rv32i_tmpl_hasher_type::iterator iter = tmpl_table.begin ();
+         iter != tmpl_table.end ();
+         ++iter)
+-    printf("[insn tmpl] insn:%p tmpl:%s\n", (*iter).insn, (*iter).tmpl);
++    fprintf(out_file, "[insn tmpl] insn:%p tmpl:%s\n", (*iter).insn, (*iter).tmpl);
+ 
+   if (!scan_bb_timing()) {
+     destroy_hash_table();
+@@ -375,23 +383,26 @@ pass_mtfd_excute (void) {
+   }
+ 
+   FOR_EACH_BB_FN (bb, cfun) {
+-    printf("basic block %3d: cycle[0]=%d\n", bb->index, bb_cycle[bb->index][0]);
+-    printf("                 cycle[1]=%d\n", bb_cycle[bb->index][1]);
+-    printf("                 cycle[2]=%d\n", bb_cycle[bb->index][2]);
+-    printf("                 cycle[3]=%d\n", bb_cycle[bb->index][3]);
+-    printf("                 cycle[4]=%d\n", bb_cycle[bb->index][4]);
+-    printf("\n");
++    fprintf(out_file, "basic block %3d: cycle[0]=%d\n", bb->index, bb_cycle[bb->index][0]);
++    fprintf(out_file, "                 cycle[1]=%d\n", bb_cycle[bb->index][1]);
++    fprintf(out_file, "                 cycle[2]=%d\n", bb_cycle[bb->index][2]);
++    fprintf(out_file, "                 cycle[3]=%d\n", bb_cycle[bb->index][3]);
++    fprintf(out_file, "                 cycle[4]=%d\n", bb_cycle[bb->index][4]);
++    fprintf(out_file, "\n");
+   }
+ 
+   timing_between_mt_fd();
+ 
+   destroy_hash_table();
++#ifndef MTFD_DEBUG
++  fclose(out_file);
++#endif
+   return 0;
+ }
+ 
+ static bool
+ pass_mtfd_gate (void) {
+-    // printf("[pass_mtfd] gated.\n");
++    // fprintf(out_file, "[pass_mtfd] gated.\n");
+     return 1;
+ }
+ 
+-- 
+2.7.4
+

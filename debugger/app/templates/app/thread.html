@@ -1,0 +1,95 @@
+<style type="text/CSS">
+    html * {
+        padding: 0;
+        margin: 0;
+    }
+    table,table tr th, table tr td {
+        border:1px solid black; 
+        padding: 0;
+        border-collapse: collapse;
+    }
+    .container {
+        column-count: 4;
+        overflow-y: auto;
+        overflow-x: auto;
+    }
+    .div-table {
+        overflow: auto;
+        width:870px;
+        height:1050px;
+    }
+</style>
+
+<script>
+    function go() {
+        var page_num = document.getElementById("page_num").value
+        if (page_num == "") {
+            page_num = 1
+        }
+        window.location.href = "?page=" + page_num
+    }
+
+    function keyDown(e){
+        var keycode = event.keyCode; 
+        if (keycode == 13) { 
+            go();
+        } 
+    }
+</script>
+
+<div>
+<div>
+    <table><tr>
+        <td><input type="button" value="prev5" size="5px" onclick="location='?page={{ page_3 }}'"></input></td>
+        <td><input type="button" value="prev" size="5px" onclick="location='?page={{ page_1 }}'"></input></td>
+        <td><input type="button" value="next" size="5px" onclick="location='?page={{ page_2 }}'"></input></td>
+        <td><input type="button" value="next5" size="5px" onclick="location='?page={{ page_4 }}'"></input></td>
+        <td><input type="button" value="top" size="5px" onclick="location='?page=1'"></input></td>
+        <td><input type="button" value="down" size="5px" onclick="location='?page={{ page_max }}'"></input></td>
+        <td><input type="text" id="page_num" onkeydown="keyDown(event)" size="5px"></input></td>
+        <td><input type="button" value="go" onclick="go()"></input></td>
+        <td><input type="button" value="refresh" onclick="location='?refresh=1'"></input></td>
+    </tr></table>
+</div>
+
+<div class="container">
+{% if instruction_list %}
+    {% for thread in instruction_list %}
+    <div class="div-table"><table>
+        <tr>
+        {% for h in head %}
+            <td>{{ h }}</td>
+        {% endfor %}
+        </tr>
+        {% for inst in thread %}
+        {% if inst %} 
+        <tr>
+            {% for k, v in inst.items %}
+                {% if k == 'inst' %}
+                    <td><a href="/app/inst/{{ inst.cycle }}/" target="mainFrame1">{{ v }}</a></td>
+                {% else %}
+                    {% if inst.valid == 1 %}
+                        <td style="color: green;">{{ v }}</td>
+                    {% else %}
+                        <td style="color: red;">{{ v }}</td>
+                    {% endif %}
+                {% endif %}
+
+            {% endfor %}
+        </tr>
+        {% else %}
+        <tr>
+            {% for h in head %}
+            <td>&nbsp</td>
+            {% endfor %}
+        </tr>
+        {% endif %}
+        {% endfor %}
+        </table></div>
+    {% endfor %}    
+{% else %}
+    <p>No insts are available.</p>
+{% endif %}
+</div>
+
+</div>

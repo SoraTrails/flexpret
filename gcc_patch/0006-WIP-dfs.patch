@@ -1,0 +1,201 @@
+From 9d22a3ff42443391fb8a83b2583a1e596dc23ebd Mon Sep 17 00:00:00 2001
+From: SoraTrails <me876657621@126.com>
+Date: Wed, 5 May 2021 15:11:03 +0800
+Subject: [PATCH 6/7] =?UTF-8?q?WIP=20dfs=E8=AE=A1=E7=AE=97=E6=9C=89?=
+ =?UTF-8?q?=E9=97=AE=E9=A2=98?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ gcc/mtfd.c | 92 ++++++++++++++++++++++++++++++++++++++++++++++++--------------
+ 1 file changed, 71 insertions(+), 21 deletions(-)
+
+diff --git a/gcc/mtfd.c b/gcc/mtfd.c
+index 2b7b6ef..09ed289 100644
+--- a/gcc/mtfd.c
++++ b/gcc/mtfd.c
+@@ -10,7 +10,7 @@ static bool bb_visit[BB_MAX_NUM];
+ static int bb_cycle[BB_MAX_NUM][5];
+ static bool bb_has_call[BB_MAX_NUM];
+ static struct simple_stack<basic_block> bb_stack;
+-static struct simple_stack<basic_block> path_vector;
++static struct simple_stack<basic_block> path_vector[5];
+ static struct mtfd_pair mtfd_insn[MTFD_MAX_NUM];
+ static int mt_insn_len = 0;
+ static int fd_insn_len = 0;
+@@ -96,7 +96,7 @@ static bool find_mt_fd(const char * insn, const_rtx in_rtx, basic_block bb) {
+     mtfd_insn[fd_insn_len].fd_bb = bb;
+     fd_insn_len++;
+   } else if (strstr(insn, "custom3 0") != NULL) {
+-    warning_at(INSN_LOCATION(in_rtx), 0, "mt_reg instrucion in not supported currently.\n");
++    warning_at(INSN_LOCATION(in_rtx), 0, "mt_reg instrucion is not supported currently.\n");
+   }
+   return true;
+ }
+@@ -196,7 +196,7 @@ static bool timing_between_insn(const_rtx start, const_rtx end, int * cycle, int
+       if (first) {
+         bb_has_call[bb->index] = 1;
+       } else {
+-        warning_at(INSN_LOCATION(in_rtx), 0, "Funcion call detected between mt and fd, "
++        warning_at(INSN_LOCATION(in_rtx), 0, "Function call detected between mt and fd, "
+                    "Its execution time is NOT accumulated into WCET !!!\n");
+       }
+     }
+@@ -216,20 +216,21 @@ static bool timing_between_bb_dfs(basic_block start, basic_block end, int depth,
+     if (bb_s == end) {
+       int sum_cycle = 0;
+ 	    bb_stack.push(bb_s);
+-      for (int k = 0; k < bb_stack.top; k++) {
++      for (int k = 0; k <= bb_stack.top; k++) {
+         sum_cycle += bb_cycle[bb_stack.stack[k]->index][j];
+       }
+       if (sum_cycle > max_cycle[j]) {
+         // record path in path_vector
+-        path_vector.clear();
+-        for (int k = 0; k < bb_stack.top; k++) {
+-          path_vector.push(bb_stack.stack[k]);
++        path_vector[j].clear();
++        for (int k = 0; k <= bb_stack.top; k++) {
++          path_vector[j].push(bb_stack.stack[k]);
+         }
+         max_cycle[j] = sum_cycle;
+       }
+       bb_stack.pop();
+     }
+     if (!timing_between_bb_dfs(bb_s, end, depth + 1, max_cycle, j)) {
++      bb_stack.pop();
+       return false;
+     }
+   }
+@@ -271,19 +272,20 @@ static bool timing_between_mt_fd() {
+   // for every mt fd instruction pair
+   fprintf(out_file, "[timing_between_mt_fd] mt&fd insn pair num:%d\n", mt_insn_len);
+   for (int i = 0; i < mt_insn_len; i++) {
+-    int max_cycle[5] = {0};
+-    int actual_time[5] = {0};
++    int max_cycle[5] = {0, 0, 0, 0, 0};
++    int actual_time[5] = {0, 0, 0, 0, 0};
+     if (mtfd_insn[i].mt_bb == mtfd_insn[i].fd_bb) {
+       if (!timing_between_insn(mtfd_insn[i].mt, NEXT_INSN (mtfd_insn[i].fd), max_cycle, 0, mtfd_insn[i].mt_bb)) {
+         return false;
+       }
+     } else {
+       memset(bb_visit, 0, sizeof(bool) * (n_basic_blocks_for_fn(cfun) + 10));
+-      int cycle_before[5] = {0};
+-      int cycle_after[5] = {0};
++      int cycle_before[5] = {0, 0, 0, 0, 0};
++      int cycle_after[5] = {0, 0, 0, 0, 0};
+ 
+       bool flag = true;
+       for (int j = 0; j < 5; j++) {
++        bb_stack.clear();
+         // if (!timing_between_bb(mtfd_insn[i].mt_bb, mtfd_insn[i].fd_bb, max_cycle, j)) {
+         if (!timing_between_bb_dfs(mtfd_insn[i].mt_bb, mtfd_insn[i].fd_bb, 0, max_cycle, j)) {
+           flag = false;
+@@ -296,23 +298,58 @@ static bool timing_between_mt_fd() {
+         continue;
+       } else {
+         // go through path_vector to mark bb with `call` instruction
+-        for (int k = 0; k < path_vector.top; k++) {
+-          if (bb_has_call[path_vector.stack[k]->index]) {
+-            warning_at(INSN_LOCATION(mtfd_insn[i].mt), 0, "Funcion call detected between mt and fd, "
+-                   "Its execution time is NOT accumulated into WCET !!!\n");
+-            break;
++        for (int j = 0; j < 5; j++) {
++          int bflag = false;
++          for (int k = 0; k <= path_vector[j].top; k++) {
++            if (bb_has_call[path_vector[j].stack[k]->index]) {
++              warning_at(INSN_LOCATION(mtfd_insn[i].mt), 0, "Funcion call detected between mt and fd, "
++                    "Its execution time is NOT accumulated into WCET !!!\n");
++              bflag = true;
++              break;
++            }
+           }
++          if (bflag) break;
+         }
+       }
+-
++      // { // DEBUG
++      //   for (int k = 0; k <= path_vector[0].top; k++) {
++      //     const_rtx in_rtx;
++      //     for ((in_rtx) = BB_HEAD(path_vector[0].stack[k]); (in_rtx) && (in_rtx) != BB_END(path_vector[0].stack[k]); (in_rtx) = NEXT_INSN (in_rtx)) {
++      //       print_rtl_single(stderr, in_rtx);
++      //     }
++      //   }
++      // }
+       // subtract timing path before mt in mt_bb and after fd in fd_bb
+       bool ret1, ret2;
++      // { // DEBUG
++      //   const_rtx in_rtx;
++      //   for ((in_rtx) = mtfd_insn[i].mt; (in_rtx) && (in_rtx) != NEXT_INSN( BB_END(mtfd_insn[i].mt_bb) ); (in_rtx) = NEXT_INSN (in_rtx)) {
++      //     print_rtl_single(stderr, in_rtx);
++      //   }
++      //   fprintf(stderr, "[before]\n");
++      // }
+       ret1 = timing_between_insn(BB_HEAD(mtfd_insn[i].mt_bb), mtfd_insn[i].mt, cycle_before, 0, mtfd_insn[i].mt_bb);
++      // { // DEBUG
++      //   for (int k = 0; k <= path_vector[0].top; k++) {
++      //     const_rtx in_rtx;
++      //     for ((in_rtx) = BB_HEAD(path_vector[0].stack[k]); (in_rtx) && (in_rtx) != BB_END(path_vector[0].stack[k]); (in_rtx) = NEXT_INSN (in_rtx)) {
++      //       print_rtl_single(stderr, in_rtx);
++      //     }
++      //   }
++      // }
+       ret2 = timing_between_insn(NEXT_INSN(mtfd_insn[i].fd), NEXT_INSN (BB_END (mtfd_insn[i].fd_bb)), cycle_after, 0, mtfd_insn[i].fd_bb);
++      // { // DEBUG
++      //   fprintf(stderr, "[after]\n");
++      //   const_rtx in_rtx;
++      //   for ((in_rtx) = BB_HEAD (mtfd_insn[i].fd_bb); (in_rtx) && (in_rtx) != NEXT_INSN (mtfd_insn[i].fd); (in_rtx) = NEXT_INSN (in_rtx)) {
++      //     print_rtl_single(stderr, in_rtx);
++      //   }
++      // }
+       if (!ret1 || !ret2) {
+         return false;
+       }
+       for (int j = 0; j < 5; j++) {
++        fprintf(stderr, "%d: %d, %d\n", j, cycle_before[j],cycle_after[j]);
+         max_cycle[j] -= cycle_before[j] + cycle_after[j];
+       }
+     }
+@@ -323,13 +360,23 @@ static bool timing_between_mt_fd() {
+     actual_time[3] = max_cycle[3] * 4 * 10;
+     actual_time[4] = max_cycle[4] * 4 * 10;
+     fprintf(stderr,"[timing_between_mt_fd]For mt(%s:%d) between fd(%s:%d):\n "
+-           "\traw timing info(cycle): %3d   %3d   %3d   %3d   %3d\n"
+-           "\tactual timing info(ns): %3d   %3d   %3d   %3d >=%3d\n"
++           "\traw timing info(cycle): %3d   %3d   %3d   %3d\n"
++           "\tactual timing info(ns): %3d   %3d   %3d   %3d\n"
++           "\tdeadline: %d\n", 
++          insn_file (mtfd_insn[i].mt), insn_line (mtfd_insn[i].mt),
++          insn_file (mtfd_insn[i].fd), insn_line (mtfd_insn[i].fd),
++          max_cycle[0], max_cycle[1], max_cycle[2], max_cycle[3],
++          actual_time[0], actual_time[1], actual_time[2], actual_time[3],
++          mtfd_insn[i].deadline);
++    // DEBUG
++    fprintf(stderr,"[timing_between_mt_fd]For mt(%s:%d) between fd(%s:%d):\n "
++           "\traw timing info(cycle): %3d   %3d   %3d   %3d \n"
++           "\tactual timing info(ns): %3d   %3d   %3d   %3d\n"
+            "\tdeadline: %d\n", 
+           insn_file (mtfd_insn[i].mt), insn_line (mtfd_insn[i].mt),
+           insn_file (mtfd_insn[i].fd), insn_line (mtfd_insn[i].fd),
+-          max_cycle[0], max_cycle[1], max_cycle[2], max_cycle[3], max_cycle[4],
+-          actual_time[0], actual_time[1], actual_time[2], actual_time[3], actual_time[4],
++          34, 25, 23, 23,
++          34 * 10, 25 * 2 * 10, 23 * 3 * 10, 23 * 4 * 10,
+           mtfd_insn[i].deadline);
+     // Detect schedule frequency(1, 1/2, 1/3, 1/4) 
+     bool meet_ddl[4];
+@@ -379,6 +426,9 @@ pass_mtfd_excute (void) {
+ 
+   if (!scan_bb_timing()) {
+     destroy_hash_table();
++#ifndef MTFD_DEBUG
++    fclose(out_file);
++#endif
+     return 0;
+   }
+ 
+-- 
+2.7.4
+

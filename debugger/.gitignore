@@ -1,0 +1,8 @@
+__pycache__
+asm
+config
+log
+*.gz
+.vscode
+asm_func
+.DS_Store

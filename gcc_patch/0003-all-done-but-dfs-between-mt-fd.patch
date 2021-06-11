@@ -1,0 +1,1229 @@
+From 1e7d7280b9f126decff8f7c7d2a5f84f27e2944a Mon Sep 17 00:00:00 2001
+From: SoraTrails <me876657621@126.com>
+Date: Sun, 11 Apr 2021 15:26:55 +0800
+Subject: [PATCH 3/7] all done but dfs between mt&fd
+
+---
+ .gitignore      |   1 +
+ gcc/Makefile.in |   1 -
+ gcc/mtfd-va.c   | 175 ----------------------
+ gcc/mtfd.c      | 440 +++++++++++++++++++++++++++++++++++++++-----------------
+ gcc/mtfd.h      |  22 ++-
+ gcc/mtfd_dev.c  | 424 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ gcc/passes.def  |   2 +-
+ gcc/tree-pass.h |   2 +-
+ 8 files changed, 748 insertions(+), 319 deletions(-)
+ delete mode 100644 gcc/mtfd-va.c
+ create mode 100644 gcc/mtfd_dev.c
+
+diff --git a/.gitignore b/.gitignore
+index bda55a3..62f062c 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -40,3 +40,4 @@ core
+ !core/
+ 
+ lost+found
++.vscode
+diff --git a/gcc/Makefile.in b/gcc/Makefile.in
+index 2b143ff..5b18e1e 100644
+--- a/gcc/Makefile.in
++++ b/gcc/Makefile.in
+@@ -1346,7 +1346,6 @@ OBJS = \
+ 	rtlhooks.o \
+ 	sbitmap.o \
+ 	mtfd.o \
+-	mtfd-va.o \
+ 	sched-deps.o \
+ 	sched-ebb.o \
+ 	sched-rgn.o \
+diff --git a/gcc/mtfd-va.c b/gcc/mtfd-va.c
+deleted file mode 100644
+index 75b5684..0000000
+--- a/gcc/mtfd-va.c
++++ /dev/null
+@@ -1,175 +0,0 @@
+-/**
+- * implement of pass: pass_mtfd_va
+- */
+-
+-#include "config.h"
+-#include "system.h"
+-#include "coretypes.h"
+-#include "tree.h"
+-#include "hash-table.h"
+-#include "basic-block.h"
+-#include "tree-ssa-alias.h"
+-#include "internal-fn.h"
+-#include "gimple-expr.h"
+-#include "is-a.h"
+-#include "gimple.h"
+-#include "gimplify.h"
+-#include "gimple-iterator.h"
+-#include "calls.h"
+-#include "varasm.h"
+-#include "stor-layout.h"
+-#include "tree-iterator.h"
+-#include "cgraph.h"
+-#include "stringpool.h"
+-#include "tree-ssanames.h"
+-#include "tree-pass.h"
+-#include "asan.h"
+-#include "gimple-pretty-print.h"
+-#include "target.h"
+-#include "expr.h"
+-#include "optabs.h"
+-#include "output.h"
+-#include "tm_p.h"
+-#include "langhooks.h"
+-#include "alloc-pool.h"
+-#include "cfgloop.h"
+-#include "gimple-builder.h"
+-#include "ubsan.h"
+-#include "predict.h"
+-#include "params.h"
+-#include "print-rtl.h"
+-
+-static bool visit[1000];
+-
+-static bool
+-pass_mtfd_va_gate (void) {
+-    // printf("[pass_mtfd_va] gated.\n");
+-    return 1;
+-}
+-
+-static void
+-bb_traverse(basic_block bb) {
+-    rtx tmp_rtx;
+-    int seen = 0;
+-    for (tmp_rtx = BB_HEAD(bb); BB_END(bb) != tmp_rtx; tmp_rtx = RTX_NEXT (tmp_rtx)) {
+-      printf("[pass_mtfd_va] [rtl code %d]", tmp_rtx->code);
+-      print_rtl_single(stdout, tmp_rtx);
+-      // final_scan_insn(tmp_rtx, stdout, optimize, 0, &seen);
+-    }
+-    // for (tmp_rtx = BB_HEAD(bb); tmp_rtx;) {
+-    //   printf("[pass_mtfd_va] [rtl code %d]", tmp_rtx->code);
+-    //   tmp_rtx = final_scan_insn(tmp_rtx, stdout, optimize, 0, &seen);
+-    // }
+-}
+-
+-static void
+-dfs(basic_block bb) {
+-  if (visit[bb->index] == 1)
+-    return;
+-  visit[bb->index] = 1;
+-  bb_traverse(bb);
+-  edge e;
+-  edge_iterator ei;
+-
+-  FOR_EACH_EDGE (e, ei, bb->succs) {
+-    dfs(e->dest);
+-  }
+-}
+-
+-static unsigned int
+-pass_mtfd_va_excute (void) {
+-    basic_block bb;
+-    // printf("[pass_mtfd_va] enter excuted.\n");
+-    // flow_loops_dump(stdout, NULL, 0);
+-
+-    // gimple print
+-    // FOR_EACH_BB_FN (bb, cfun)
+-    //   {
+-    //   gimple_stmt_iterator si;
+-    //   for (si = gsi_start_phis (bb); !gsi_end_p (si); gsi_next (&si))
+-    //     {
+-    //       gimple phi = gsi_stmt (si);
+-    //       printf("[pass_mtfd] gimple code %d, phi:", phi->code);
+-    //       print_gimple_stmt (stdout, phi, 0, TDF_SLIM);
+-    //     }
+-    //   for (si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
+-    //     {
+-    //       gimple stmt = gsi_stmt (si);
+-    //       printf("[pass_mtfd] gimple code %d, stmt:", stmt->code);
+-    //       print_gimple_stmt (stdout, stmt, 0, TDF_SLIM);
+-    //     }
+-    //   }
+-    
+-    FOR_EACH_BB_FN (bb, cfun)
+-      {
+-      gimple_stmt_iterator si;
+-      // for (si = gsi_start_phis (bb); !gsi_end_p (si); gsi_next (&si))
+-      //   {
+-      //     gimple phi = gsi_stmt (si);
+-      //     printf("[pass_mtfd_va] gimple code %d, phi:", phi->code);
+-      //     print_gimple_stmt (stdout, phi, 0, TDF_SLIM);
+-      //   }
+-      for (si = gsi_start_bb (bb); !gsi_end_p (si); gsi_next (&si))
+-        {
+-          gimple stmt = gsi_stmt (si);
+-          gimple_statement_asm *asm_stmt = NULL;
+-          // printf("[pass_mtfd_va] gimple code %d, stmt:", stmt->code);
+-          switch (gimple_code(stmt)) {
+-            case GIMPLE_ASM:
+-	            asm_stmt = as_a <gimple_statement_asm> (stmt);
+-              // printf("ni:%d, no:%d, nc:%d, nl:%d\n", asm_stmt->ni, asm_stmt->no, asm_stmt->nc, asm_stmt->nl);
+-              // if (strstr(asm_stmt->string, "custom0") != NULL) {
+-                // printf("stmt: %s\n", asm_stmt->string);
+-                // print_gimple_stmt (stdout, stmt, 0, TDF_SLIM);
+-                // get_gimple_rhs_class()
+-              // }
+-              break;
+-            default:
+-              // printf("op_num: %d, ", gimple_num_ops(stmt));
+-              // print_gimple_stmt (stdout, stmt, 0, TDF_SLIM);
+-              break;
+-          }
+-        }
+-      }
+-
+-    // printf("[pass_mtfd_va] leave excuted.\n");
+-    return 0;
+-}
+-
+-namespace {
+-
+-const pass_data pass_data_mtfd_va =
+-{
+-  GIMPLE_PASS, /* type */
+-  "mtfd-va", /* name */
+-  OPTGROUP_NONE, /* optinfo_flags */
+-  true, /* has_gate */
+-  true, /* has_execute */
+-  TV_NONE, /* tv_id */
+-  0, /* properties_required */
+-  0, /* properties_provided */
+-  0, /* properties_destroyed */
+-  0, /* todo_flags_start */
+-  0, /* todo_flags_finish */
+-};
+-
+-class pass_mtfd_va : public gimple_opt_pass
+-{
+-public:
+-  pass_mtfd_va (gcc::context *ctxt)
+-    : gimple_opt_pass (pass_data_mtfd_va, ctxt)
+-  {}
+-
+-  /* opt_pass methods: */
+-  bool gate () { return pass_mtfd_va_gate(); }
+-  unsigned int execute () { return pass_mtfd_va_excute (); }
+-
+-}; // class pass_mtfd_va
+-
+-} // anon namespace
+-
+-gimple_opt_pass *
+-make_pass_mtfd_va (gcc::context *ctxt)
+-{
+-  return new pass_mtfd_va (ctxt);
+-}
+\ No newline at end of file
+diff --git a/gcc/mtfd.c b/gcc/mtfd.c
+index 87d26e1..d6ec289 100644
+--- a/gcc/mtfd.c
++++ b/gcc/mtfd.c
+@@ -3,11 +3,17 @@
+  */
+ 
+ #include "mtfd.h"
++#define BB_MAX_NUM 1000
++#define MTFD_MAX_NUM 1000
++
++static bool bb_visit[BB_MAX_NUM];
++static int bb_cycle[BB_MAX_NUM][5];
++static bool bb_has_call[BB_MAX_NUM];
++static struct simple_stack<basic_block> bb_stack;
++static struct mtfd_pair mtfd_insn[MTFD_MAX_NUM];
++static int mt_insn_len = 0;
++static int fd_insn_len = 0;
+ 
+-static bool visit[1000];
+-static int bb_cycle[1000][5];
+-static struct bb_stack stack;
+-static const int TABLE_LEN = 72;
+ static hash_table <rv32i_insn_hasher> insn_table;
+ static alloc_pool rv32i_insn_pool;
+ 
+@@ -15,12 +21,13 @@ typedef hash_table <rv32i_tmpl_hasher> rv32i_tmpl_hasher_type;
+ extern hash_table <rv32i_tmpl_hasher> tmpl_table;
+ extern alloc_pool rv32i_tmpl_pool;
+ 
+-static const char rv32i_insn[TABLE_LEN][32] = {
+-  "la","lla","move","mv","nop","li","not","neg","seqz","snez","sltz","sgtz","beqz","bnez","blez","bgez","bltz","bgtz","bgt","ble","bgtu","bleu","lui","auipc", "addi","slti","sltiu","xori","ori","andi","slli","srli","srai","add","sub","sll","slt","sltu","xor","srl","sra","or","and","jal","jalr","beq","bne","blt","bge","bltu","bgeu","j","jr","call","b","sb","sh","sw","lb","lh","lw","lbu","lhu","csrrw","csrrs","csrrc","csrrwi","csrrsi","csrrci","syscall","fence.i","fence"
++static const char rv32i_insn[][32] = {
++  "la","lla","move","mv","nop","li","not","neg","seqz","snez","sltz","sgtz","beqz","bnez","blez","bgez","bltz","bgtz","bgt","ble","bgtu","bleu","lui","auipc", "addi","slti","sltiu","xori","ori","andi","slli","srli","srai","add","sub","sll","slt","sltu","xor","srl","sra","or","and","jal","jalr","beq","bne","blt","bge","bltu","bgeu","j","jr","call","b","sb","sh","sw","lb","lh","lw","lbu","lhu","csrrw","csrrs","csrrc","csrrwi","csrrsi","csrrci","syscall","fence.i","fence","csrr","csrw","rdtime","rdcycle","rdinstret","custom0","custom1","custom2","custom3"
+ };
+-static const int rv32i_insn_cycles[TABLE_LEN][5] = {
+-  {3, 2, 2, 2, 2}, {2, 2, 2, 2, 2}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 4, 4, 4, 4}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 2, 2, 1, 1}, {4, 2, 2, 1, 1}, {1, 1, 1, 1, 1}
++static const int rv32i_insn_cycles[][5] = {
++  {3, 2, 2, 2, 2}, {2, 2, 2, 2, 2}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 4, 4, 4, 4}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 2, 2, 1, 1}, {4, 2, 2, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {5, 3, 2, 2, 1}, {5, 3, 2, 2, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1} 
+ };
++static const int TABLE_LEN = sizeof(rv32i_insn) / (sizeof(char) * 32);
+ 
+ static void init_hash_table () {
+   gcc_assert (!rv32i_insn_pool);
+@@ -56,157 +63,320 @@ static void destroy_hash_table () {
+   rv32i_tmpl_pool = NULL;
+ }
+ 
+-static void scan_bb_timing() {
+-  basic_block bb;
+-  const_rtx in_rtx;
++// called by timing_between_insn, record mt and fd instruction
++static bool find_mt_fd(const char * insn, const_rtx in_rtx, basic_block bb) {
++  if (strstr(insn, "lui zero") != NULL) {
++    if (mt_insn_len == MTFD_MAX_NUM) {
++      error_at(INSN_LOCATION(in_rtx), "Max mt instrucion num exceed.\n");
++      return false;
++    }
++    if (mt_insn_len > fd_insn_len) {
++      error_at(INSN_LOCATION(in_rtx), "Continuous mt instruction detected, "
++               "mt and fd instruction should appear in pairs and in program order.\n");
++      return false;
++    }
++    mtfd_insn[mt_insn_len].mt = in_rtx;
++    mtfd_insn[mt_insn_len].mt_bb = bb;
++    sscanf(insn, "lui zero, %d", &mtfd_insn[mt_insn_len].deadline);
++    mt_insn_len++;
++  } else if (strstr(insn, "custom3 zero") != NULL) {
++    if (fd_insn_len == MTFD_MAX_NUM) {
++      error_at(INSN_LOCATION(in_rtx), "Max fd instrucion num exceed.\n");
++      return false;
++    }
++    if (mt_insn_len == fd_insn_len) {
++      error_at(INSN_LOCATION(in_rtx), "Use fd instruction without previous mt instruction, "
++               "mt and fd instruction should appear in pairs and in program order.\n");
++      return false;
++    }
++    mtfd_insn[fd_insn_len].fd = in_rtx;
++    mtfd_insn[fd_insn_len].fd_bb = bb;
++    fd_insn_len++;
++  } else if (strstr(insn, "custom3 0") != NULL) {
++    warning_at(INSN_LOCATION(in_rtx), 0, "mt_reg instrucion in not supported currently.\n");
++  }
++  return true;
++}
+ 
+-  FOR_EACH_BB_FN (bb, cfun) {
+-    // for (in_rtx = BB_HEAD(bb); BB_END(bb) != in_rtx; in_rtx = RTX_NEXT (in_rtx)) {
+-      FOR_BB_INSNS(bb, in_rtx) {
+-      int is_insn = INSN_P(in_rtx);
+-      if (is_insn) {
+-        printf("insn code : %d\t", INSN_CODE (in_rtx));
+-        if (INSN_CODE (in_rtx) == ASM_INPUT || INSN_CODE (in_rtx) == ASM_OPERANDS) {
+-          printf("[scan_bb_timing] asm_input/asm_operand ");
+-          print_rtl_single(stdout, in_rtx);
+-          // TODO
+-        } else {
+-          // Template matching 
+-          struct htab_rv32i_tmpl_entry key;
+-          struct htab_rv32i_tmpl_entry *entry;
+-          key.insn = (rtx)in_rtx;
+-
+-          entry = tmpl_table.find(&key);
+-          if (entry) {
+-            if (entry->tmpl[0] == '#') {
+-              printf("[scan_bb_timing]bad tmpl! (%s) --- ", entry->tmpl);
+-              print_rtl_single(stdout, in_rtx);
+-            } else {
+-              struct htab_rv32i_insn_entry key2;
+-              struct htab_rv32i_insn_entry *entry2;
+-              int i = 0;
+-              while ((entry->tmpl[i] <= 'z' && entry->tmpl[i] >= 'a') || entry->tmpl[i] == '.') {
+-                key2.name[i] = entry->tmpl[i];
+-                i++;
+-              }
+-              key2.name[i] = '\0';
+-              entry2 = insn_table.find(&key2);
+-              if (entry2) {
+-                // Accumulate timing
+-                printf("[scan_bb_timing]inst %s cycle: %d,%d,%d,%d,%d\n", key2.name,
+-                      entry2->cycles[0], entry2->cycles[1], entry2->cycles[2],
+-                      entry2->cycles[3], entry2->cycles[4]);
+-                for (int j = 0; j < 5; j++) {
+-                  bb_cycle[bb->index][j] += entry2->cycles[j];
+-                }
+-              } else {
+-                printf("[scan_bb_timing]insn not found! key: %s--- ", key2.name);
+-                print_rtl_single(stdout, in_rtx);
+-              }
+-            }
+-          } else {
+-            printf("[scan_bb_timing]tmpl not found! --- ");
+-            print_rtl_single(stdout, in_rtx);
++// calculate timing info between insn inside a basic block
++// called by scan_bb_timing with first=1, collecting useful information while calculating timing
++// called by timing_between_mt_fd with first=0, which only calculates timing
++static bool timing_between_insn(const_rtx start, const_rtx end, int * cycle, int first, basic_block bb) {
++  const_rtx in_rtx;
++  for ((in_rtx) = start; (in_rtx) && (in_rtx) != end; (in_rtx) = NEXT_INSN (in_rtx)) {
++    int is_insn = INSN_P(in_rtx);
++    if (!is_insn) {
++      if (first) {
++        printf("[scan_bb_timing]not an insn");
++        print_rtl_single(stdout, in_rtx);
++      }
++      continue;
++    }
++    const char * insn_name = NULL;
++    if (INSN_CODE (in_rtx) == -1) {
++      // detect asm_input/asm_operand instruction
++      rtx sub_rtx = XEXP(in_rtx, 4);
++      if (sub_rtx != NULL && (GET_CODE(sub_rtx) == ASM_INPUT || GET_CODE(sub_rtx) == ASM_OPERANDS)) {
++        const char * sub_insn_name = XSTR(sub_rtx, 0);
++        if (first) {
++          printf("[scan_bb_timing] asm_input/asm_operand insn: %s ", sub_insn_name);
++          // Judge if this asm insn is mt or fd
++          if (!find_mt_fd(sub_insn_name, in_rtx, bb)) {
++            return false;
+           }
+         }
++        insn_name = sub_insn_name;
+       } else {
+-        printf("[scan_bb_timing] cannot get insn code ");
++        if (first) {
++          printf("[scan_bb_timing] unrecognized insn ---");
++          print_rtl_single(stdout, in_rtx);
++        }
++        continue;
++      }
++    }
++    struct htab_rv32i_tmpl_entry key;
++    struct htab_rv32i_tmpl_entry *entry;
++    if (INSN_CODE (in_rtx) != -1) {
++      // Not an asm_input/asm_operand insn, use template matching 
++      key.insn = (rtx)in_rtx;
++
++      entry = tmpl_table.find(&key);
++      if (!entry) {
++        if (first) {
++          printf("[scan_bb_timing]tmpl not found! --- ");
++          print_rtl_single(stdout, in_rtx);
++        }
++        continue;
++      }
++      if (entry->tmpl[0] == '#') {
++        if (first) {
++          printf("[scan_bb_timing]bad tmpl! (%s) --- ", entry->tmpl);
++          print_rtl_single(stdout, in_rtx);
++        }
++        continue;
++      }
++      insn_name = entry->tmpl;
++    }
++
++    // Find the timing info
++    struct htab_rv32i_insn_entry key2;
++    struct htab_rv32i_insn_entry *entry2;
++    int i = 0;
++    while ((insn_name[i] <= 'z' && insn_name[i] >= 'a') || insn_name[i] == '.' ||
++            (insn_name[i] <= '9' && insn_name[i] >= '0')) {
++      key2.name[i] = insn_name[i];
++      i++;
++    }
++    key2.name[i] = '\0';
++    entry2 = insn_table.find(&key2);
++    if (!entry2) {
++      if (first) {
++        printf("[scan_bb_timing]insn not found! key: %s--- ", key2.name);
+         print_rtl_single(stdout, in_rtx);
+       }
++      continue;
++    }
++
++    // Accumulate timing
++    if (first) {
++      printf("[scan_bb_timing]inst %s cycle: %d,%d,%d,%d,%d\n", key2.name,
++            entry2->cycles[0], entry2->cycles[1], entry2->cycles[2],
++            entry2->cycles[3], entry2->cycles[4]);
++    }
++
++    for (int j = 0; j < 5; j++) {
++      cycle[j] += entry2->cycles[j];
++    }
++
++    if (strcmp(key2.name, "call") == 0) {
++      // for `call` inside a basic block, add function WCET to bb_cycle --- LTO is required...
++      if (first) {
++        bb_has_call[bb->index] = 1;
++      } else {
++        warning_at(INSN_LOCATION(in_rtx), 0, "Funcion call detected between mt and fd, "
++                   "Its execution time is NOT accumulated into WCET !!!\n");
++      }
+     }
+   }
++  return true;
+ }
+ 
+-static void bb_all_path(basic_block start, basic_block end, int* max_cycle) {
+-	visit[start->index] = 1;
+-	stack.push(start);
++// calculate timing info between two basic block
++static bool timing_between_bb(basic_block start, basic_block end, int* max_cycle, int j) {
++  // TODO
++  if (start == end) {
++    // max_cycle[j] = max_cycle[j] > bb_cycle[start->index][j] ? max_cycle[j] : bb_cycle[start->index][j];
++    return true;
++  }
++	bb_visit[start->index] = 1;
++	bb_stack.push(start);
+   vec<edge, va_gc>* succ = start->succs;
+   for (size_t i = 0; i < succ->length(); i++) {
+     basic_block bb_s = (*succ)[i]->dest;
+     if (bb_s == end) {
+-      int sum_cycle[5] = {0};
+-      for (int j = 0; j < stack.top + 1; j++) {
+-        sum_cycle[0] += bb_cycle[stack.stack[j]->index][0];
+-        sum_cycle[1] += bb_cycle[stack.stack[j]->index][1];
+-        sum_cycle[2] += bb_cycle[stack.stack[j]->index][2];
+-        sum_cycle[3] += bb_cycle[stack.stack[j]->index][3];
+-        sum_cycle[4] += bb_cycle[stack.stack[j]->index][4];
++      // bb_stack.push(end);
++      int sum_cycle = 0;
++      for (int k = 0; k < bb_stack.top + 1; k++) {
++        sum_cycle += bb_cycle[bb_stack.stack[k]->index][j];
++      }
++      sum_cycle += bb_cycle[bb_s->index][j];
++      max_cycle[j] = max_cycle[j] > sum_cycle ? max_cycle[j] : sum_cycle;
++      bb_stack.pop();
++      bb_visit[start->index] = 0;
++      return true;
++    }
++		if (!bb_visit[bb_s->index]) {
++			if (!timing_between_bb(bb_s, end, max_cycle, j)) {
++        return false;
++      }
++		} else {
++      return false;
++    }
++  }
++  bb_stack.pop();
++  bb_visit[start->index] = 0;
++  return true;
++}
++
++// calculate all timing of a basic block, and record info about mt&fd&call instruction
++static bool scan_bb_timing() {
++  basic_block bb;
++  if (n_basic_blocks_for_fn(cfun) + 10 > BB_MAX_NUM) {
++    error_at(INSN_LOCATION(BB_HEAD(bb)), "Max basic block num exceed.\n");
++    return false;
++  }
++  memset(bb_cycle, 0, sizeof(int) * (n_basic_blocks_for_fn(cfun) + 10));
++  memset(bb_has_call, 0, sizeof(bool) * (n_basic_blocks_for_fn(cfun) + 10));
++  mt_insn_len = 0;
++  fd_insn_len = 0;
++
++  FOR_EACH_BB_FN (bb, cfun) {
++    if (!timing_between_insn(BB_HEAD(bb), NEXT_INSN (BB_END (bb)), bb_cycle[bb->index], 1, bb)) {
++      return false;
++    }
++  }
++  return true;
++}
++
++// calculate timing between every mt, fd instruction pair, and deal with deadline
++static bool timing_between_mt_fd() {
++  if (mt_insn_len > fd_insn_len) {
++    const_rtx in_rtx = mtfd_insn[mt_insn_len - 1].mt;
++    error_at(INSN_LOCATION(in_rtx), "Use mt instruction without following fd instruction, "
++             "mt and fd instruction should appear in pairs and in program order.\n");
++    return false;
++  }
++  gcc_assert(mt_insn_len == fd_insn_len);
++  // for every mt fd instruction pair
++  printf("[timing_between_mt_fd] mt&fd insn pair num:%d\n", mt_insn_len);
++  for (int i = 0; i < mt_insn_len; i++) {
++    int max_cycle[5] = {0};
++    int actual_time[5] = {0};
++    if (mtfd_insn[i].mt_bb == mtfd_insn[i].fd_bb) {
++      if (!timing_between_insn(mtfd_insn[i].mt, NEXT_INSN (mtfd_insn[i].fd), max_cycle, 0, mtfd_insn[i].mt_bb)) {
++        return false;
+       }
+-      max_cycle[0] = max_cycle[0] > sum_cycle[0] ? max_cycle[0] : sum_cycle[0];
+-      max_cycle[1] = max_cycle[1] > sum_cycle[1] ? max_cycle[1] : sum_cycle[1];
+-      max_cycle[2] = max_cycle[2] > sum_cycle[2] ? max_cycle[2] : sum_cycle[2];
+-      max_cycle[3] = max_cycle[3] > sum_cycle[3] ? max_cycle[3] : sum_cycle[3];
+-      max_cycle[4] = max_cycle[4] > sum_cycle[4] ? max_cycle[4] : sum_cycle[4];
+-      stack.pop();
+-      visit[start->index] = 0;
+-      break;
+-    }
+-		if (!visit[bb_s->index]) {
+-			bb_all_path(bb_s, end, max_cycle);
+-		}
+-    if (i == succ->length() - 1) {
+-      stack.pop();
+-      visit[start->index] = 0;
++    } else {
++      memset(bb_visit, 0, sizeof(bool) * (n_basic_blocks_for_fn(cfun) + 10));
++      int cycle_before[5] = {0};
++      int cycle_after[5] = {0};
++
++      bool flag = true;
++      for (int j = 0; j < 5; j++) {
++        if (!timing_between_bb(mtfd_insn[i].mt_bb, mtfd_insn[i].fd_bb, max_cycle, j)) {
++          flag = false;
++          break;
++        }
++      }
++      if (!flag) {
++        warning_at(INSN_LOCATION(mtfd_insn[i].mt), 0, "cycle found between mt and fd, "
++                  "timing info cannot be calculated precisely !");
++        continue;
++      }
++
++      // subtract timing path before mt in mt_bb and after fd in fd_bb
++      bool ret1, ret2;
++      ret1 = timing_between_insn(BB_HEAD(mtfd_insn[i].mt_bb), mtfd_insn[i].mt, cycle_before, 0, mtfd_insn[i].mt_bb);
++      ret2 = timing_between_insn(NEXT_INSN(mtfd_insn[i].fd), NEXT_INSN (BB_END (mtfd_insn[i].fd_bb)), cycle_after, 0, mtfd_insn[i].fd_bb);
++      if (!ret1 || !ret2) {
++        return false;
++      }
++      for (int j = 0; j < 5; j++) {
++        max_cycle[j] -= cycle_before[j] + cycle_after[j];
++      }
++    }
++    // dealwith deadline.
++    actual_time[0] = max_cycle[0] * 10;
++    actual_time[1] = max_cycle[1] * 2 * 10;
++    actual_time[2] = max_cycle[2] * 3 * 10;
++    actual_time[3] = max_cycle[3] * 4 * 10;
++    actual_time[4] = max_cycle[4] * 4 * 10;
++    fprintf(stderr,"[timing_between_mt_fd]For mt(%s:%d) between fd(%s:%d):\n "
++           "\traw timing info(cycle): %3d   %3d   %3d   %3d   %3d\n"
++           "\tactual timing info(ns): %3d   %3d   %3d   %3d >=%3d\n"
++           "\tdeadline: %d\n", 
++          insn_file (mtfd_insn[i].mt), insn_line (mtfd_insn[i].mt),
++          insn_file (mtfd_insn[i].fd), insn_line (mtfd_insn[i].fd),
++          max_cycle[0], max_cycle[1], max_cycle[2], max_cycle[3], max_cycle[4],
++          actual_time[0], actual_time[1], actual_time[2], actual_time[3], actual_time[4],
++          mtfd_insn[i].deadline);
++    // Detect schedule frequency(1, 1/2, 1/3, 1/4) 
++    bool meet_ddl[4];
++    bool meet_all_ddl = true;
++    bool meet_none_ddl = true;
++    for (int j = 0; j < 4; j++) {
++      meet_ddl[j] = mtfd_insn[i].deadline >= actual_time[j];
++      meet_all_ddl = meet_all_ddl && meet_ddl[j];
++      meet_none_ddl = meet_none_ddl && !meet_ddl[j];
++    }
++    if (meet_none_ddl) {
++      error_at(INSN_LOCATION(mtfd_insn[i].fd), "Deadline will be missed in all(1, 1/2, 1/3, 1/4) schedule frequency! Plz make a more relax deadline.\n");
++      return false;
++    }
++    char buf[32] = "";
++    if (!meet_ddl[0]) strcat(buf, "1");
++    if (!meet_ddl[1]) strlen(buf) == 0 ? strcat(buf, "1/2") : strcat(buf, ",1/2");
++    if (!meet_ddl[2]) strlen(buf) == 0 ? strcat(buf, "1/3") : strcat(buf, ",1/3");
++    if (!meet_ddl[3]) strlen(buf) == 0 ? strcat(buf, "1/4") : strcat(buf, ",1/4");
++    if (!meet_all_ddl) {
++      warning_at(INSN_LOCATION(mtfd_insn[i].fd), 0, 
++            "Deadline will be missed at schedule frequency %s! \n", buf);
++    } else {
++      inform(INSN_LOCATION(mtfd_insn[i].fd), "Deadline will be met in all(1, 1/2, 1/3, 1/4) schedule frequency.\n");
+     }
+   }
++  return true;
+ }
+ 
+ static unsigned int
+ pass_mtfd_excute (void) {
+-    basic_block bb;
+-    const_rtx tmp_rtx;
+-    // printf("[pass_mtfd] enter excuted.\n");
+-
+-    // FOR_EACH_BB_FN (bb, cfun) {
+-    //   printf("bb: %p\n", bb);
+-    //   vec<edge, va_gc>* pred = bb->preds;
+-    //   vec<edge, va_gc>* succ = bb->succs;
+-    //   for (int i = 0; i < pred->length(); i++) {
+-    //     basic_block bb_p = (*pred)[i]->src;
+-    //     basic_block bb_s = (*pred)[i]->dest;
+-    //     printf("\tbb_p: %p\n", bb_p);
+-    //     printf("\tbb_s: %p\n", bb_s);
+-    //     for (tmp_rtx = BB_HEAD(bb); BB_END(bb) != tmp_rtx; tmp_rtx = RTX_NEXT (tmp_rtx)) {
+-    //       printf("[pass_mtfd] [rtl insn_code %d]", INSN_CODE(tmp_rtx));
+-    //       print_rtl_single(stdout, tmp_rtx);
+-    //     }
+-    //   }
+-    // loop l;
+-    // FOR_EACH_LOOP(l, ) {
+-    // }
+-    // flow_loops_dump(stdout, NULL, 0);
+-    // cfg traverse
+-    // bb = BASIC_BLOCK_FOR_FN(cfun, 0);
+-
+-    init_hash_table();
+-
+-    for (rv32i_tmpl_hasher_type::iterator iter = tmpl_table.begin ();
+-          iter != tmpl_table.end ();
+-          ++iter)
+-      printf("[insn tmpl] insn:%p tmpl:%s\n", (*iter).insn, (*iter).tmpl);
+-
+-    memset(bb_cycle, 0, sizeof(bb_cycle));
+-    scan_bb_timing();
+-
+-    FOR_EACH_BB_FN (bb, cfun) {
+-      printf("basic block %3d: cycle[0]=%d\n", bb->index, bb_cycle[bb->index][0]);
+-      printf("                 cycle[1]=%d\n", bb_cycle[bb->index][1]);
+-      printf("                 cycle[2]=%d\n", bb_cycle[bb->index][2]);
+-      printf("                 cycle[3]=%d\n", bb_cycle[bb->index][3]);
+-      printf("                 cycle[4]=%d\n", bb_cycle[bb->index][4]);
+-      printf("\n");
+-    }
+-
+-    // basic_block mt, fd;
+-    // memset(visit, 0, sizeof(visit));
+-    // find_mtfd(&mt, &fd);
+-
+-    // stack.clear();
+-    // int max_cycle[5] = {0};
+-    // bb_all_path(mt, fd, max_cycle);
++  // printf("[pass_mtfd] enter excuted.\n");
++  basic_block bb;
++  init_hash_table();
++
++  for (rv32i_tmpl_hasher_type::iterator iter = tmpl_table.begin ();
++        iter != tmpl_table.end ();
++        ++iter)
++    printf("[insn tmpl] insn:%p tmpl:%s\n", (*iter).insn, (*iter).tmpl);
+ 
++  if (!scan_bb_timing()) {
+     destroy_hash_table();
+     return 0;
++  }
++
++  FOR_EACH_BB_FN (bb, cfun) {
++    printf("basic block %3d: cycle[0]=%d\n", bb->index, bb_cycle[bb->index][0]);
++    printf("                 cycle[1]=%d\n", bb_cycle[bb->index][1]);
++    printf("                 cycle[2]=%d\n", bb_cycle[bb->index][2]);
++    printf("                 cycle[3]=%d\n", bb_cycle[bb->index][3]);
++    printf("                 cycle[4]=%d\n", bb_cycle[bb->index][4]);
++    printf("\n");
++  }
++
++  timing_between_mt_fd();
++
++  destroy_hash_table();
++  return 0;
+ }
+ 
+ static bool
+diff --git a/gcc/mtfd.h b/gcc/mtfd.h
+index ec430b8..da89991 100644
+--- a/gcc/mtfd.h
++++ b/gcc/mtfd.h
+@@ -38,6 +38,7 @@
+ #include "print-rtl.h"
+ #include "rtl.h"
+ #include "config/riscv/riscv-protos.h"
++#include "diagnostic.h"
+ 
+ 
+ struct htab_rv32i_insn_entry
+@@ -98,11 +99,20 @@ rv32i_tmpl_hasher::equal (const value_type *data, const compare_type *data2)
+   return data->insn == data2->insn;
+ }
+ 
+-struct bb_stack {
++struct mtfd_pair {
++  const_rtx mt;
++  basic_block mt_bb;
++  const_rtx fd;
++  basic_block fd_bb;
++  unsigned int deadline;
++};
++
++template <typename T>
++struct simple_stack {
+     int MAXSIZE;
+-    basic_block stack[1000];
++    T stack[1000];
+     int top;     
+-    bb_stack() {
++    simple_stack() {
+         top = -1;
+         MAXSIZE = 1000;
+     }
+@@ -119,8 +129,8 @@ struct bb_stack {
+             return 1;
+         return 0;
+     }
+-    basic_block pop() {
+-        basic_block data;
++    T pop() {
++        T data;
+         if(!isempty()) {
+             data = stack[top];
+             top = top - 1;   
+@@ -130,7 +140,7 @@ struct bb_stack {
+             return NULL;
+         }
+     }
+-    int push(basic_block data) {
++    int push(T data) {
+         if(!isfull()) {
+             top = top + 1;   
+             stack[top] = data;
+diff --git a/gcc/mtfd_dev.c b/gcc/mtfd_dev.c
+new file mode 100644
+index 0000000..d6ec289
+--- /dev/null
++++ b/gcc/mtfd_dev.c
+@@ -0,0 +1,424 @@
++/**
++ * implement of pass: pass_mtfd
++ */
++
++#include "mtfd.h"
++#define BB_MAX_NUM 1000
++#define MTFD_MAX_NUM 1000
++
++static bool bb_visit[BB_MAX_NUM];
++static int bb_cycle[BB_MAX_NUM][5];
++static bool bb_has_call[BB_MAX_NUM];
++static struct simple_stack<basic_block> bb_stack;
++static struct mtfd_pair mtfd_insn[MTFD_MAX_NUM];
++static int mt_insn_len = 0;
++static int fd_insn_len = 0;
++
++static hash_table <rv32i_insn_hasher> insn_table;
++static alloc_pool rv32i_insn_pool;
++
++typedef hash_table <rv32i_tmpl_hasher> rv32i_tmpl_hasher_type;
++extern hash_table <rv32i_tmpl_hasher> tmpl_table;
++extern alloc_pool rv32i_tmpl_pool;
++
++static const char rv32i_insn[][32] = {
++  "la","lla","move","mv","nop","li","not","neg","seqz","snez","sltz","sgtz","beqz","bnez","blez","bgez","bltz","bgtz","bgt","ble","bgtu","bleu","lui","auipc", "addi","slti","sltiu","xori","ori","andi","slli","srli","srai","add","sub","sll","slt","sltu","xor","srl","sra","or","and","jal","jalr","beq","bne","blt","bge","bltu","bgeu","j","jr","call","b","sb","sh","sw","lb","lh","lw","lbu","lhu","csrrw","csrrs","csrrc","csrrwi","csrrsi","csrrci","syscall","fence.i","fence","csrr","csrw","rdtime","rdcycle","rdinstret","custom0","custom1","custom2","custom3"
++};
++static const int rv32i_insn_cycles[][5] = {
++  {3, 2, 2, 2, 2}, {2, 2, 2, 2, 2}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 4, 4, 4, 4}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {3, 2, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {2, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {4, 2, 2, 1, 1}, {4, 2, 2, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {5, 3, 2, 2, 1}, {5, 3, 2, 2, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1} 
++};
++static const int TABLE_LEN = sizeof(rv32i_insn) / (sizeof(char) * 32);
++
++static void init_hash_table () {
++  gcc_assert (!rv32i_insn_pool);
++  rv32i_insn_pool = create_alloc_pool ("rv32i_insn", sizeof (struct htab_rv32i_insn_entry), 128);
++  insn_table.create(TABLE_LEN);
++
++  struct htab_rv32i_insn_entry **slot;
++  struct htab_rv32i_insn_entry key;
++
++  for (int i = 0; i < TABLE_LEN; i++) {
++    strcpy(key.name, rv32i_insn[i]);
++    slot = insn_table.find_slot (&key, INSERT);
++    if (!*slot) {
++      *slot = (struct htab_rv32i_insn_entry *) pool_alloc(rv32i_insn_pool);
++    }
++    strcpy((*slot)->name, rv32i_insn[i]);
++    for (int j = 0; j < 5; j++) {
++      (*slot)->cycles[j] = rv32i_insn_cycles[i][j];
++    }
++  }
++}
++
++static void destroy_hash_table () {
++  gcc_assert (rv32i_insn_pool);
++  insn_table.dispose();
++  free_alloc_pool (rv32i_insn_pool);
++  rv32i_insn_pool = NULL;
++
++// initiated in final.c
++  gcc_assert (rv32i_tmpl_pool);
++  tmpl_table.dispose();
++  free_alloc_pool (rv32i_tmpl_pool);
++  rv32i_tmpl_pool = NULL;
++}
++
++// called by timing_between_insn, record mt and fd instruction
++static bool find_mt_fd(const char * insn, const_rtx in_rtx, basic_block bb) {
++  if (strstr(insn, "lui zero") != NULL) {
++    if (mt_insn_len == MTFD_MAX_NUM) {
++      error_at(INSN_LOCATION(in_rtx), "Max mt instrucion num exceed.\n");
++      return false;
++    }
++    if (mt_insn_len > fd_insn_len) {
++      error_at(INSN_LOCATION(in_rtx), "Continuous mt instruction detected, "
++               "mt and fd instruction should appear in pairs and in program order.\n");
++      return false;
++    }
++    mtfd_insn[mt_insn_len].mt = in_rtx;
++    mtfd_insn[mt_insn_len].mt_bb = bb;
++    sscanf(insn, "lui zero, %d", &mtfd_insn[mt_insn_len].deadline);
++    mt_insn_len++;
++  } else if (strstr(insn, "custom3 zero") != NULL) {
++    if (fd_insn_len == MTFD_MAX_NUM) {
++      error_at(INSN_LOCATION(in_rtx), "Max fd instrucion num exceed.\n");
++      return false;
++    }
++    if (mt_insn_len == fd_insn_len) {
++      error_at(INSN_LOCATION(in_rtx), "Use fd instruction without previous mt instruction, "
++               "mt and fd instruction should appear in pairs and in program order.\n");
++      return false;
++    }
++    mtfd_insn[fd_insn_len].fd = in_rtx;
++    mtfd_insn[fd_insn_len].fd_bb = bb;
++    fd_insn_len++;
++  } else if (strstr(insn, "custom3 0") != NULL) {
++    warning_at(INSN_LOCATION(in_rtx), 0, "mt_reg instrucion in not supported currently.\n");
++  }
++  return true;
++}
++
++// calculate timing info between insn inside a basic block
++// called by scan_bb_timing with first=1, collecting useful information while calculating timing
++// called by timing_between_mt_fd with first=0, which only calculates timing
++static bool timing_between_insn(const_rtx start, const_rtx end, int * cycle, int first, basic_block bb) {
++  const_rtx in_rtx;
++  for ((in_rtx) = start; (in_rtx) && (in_rtx) != end; (in_rtx) = NEXT_INSN (in_rtx)) {
++    int is_insn = INSN_P(in_rtx);
++    if (!is_insn) {
++      if (first) {
++        printf("[scan_bb_timing]not an insn");
++        print_rtl_single(stdout, in_rtx);
++      }
++      continue;
++    }
++    const char * insn_name = NULL;
++    if (INSN_CODE (in_rtx) == -1) {
++      // detect asm_input/asm_operand instruction
++      rtx sub_rtx = XEXP(in_rtx, 4);
++      if (sub_rtx != NULL && (GET_CODE(sub_rtx) == ASM_INPUT || GET_CODE(sub_rtx) == ASM_OPERANDS)) {
++        const char * sub_insn_name = XSTR(sub_rtx, 0);
++        if (first) {
++          printf("[scan_bb_timing] asm_input/asm_operand insn: %s ", sub_insn_name);
++          // Judge if this asm insn is mt or fd
++          if (!find_mt_fd(sub_insn_name, in_rtx, bb)) {
++            return false;
++          }
++        }
++        insn_name = sub_insn_name;
++      } else {
++        if (first) {
++          printf("[scan_bb_timing] unrecognized insn ---");
++          print_rtl_single(stdout, in_rtx);
++        }
++        continue;
++      }
++    }
++    struct htab_rv32i_tmpl_entry key;
++    struct htab_rv32i_tmpl_entry *entry;
++    if (INSN_CODE (in_rtx) != -1) {
++      // Not an asm_input/asm_operand insn, use template matching 
++      key.insn = (rtx)in_rtx;
++
++      entry = tmpl_table.find(&key);
++      if (!entry) {
++        if (first) {
++          printf("[scan_bb_timing]tmpl not found! --- ");
++          print_rtl_single(stdout, in_rtx);
++        }
++        continue;
++      }
++      if (entry->tmpl[0] == '#') {
++        if (first) {
++          printf("[scan_bb_timing]bad tmpl! (%s) --- ", entry->tmpl);
++          print_rtl_single(stdout, in_rtx);
++        }
++        continue;
++      }
++      insn_name = entry->tmpl;
++    }
++
++    // Find the timing info
++    struct htab_rv32i_insn_entry key2;
++    struct htab_rv32i_insn_entry *entry2;
++    int i = 0;
++    while ((insn_name[i] <= 'z' && insn_name[i] >= 'a') || insn_name[i] == '.' ||
++            (insn_name[i] <= '9' && insn_name[i] >= '0')) {
++      key2.name[i] = insn_name[i];
++      i++;
++    }
++    key2.name[i] = '\0';
++    entry2 = insn_table.find(&key2);
++    if (!entry2) {
++      if (first) {
++        printf("[scan_bb_timing]insn not found! key: %s--- ", key2.name);
++        print_rtl_single(stdout, in_rtx);
++      }
++      continue;
++    }
++
++    // Accumulate timing
++    if (first) {
++      printf("[scan_bb_timing]inst %s cycle: %d,%d,%d,%d,%d\n", key2.name,
++            entry2->cycles[0], entry2->cycles[1], entry2->cycles[2],
++            entry2->cycles[3], entry2->cycles[4]);
++    }
++
++    for (int j = 0; j < 5; j++) {
++      cycle[j] += entry2->cycles[j];
++    }
++
++    if (strcmp(key2.name, "call") == 0) {
++      // for `call` inside a basic block, add function WCET to bb_cycle --- LTO is required...
++      if (first) {
++        bb_has_call[bb->index] = 1;
++      } else {
++        warning_at(INSN_LOCATION(in_rtx), 0, "Funcion call detected between mt and fd, "
++                   "Its execution time is NOT accumulated into WCET !!!\n");
++      }
++    }
++  }
++  return true;
++}
++
++// calculate timing info between two basic block
++static bool timing_between_bb(basic_block start, basic_block end, int* max_cycle, int j) {
++  // TODO
++  if (start == end) {
++    // max_cycle[j] = max_cycle[j] > bb_cycle[start->index][j] ? max_cycle[j] : bb_cycle[start->index][j];
++    return true;
++  }
++	bb_visit[start->index] = 1;
++	bb_stack.push(start);
++  vec<edge, va_gc>* succ = start->succs;
++  for (size_t i = 0; i < succ->length(); i++) {
++    basic_block bb_s = (*succ)[i]->dest;
++    if (bb_s == end) {
++      // bb_stack.push(end);
++      int sum_cycle = 0;
++      for (int k = 0; k < bb_stack.top + 1; k++) {
++        sum_cycle += bb_cycle[bb_stack.stack[k]->index][j];
++      }
++      sum_cycle += bb_cycle[bb_s->index][j];
++      max_cycle[j] = max_cycle[j] > sum_cycle ? max_cycle[j] : sum_cycle;
++      bb_stack.pop();
++      bb_visit[start->index] = 0;
++      return true;
++    }
++		if (!bb_visit[bb_s->index]) {
++			if (!timing_between_bb(bb_s, end, max_cycle, j)) {
++        return false;
++      }
++		} else {
++      return false;
++    }
++  }
++  bb_stack.pop();
++  bb_visit[start->index] = 0;
++  return true;
++}
++
++// calculate all timing of a basic block, and record info about mt&fd&call instruction
++static bool scan_bb_timing() {
++  basic_block bb;
++  if (n_basic_blocks_for_fn(cfun) + 10 > BB_MAX_NUM) {
++    error_at(INSN_LOCATION(BB_HEAD(bb)), "Max basic block num exceed.\n");
++    return false;
++  }
++  memset(bb_cycle, 0, sizeof(int) * (n_basic_blocks_for_fn(cfun) + 10));
++  memset(bb_has_call, 0, sizeof(bool) * (n_basic_blocks_for_fn(cfun) + 10));
++  mt_insn_len = 0;
++  fd_insn_len = 0;
++
++  FOR_EACH_BB_FN (bb, cfun) {
++    if (!timing_between_insn(BB_HEAD(bb), NEXT_INSN (BB_END (bb)), bb_cycle[bb->index], 1, bb)) {
++      return false;
++    }
++  }
++  return true;
++}
++
++// calculate timing between every mt, fd instruction pair, and deal with deadline
++static bool timing_between_mt_fd() {
++  if (mt_insn_len > fd_insn_len) {
++    const_rtx in_rtx = mtfd_insn[mt_insn_len - 1].mt;
++    error_at(INSN_LOCATION(in_rtx), "Use mt instruction without following fd instruction, "
++             "mt and fd instruction should appear in pairs and in program order.\n");
++    return false;
++  }
++  gcc_assert(mt_insn_len == fd_insn_len);
++  // for every mt fd instruction pair
++  printf("[timing_between_mt_fd] mt&fd insn pair num:%d\n", mt_insn_len);
++  for (int i = 0; i < mt_insn_len; i++) {
++    int max_cycle[5] = {0};
++    int actual_time[5] = {0};
++    if (mtfd_insn[i].mt_bb == mtfd_insn[i].fd_bb) {
++      if (!timing_between_insn(mtfd_insn[i].mt, NEXT_INSN (mtfd_insn[i].fd), max_cycle, 0, mtfd_insn[i].mt_bb)) {
++        return false;
++      }
++    } else {
++      memset(bb_visit, 0, sizeof(bool) * (n_basic_blocks_for_fn(cfun) + 10));
++      int cycle_before[5] = {0};
++      int cycle_after[5] = {0};
++
++      bool flag = true;
++      for (int j = 0; j < 5; j++) {
++        if (!timing_between_bb(mtfd_insn[i].mt_bb, mtfd_insn[i].fd_bb, max_cycle, j)) {
++          flag = false;
++          break;
++        }
++      }
++      if (!flag) {
++        warning_at(INSN_LOCATION(mtfd_insn[i].mt), 0, "cycle found between mt and fd, "
++                  "timing info cannot be calculated precisely !");
++        continue;
++      }
++
++      // subtract timing path before mt in mt_bb and after fd in fd_bb
++      bool ret1, ret2;
++      ret1 = timing_between_insn(BB_HEAD(mtfd_insn[i].mt_bb), mtfd_insn[i].mt, cycle_before, 0, mtfd_insn[i].mt_bb);
++      ret2 = timing_between_insn(NEXT_INSN(mtfd_insn[i].fd), NEXT_INSN (BB_END (mtfd_insn[i].fd_bb)), cycle_after, 0, mtfd_insn[i].fd_bb);
++      if (!ret1 || !ret2) {
++        return false;
++      }
++      for (int j = 0; j < 5; j++) {
++        max_cycle[j] -= cycle_before[j] + cycle_after[j];
++      }
++    }
++    // dealwith deadline.
++    actual_time[0] = max_cycle[0] * 10;
++    actual_time[1] = max_cycle[1] * 2 * 10;
++    actual_time[2] = max_cycle[2] * 3 * 10;
++    actual_time[3] = max_cycle[3] * 4 * 10;
++    actual_time[4] = max_cycle[4] * 4 * 10;
++    fprintf(stderr,"[timing_between_mt_fd]For mt(%s:%d) between fd(%s:%d):\n "
++           "\traw timing info(cycle): %3d   %3d   %3d   %3d   %3d\n"
++           "\tactual timing info(ns): %3d   %3d   %3d   %3d >=%3d\n"
++           "\tdeadline: %d\n", 
++          insn_file (mtfd_insn[i].mt), insn_line (mtfd_insn[i].mt),
++          insn_file (mtfd_insn[i].fd), insn_line (mtfd_insn[i].fd),
++          max_cycle[0], max_cycle[1], max_cycle[2], max_cycle[3], max_cycle[4],
++          actual_time[0], actual_time[1], actual_time[2], actual_time[3], actual_time[4],
++          mtfd_insn[i].deadline);
++    // Detect schedule frequency(1, 1/2, 1/3, 1/4) 
++    bool meet_ddl[4];
++    bool meet_all_ddl = true;
++    bool meet_none_ddl = true;
++    for (int j = 0; j < 4; j++) {
++      meet_ddl[j] = mtfd_insn[i].deadline >= actual_time[j];
++      meet_all_ddl = meet_all_ddl && meet_ddl[j];
++      meet_none_ddl = meet_none_ddl && !meet_ddl[j];
++    }
++    if (meet_none_ddl) {
++      error_at(INSN_LOCATION(mtfd_insn[i].fd), "Deadline will be missed in all(1, 1/2, 1/3, 1/4) schedule frequency! Plz make a more relax deadline.\n");
++      return false;
++    }
++    char buf[32] = "";
++    if (!meet_ddl[0]) strcat(buf, "1");
++    if (!meet_ddl[1]) strlen(buf) == 0 ? strcat(buf, "1/2") : strcat(buf, ",1/2");
++    if (!meet_ddl[2]) strlen(buf) == 0 ? strcat(buf, "1/3") : strcat(buf, ",1/3");
++    if (!meet_ddl[3]) strlen(buf) == 0 ? strcat(buf, "1/4") : strcat(buf, ",1/4");
++    if (!meet_all_ddl) {
++      warning_at(INSN_LOCATION(mtfd_insn[i].fd), 0, 
++            "Deadline will be missed at schedule frequency %s! \n", buf);
++    } else {
++      inform(INSN_LOCATION(mtfd_insn[i].fd), "Deadline will be met in all(1, 1/2, 1/3, 1/4) schedule frequency.\n");
++    }
++  }
++  return true;
++}
++
++static unsigned int
++pass_mtfd_excute (void) {
++  // printf("[pass_mtfd] enter excuted.\n");
++  basic_block bb;
++  init_hash_table();
++
++  for (rv32i_tmpl_hasher_type::iterator iter = tmpl_table.begin ();
++        iter != tmpl_table.end ();
++        ++iter)
++    printf("[insn tmpl] insn:%p tmpl:%s\n", (*iter).insn, (*iter).tmpl);
++
++  if (!scan_bb_timing()) {
++    destroy_hash_table();
++    return 0;
++  }
++
++  FOR_EACH_BB_FN (bb, cfun) {
++    printf("basic block %3d: cycle[0]=%d\n", bb->index, bb_cycle[bb->index][0]);
++    printf("                 cycle[1]=%d\n", bb_cycle[bb->index][1]);
++    printf("                 cycle[2]=%d\n", bb_cycle[bb->index][2]);
++    printf("                 cycle[3]=%d\n", bb_cycle[bb->index][3]);
++    printf("                 cycle[4]=%d\n", bb_cycle[bb->index][4]);
++    printf("\n");
++  }
++
++  timing_between_mt_fd();
++
++  destroy_hash_table();
++  return 0;
++}
++
++static bool
++pass_mtfd_gate (void) {
++    // printf("[pass_mtfd] gated.\n");
++    return 1;
++}
++
++namespace {
++
++const pass_data pass_data_mtfd =
++{
++  RTL_PASS, /* type */
++  "mtfd", /* name */
++  OPTGROUP_NONE, /* optinfo_flags */
++  true, /* has_gate */
++  true, /* has_execute */
++  TV_NONE, /* tv_id */
++  0, /* properties_required */
++  0, /* properties_provided */
++  0, /* properties_destroyed */
++  0, /* todo_flags_start */
++  0, /* todo_flags_finish */
++};
++
++class pass_mtfd : public rtl_opt_pass
++{
++public:
++  pass_mtfd (gcc::context *ctxt)
++    : rtl_opt_pass (pass_data_mtfd, ctxt)
++  {}
++
++  /* opt_pass methods: */
++  bool gate () { return pass_mtfd_gate(); }
++  unsigned int execute () { return pass_mtfd_excute (); }
++
++}; // class pass_mtfd
++
++} // anon namespace
++
++rtl_opt_pass *
++make_pass_mtfd (gcc::context *ctxt)
++{
++  return new pass_mtfd (ctxt);
++}
+\ No newline at end of file
+diff --git a/gcc/passes.def b/gcc/passes.def
+index 572dbd9..7bd75e5 100644
+--- a/gcc/passes.def
++++ b/gcc/passes.def
+@@ -314,7 +314,7 @@ along with GCC; see the file COPYING3.  If not see
+   NEXT_PASS (pass_nrv);
+   NEXT_PASS (pass_cleanup_cfg_post_optimizing);
+   NEXT_PASS (pass_warn_function_noreturn);
+-   NEXT_PASS (pass_mtfd_va);
++//   NEXT_PASS (pass_mtfd_va);
+ 
+   NEXT_PASS (pass_expand);
+ 
+diff --git a/gcc/tree-pass.h b/gcc/tree-pass.h
+index 78d1480..fc4a34a 100644
+--- a/gcc/tree-pass.h
++++ b/gcc/tree-pass.h
+@@ -587,7 +587,7 @@ extern gimple_opt_pass *make_pass_update_address_taken (gcc::context *ctxt);
+ extern gimple_opt_pass *make_pass_convert_switch (gcc::context *ctxt);
+ 
+ extern rtl_opt_pass * make_pass_mtfd (gcc::context *ctxt);
+-extern gimple_opt_pass * make_pass_mtfd_va (gcc::context *ctxt);
++// extern gimple_opt_pass * make_pass_mtfd_va (gcc::context *ctxt);
+ 
+ /* Current optimization pass.  */
+ extern opt_pass *current_pass;
+-- 
+2.7.4
+

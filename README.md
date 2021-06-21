@@ -4,7 +4,7 @@ FlexPRET OS is a lightweight rtos implementation based on [FlexPRET](https://git
 
 Before getting started, you may refer to the depository of [FlexPRET](https://github.com/pretis/flexpret) to know what FlexPRET is.
 
-FlexPRET OS is based on [this commit](https://github.com/pretis/flexpret/commit/446635af19f2ba54444da54afa49cba1a1c6d28d) of FlexPRET, which is a chisel2 version.
+FlexPRET OS is based on [this commit](https://github.com/pretis/flexpret/commit/446635af19f2ba54444da54afa49cba1a1c6d28d) of FlexPRET, which is a chisel2 version. Development enveronment is based on docker.
 
 The most API of FlexPRET OS refers to [CMSIS RTOS v2](https://www.keil.com/pack/doc/cmsis/RTOS2/html/index.html).
 
